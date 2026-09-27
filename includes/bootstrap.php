@@ -21,6 +21,10 @@ function setup_stop(string $title, string $detail): never
     exit;
 }
 
+if (PHP_SAPI !== 'cli' && realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) !== realpath(ROOT . '/index.php')) {
+    header('X-Robots-Tag: noindex, nofollow');
+}
+
 if (!is_file(ROOT . '/includes/config.php')) {
     setup_stop('Site update in progress', 'The website files are still being uploaded. Please try again in a few minutes.');
 }

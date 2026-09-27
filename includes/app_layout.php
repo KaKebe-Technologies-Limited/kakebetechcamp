@@ -16,7 +16,9 @@ function app_header(string $title, string $base = '', string $active = ''): void
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title><?= e($title) ?> · Kakebe Tech Camp 2026</title>
+  <link rel="icon" href="<?= $base ?>favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="<?= $base ?>assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="<?= $base ?>apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
@@ -29,7 +31,7 @@ function app_header(string $title, string $base = '', string $active = ''): void
       <a href="<?= $base ?>./"><i class="fa-solid fa-house"></i><span>Website</span></a>
       <a href="<?= $base ?>./#faq"><i class="fa-regular fa-circle-question"></i><span>FAQ</span></a>
     </nav>
-    <a href="<?= $base ?>./" class="app-logo"><img src="<?= $base ?>assets/img/techcamp-logo.webp" alt="Kakebe Tech Camp 2026"></a>
+    <a href="<?= $base ?>./" class="app-logo"><img src="<?= $base ?>assets/img/techcamp-logo-560.webp" alt="Kakebe Tech Camp 2026" width="560" height="280"></a>
     <nav class="app-nav right">
       <?php if ($p): ?>
         <a href="<?= $base ?>portal/" class="<?= $active === 'portal' ? 'active' : '' ?>"><i class="fa-solid fa-user"></i><span>My portal</span></a>

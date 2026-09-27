@@ -1,0 +1,12 @@
+# Kakebe Tech Camp 2026 — https://kakebetechcamp.com
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /includes/
+Disallow: /storage/
+Disallow: /cron/
+Disallow: /database/
+Disallow: /*?verify=
+
+Sitemap: https://kakebetechcamp.com/sitemap.xml

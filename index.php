@@ -151,16 +151,73 @@ $contacts = [
     ['Oscar Jerome Okello', 'Operations Lead', '+256 707 711 682'],
 ];
 
-$eventLd = [
-    '@context' => 'https://schema.org', '@type' => 'Event', 'name' => 'Kakebe Tech Camp 2026',
-    'startDate' => $c['start_date'], 'endDate' => $c['end_date'],
-    'eventStatus' => 'https://schema.org/EventScheduled', 'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
-    'location' => ['@type' => 'Place', 'name' => 'Kitgum (Residential Camp)', 'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Kitgum', 'addressCountry' => 'UG']],
-    'image' => [base_url('assets/img/techcamp-logo-pdf.jpg')],
-    'description' => 'A 10-day residential tech camp for youth aged 14–30 in Northern Uganda: AI & software development, content creation, entrepreneurship, video gaming, robotics and digital marketing.',
-    'offers' => ['@type' => 'Offer', 'price' => (string) $base, 'priceCurrency' => 'UGX', 'url' => base_url('#register'), 'availability' => 'https://schema.org/InStock'],
-    'organizer' => ['@type' => 'Organization', 'name' => 'Kakebe Technologies Limited', 'url' => $website ?: base_url()],
-];
+// ---- SEO: one canonical address, search snippet text and structured data (schema.org) ----
+$siteUrl   = base_url('/');
+$pageTitle = 'Kakebe Tech Camp 2026 – Youth Tech Camp in Kitgum, Uganda';
+$pageDesc  = 'A 10-day residential tech camp in Kitgum, Northern Uganda (14–23 Dec 2026) for ages 14–30: AI, coding, robotics, gaming, content creation & more.';
+$shareDesc = '10 days of AI, software, content creation, entrepreneurship, gaming & robotics in Kitgum. ' . $c['dates'] . '. Ages 14–30.';
+$shareImg  = base_url('assets/img/techcamp-logo-pdf.jpg');
+$private   = array_intersect_key($_GET, array_flip(['verify', 'continue', 'restart'])); // personal links never go in search results
+$robots    = $private ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+$orgId     = $siteUrl . '#organization';
+$eventId   = $siteUrl . '#event';
+$supportTel = substr(tel_link($phone), 4);
+
+$jsonLd = ['@context' => 'https://schema.org', '@graph' => [
+    array_filter([
+        '@type' => 'Organization', '@id' => $orgId,
+        'name' => 'Kakebe Technologies Limited', 'alternateName' => 'Kakebe Ecosystem',
+        'url' => $website ?: $siteUrl,
+        'logo' => ['@type' => 'ImageObject', 'url' => base_url('assets/img/icons/icon-512.png'), 'width' => 512, 'height' => 512],
+        'email' => $email ?: null,
+        'telephone' => $supportTel,
+        'sameAs' => array_values(array_unique(array_filter(array_merge([$website], array_column($socials, 'url'))))) ?: null,
+        'contactPoint' => array_filter(['@type' => 'ContactPoint', 'contactType' => 'customer support', 'telephone' => $supportTel, 'email' => $email ?: null, 'areaServed' => 'UG', 'availableLanguage' => ['English']]),
+    ]),
+    [
+        '@type' => 'WebSite', '@id' => $siteUrl . '#website', 'url' => $siteUrl,
+        'name' => 'Kakebe Tech Camp 2026', 'alternateName' => ['Kakebe Tech Camp', 'KTC 2026'],
+        'inLanguage' => 'en', 'publisher' => ['@id' => $orgId],
+    ],
+    [
+        '@type' => 'WebPage', '@id' => $siteUrl . '#webpage', 'url' => $siteUrl,
+        'name' => $pageTitle, 'description' => $pageDesc, 'inLanguage' => 'en',
+        'isPartOf' => ['@id' => $siteUrl . '#website'], 'about' => ['@id' => $eventId],
+        'primaryImageOfPage' => ['@type' => 'ImageObject', 'url' => $shareImg, 'width' => 1200, 'height' => 630],
+    ],
+    [
+        '@type' => 'EducationEvent', '@id' => $eventId,
+        'name' => 'Kakebe Tech Camp 2026',
+        'description' => 'A 10-day residential tech camp in Kitgum for young people aged 14–30: AI & software development, content creation, entrepreneurship & innovation, video gaming, robotics & automation and digital marketing — with free mentorship and the Digital Bridge Internship (' . $c['mentorship'] . ').',
+        'startDate' => $c['start_date'], 'endDate' => $c['end_date'],
+        'eventStatus' => 'https://schema.org/EventScheduled',
+        'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+        'location' => [
+            '@type' => 'Place', 'name' => 'Kakebe Tech Camp, Kitgum',
+            'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Kitgum', 'addressRegion' => 'Northern Region', 'addressCountry' => 'UG'],
+        ],
+        'image' => [$shareImg, base_url('assets/img/robotics.jpg'), base_url('assets/img/graduation.jpg')],
+        'organizer' => ['@id' => $orgId],
+        'performer' => ['@type' => 'PerformingGroup', 'name' => 'Kakebe mentors and facilitators'],
+        'offers' => [
+            '@type' => 'Offer', 'name' => 'Camp package (camp fee + sports jersey)',
+            'price' => (string) $base, 'priceCurrency' => 'UGX',
+            'url' => $siteUrl . '#register',
+            'availability' => $regOpen ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+        ],
+        'maximumAttendeeCapacity' => 300,
+        'typicalAgeRange' => '14-30',
+        'audience' => ['@type' => 'PeopleAudience', 'suggestedMinAge' => 14, 'suggestedMaxAge' => 30],
+        'educationalLevel' => 'Beginner',
+        'teaches' => array_column($tracks, 1),
+        'inLanguage' => 'en',
+        'isAccessibleForFree' => false,
+    ],
+    [
+        '@type' => 'FAQPage', '@id' => $siteUrl . '#faq',
+        'mainEntity' => array_map(fn($q) => ['@type' => 'Question', 'name' => $q[0], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $q[1]]], $faqs),
+    ],
+]];
 
 $navLeft = [['#home', 'Home'], ['#about', 'About'], ['#programs', 'Programs'], ['#techcamp', 'Tech Camp'], ['#sponsor', 'Sponsor']];
 $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#contact', 'Contact']];
@@ -170,33 +227,51 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kakebe Tech Camp 2026 · Learn. Build. Innovate. | Northern Uganda</title>
-  <meta name="description" content="Kakebe Tech Camp 2026 — a 10-day residential tech camp in Kitgum (<?= e($c['dates']) ?>) for youth aged 14–30, with free mentorship and internships. AI, content creation, entrepreneurship, gaming, robotics & digital marketing.">
+  <title><?= e($pageTitle) ?></title>
+  <meta name="description" content="<?= e($pageDesc) ?>">
+  <meta name="robots" content="<?= $robots ?>">
+  <link rel="canonical" href="<?= e($siteUrl) ?>">
+  <meta name="author" content="Kakebe Technologies Limited">
   <meta name="theme-color" content="#E11D2A">
   <script>document.documentElement.classList.add('js')</script>
+
+  <!-- Social sharing (WhatsApp, Facebook, LinkedIn, X) -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Kakebe Tech Camp 2026 — Let's Gather in Northern Uganda">
-  <meta property="og:description" content="10 days of AI, software, content creation, entrepreneurship, gaming & robotics in Kitgum. <?= e($c['dates']) ?>. Ages 14–30.">
+  <meta property="og:locale" content="en_GB">
   <meta property="og:site_name" content="Kakebe Tech Camp 2026">
-  <meta property="og:image" content="<?= e(base_url('assets/img/techcamp-logo-pdf.jpg')) ?>">
-  <meta property="og:image:secure_url" content="<?= e(base_url('assets/img/techcamp-logo-pdf.jpg')) ?>">
+  <meta property="og:title" content="Kakebe Tech Camp 2026 — Let's Gather in Northern Uganda">
+  <meta property="og:description" content="<?= e($shareDesc) ?>">
+  <meta property="og:url" content="<?= e($siteUrl) ?>">
+  <meta property="og:image" content="<?= e($shareImg) ?>">
+  <meta property="og:image:secure_url" content="<?= e($shareImg) ?>">
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Kakebe Tech Camp 2026 — Let's Gather in Northern Uganda. Learn. Build. Innovate.">
-  <meta property="og:url" content="<?= e(base_url()) ?>">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Kakebe Tech Camp 2026 — Let's Gather in Northern Uganda">
-  <meta name="twitter:description" content="10 days of AI, software, content creation, entrepreneurship, gaming & robotics in Kitgum. <?= e($c['dates']) ?>. Ages 14–30.">
-  <meta name="twitter:image" content="<?= e(base_url('assets/img/techcamp-logo-pdf.jpg')) ?>">
-  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <meta name="twitter:description" content="<?= e($shareDesc) ?>">
+  <meta name="twitter:image" content="<?= e($shareImg) ?>">
+  <meta name="twitter:image:alt" content="Kakebe Tech Camp 2026 logo">
+
+  <!-- Icons -->
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/img/icons/favicon-96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/img/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/assets/css/style.css') ?>">
   <link rel="stylesheet" href="assets/css/site-v2.css?v=<?= filemtime(__DIR__ . '/assets/css/site-v2.css') ?>">
-  <script type="application/ld+json"><?= json_encode($eventLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?></script>
+  <!-- Icon font loads without blocking the first paint -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" crossorigin="anonymous" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer"></noscript>
+  <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 </head>
 <body>
 
@@ -227,7 +302,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <ul><?php foreach ($navLeft as [$href, $label]): ?><li><a href="<?= $href ?>" data-nav><?= $label ?></a></li><?php endforeach; ?></ul>
     </nav>
     <a href="#home" class="brand-center" aria-label="Kakebe Tech Camp 2026 — home">
-      <img src="assets/img/techcamp-logo.webp" alt="Kakebe Tech Camp 2026" width="1774" height="887">
+      <img src="assets/img/techcamp-logo-560.webp" srcset="assets/img/techcamp-logo-560.webp 560w, assets/img/techcamp-logo.webp 1774w" sizes="272px" alt="Kakebe Tech Camp 2026 logo" width="560" height="280" fetchpriority="high">
     </a>
     <div class="nav-side right">
       <ul><?php foreach ($navRight as [$href, $label]): ?><li><a href="<?= $href ?>" data-nav><?= $label ?></a></li><?php endforeach; ?></ul>
@@ -256,7 +331,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container hero-grid">
     <div class="hero-content">
       <p class="script reveal">Let's gather in Northern Uganda</p>
-      <h1 class="hero-title reveal">Learn. Build. <span>Innovate.</span></h1>
+      <h1 class="hero-title reveal"><span class="sr-only">Kakebe Tech Camp 2026, Kitgum: </span>Learn. Build. <span>Innovate.</span></h1>
       <p class="hero-lead reveal">A 10-day residential tech camp in <strong>Kitgum</strong> for young people aged <strong>14–30</strong> — AI &amp; software, content creation, entrepreneurship, gaming, robotics and digital marketing, plus <strong>free mentorship &amp; internships</strong> from October.</p>
       <div class="hero-cta reveal">
         <a href="#register" class="btn btn-primary btn-lg">Register Now <i class="fa-solid fa-arrow-right"></i></a>
@@ -276,8 +351,8 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
     <div class="hero-visual reveal">
       <div class="hero-blob"></div>
       <div class="hero-ring"></div>
-      <figure class="hero-photo main"><img src="assets/img/robotics.jpg" alt="Participants assembling a robot during a Kakebe hands-on session" width="1600" height="1200" fetchpriority="high"></figure>
-      <figure class="hero-photo small"><img src="assets/img/smiles-sm.jpg" alt="Smiling young women at a Kakebe event" width="720" height="480"></figure>
+      <figure class="hero-photo main"><img src="assets/img/robotics.jpg" srcset="assets/img/robotics-sm.jpg 720w, assets/img/robotics.jpg 1600w" sizes="(max-width: 900px) 70vw, 420px" alt="Young people assembling a robot during a hands-on Kakebe Tech Camp robotics session" width="1600" height="1200" fetchpriority="high"></figure>
+      <figure class="hero-photo small"><img src="assets/img/smiles-sm.jpg" alt="Smiling young women at a Kakebe event in Northern Uganda" width="720" height="480" decoding="async"></figure>
       <div class="fee-badge"><span>Only</span><b>300<small>SEATS</small></b><em>Kitgum 2026</em></div>
       <div class="float-card fc-1"><div><b>10 Days</b><small>14 – 23 December</small></div></div>
       <div class="float-card fc-2"><div><b>Ages 14 – 30</b><small>300 young innovators</small></div></div>
@@ -774,7 +849,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <li><div><b>Mentorship &amp; internship</b><p>Two months of guidance from industry professionals.</p></div></li>
         <li><div><b>Instant PDF receipt</b><p>Transparent receipt emailed as soon as you give.</p></div></li>
       </ul>
-      <figure class="sponsor-photo"><img src="assets/img/graduation-sm.jpg" alt="Tech Camp graduates celebrating" loading="lazy"></figure>
+      <figure class="sponsor-photo"><img src="assets/img/graduation-sm.jpg" alt="Kakebe Tech Camp graduates celebrating" loading="lazy" decoding="async" width="720" height="408"></figure>
     </div>
 
     <div class="sponsor-card reveal">
@@ -913,7 +988,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           <a href="<?= e(tel_link($phone)) ?>" class="cta-phone"><i class="fa-solid fa-phone-volume"></i> <?= e($phone) ?></a>
         </div>
       </div>
-      <div class="cta-media"><img src="assets/img/building-group-sm.jpg" alt="" loading="lazy" width="720" height="405"></div>
+      <div class="cta-media"><img src="assets/img/building-group-sm.jpg" alt="" loading="lazy" decoding="async" width="720" height="405"></div>
     </div>
   </div>
 </section>
@@ -923,7 +998,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <footer class="footer">
   <div class="container footer-grid">
     <div class="f-brand">
-      <img src="assets/img/techcamp-logo-email.png" alt="Kakebe Tech Camp 2026" class="f-logo" width="600" height="300">
+      <img src="assets/img/techcamp-logo-560.webp" alt="Kakebe Tech Camp 2026 — Let's Gather in Northern Uganda" class="f-logo" width="560" height="280" loading="lazy" decoding="async">
       <p>The Kakebe Ecosystem builds innovators, problem solvers and nation builders from Northern Uganda through mentorship, internships and the national Kakebe Tech Camp.</p>
       <?php if ($socials): ?><div class="f-socials"><?php foreach ($socials as $s): ?><a href="<?= e($s['url']) ?>" target="_blank" rel="noopener" aria-label="<?= e($s['label']) ?>"><i class="fa-brands <?= e($s['icon']) ?>"></i></a><?php endforeach; ?></div><?php endif; ?>
     </div>
