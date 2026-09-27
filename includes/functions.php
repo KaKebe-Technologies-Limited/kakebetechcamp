@@ -321,7 +321,7 @@ function new_order_amounts(bool $park): array
 
 function balance(array $r): int
 {
-    if (($r['payment_status'] ?? '') === 'waived') {
+    if (is_covered($r)) {
         return 0;
     }
     return max(0, (int) $r['total_amount'] - (int) $r['amount_paid']);
@@ -345,7 +345,7 @@ function min_payment(array $r): int
 function paid_percent(array $r): int
 {
     $total = max(1, (int) $r['total_amount']);
-    return ($r['payment_status'] ?? '') === 'waived' ? 100 : (int) min(100, floor((int) $r['amount_paid'] / $total * 100));
+    return is_covered($r) ? 100 : (int) min(100, floor((int) $r['amount_paid'] / $total * 100));
 }
 
 function interests(): array
@@ -378,6 +378,7 @@ function jersey_sizes(): array
 function statuses(): array
 {
     return [
+        'review'     => 'Awaiting approval',
         'pending'    => 'Registered',
         'booked'     => 'Slot booked',
         'confirmed'  => 'Confirmed',
@@ -388,7 +389,7 @@ function statuses(): array
 
 function payment_statuses(): array
 {
-    return ['unpaid' => 'Unpaid', 'partial' => 'Part paid', 'paid' => 'Paid in full', 'waived' => 'Waived'];
+    return ['unpaid' => 'Unpaid', 'partial' => 'Part paid', 'paid' => 'Paid in full', 'sponsored' => 'Sponsored', 'waived' => 'Waived'];
 }
 
 function payment_methods(): array
@@ -556,4 +557,58 @@ function current_participant(): ?array
         $p = find_registration((int) $_SESSION['participant_id']);
     }
     return $p;
+}
+
+/* ------------------------------------------------------------------
+ * Sponsorship & participant accounts
+ * ------------------------------------------------------------------ */
+
+/** Fees fully covered without payment (approved sponsorship or admin waiver). */
+function is_covered(array $r): bool
+{
+    return in_array($r['payment_status'] ?? '', ['waived', 'sponsored'], true);
+}
+
+function is_sponsored(array $r): bool
+{
+    return ($r['funding'] ?? 'self') === 'sponsored';
+}
+
+/** Sponsors participants can choose from when registering. */
+function active_sponsors(): array
+{
+    return db()->query('SELECT id, name, organization FROM sponsors WHERE is_active = 1 ORDER BY name')->fetchAll();
+}
+
+function sponsor_label(array $s): string
+{
+    return $s['name'] . (!empty($s['organization']) && $s['organization'] !== $s['name'] ? ' — ' . $s['organization'] : '');
+}
+
+function find_sponsor(int $id): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM sponsors WHERE id = ?');
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/** Create a single-use password reset / setup link for a participant (valid 60 minutes). */
+function password_reset_link(array $r, int $minutes = 60): string
+{
+    $token = bin2hex(random_bytes(32));
+    db()->prepare('INSERT INTO password_resets (registration_id, token_hash, expires_at, ip, created_at) VALUES (?, ?, ?, ?, ?)')
+        ->execute([$r['id'], hash('sha256', $token), date('Y-m-d H:i:s', time() + $minutes * 60), client_ip(), now()]);
+    return base_url('portal/reset.php?token=' . $token);
+}
+
+/** Returns the registration for a valid, unused reset token, or null. */
+function find_reset(string $token): ?array
+{
+    if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+        return null;
+    }
+    $stmt = db()->prepare('SELECT pr.id AS reset_id, r.* FROM password_resets pr JOIN registrations r ON r.id = pr.registration_id
+        WHERE pr.token_hash = ? AND pr.used_at IS NULL AND pr.expires_at > ? LIMIT 1');
+    $stmt->execute([hash('sha256', $token), now()]);
+    return $stmt->fetch() ?: null;
 }

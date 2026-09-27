@@ -502,23 +502,22 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
     <aside class="register-info reveal">
       <span class="chip light"><i class="fa-solid fa-pen-to-square"></i> Registration</span>
       <h2>Secure your place at <span>Kakebe Tech Camp</span></h2>
-      <p>Register in 2 minutes, then pay now or later. Your registration also enrols you free in the Mentorship Program and Digital Bridge Internship.</p>
+      <p>Registration takes about 2 minutes and also enrols you free in the Mentorship Program and Digital Bridge Internship.</p>
       <ol class="steps">
         <li><span>1</span><div><b>Fill in your details</b><small>Tell us about yourself and pick your learning tracks.</small></div></li>
         <li><span>2</span><div><b>Confirm your email</b><small>Enter the 6-digit code we send to your inbox.</small></div></li>
         <li><span>3</span><div><b>Secure your place</b><small>Complete your camp package now or later — instalments welcome.</small></div></li>
         <li><span>4</span><div><b>Get your ticket</b><small>Your camp ticket arrives by email, ready for check-in.</small></div></li>
       </ol>
-      <div class="summary-card" id="orderSummary" data-camp="<?= $f['camp'] ?>" data-jersey="<?= $f['jersey'] ?>" data-park="<?= $f['park'] ?>" data-pct="<?= $f['deposit_pct'] ?>">
-        <h4><i class="fa-solid fa-receipt"></i> Your camp package</h4>
+      <div class="summary-card perks">
+        <h4><i class="fa-solid fa-gift"></i> What you get</h4>
         <ul>
-          <li><span>Camp fee</span><b><?= e(format_ugx($f['camp'])) ?></b></li>
-          <li><span>Sports jersey vest</span><b><?= e(format_ugx($f['jersey'])) ?></b></li>
-          <li><span>Camp shirt</span><b class="free">FREE</b></li>
-          <li class="js-park-row" hidden><span><?= e($f['park_name']) ?> park visit</span><b><?= e(format_ugx($f['park'])) ?></b></li>
+          <li><span><i class="fa-solid fa-campground"></i> 10 days of residential training in Kitgum</span></li>
+          <li><span><i class="fa-solid fa-utensils"></i> Accommodation, meals &amp; camp materials</span></li>
+          <li><span><i class="fa-solid fa-shirt"></i> Sports jersey &amp; a free camp shirt</span></li>
+          <li><span><i class="fa-solid fa-people-arrows"></i> Free mentorship &amp; internship (Oct – Nov)</span></li>
+          <li><span><i class="fa-solid fa-certificate"></i> Certificate &amp; Demo Day</span></li>
         </ul>
-        <div class="sum-total"><span>Total</span><b class="js-total"><?= e(format_ugx($base)) ?></b></div>
-        <div class="sum-dep"><i class="fa-solid fa-bookmark"></i> Book your slot with <b class="js-deposit"><?= e(format_ugx((int) ceil($base * $f['deposit_pct'] / 100))) ?></b></div>
       </div>
       <div class="help-box">
         <i class="fa-brands fa-whatsapp"></i>
@@ -539,7 +538,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
         <div class="form-head">
           <h3>Tech Camp registration</h3>
-          <p>Fields marked <span class="req">*</span> are required. Already registered? <a href="pay.php">Pay here</a>.</p>
+          <p>Fields marked <span class="req">*</span> are required. Already registered? <a href="pay.php">View your registration</a>.</p>
         </div>
 
         <div class="form-section"><span>1</span> Your details</div>
@@ -603,7 +602,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         </div>
 
         <div class="form-section"><span>3</span> Camp package</div>
-        <div class="pkg-options">
+        <div class="pkg-options" id="orderSummary" data-camp="<?= $f['camp'] ?>" data-jersey="<?= $f['jersey'] ?>" data-park="<?= $f['park'] ?>" data-pct="<?= $f['deposit_pct'] ?>">
           <div class="pkg-opt locked"><i class="fa-solid fa-campground"></i><div><b>Camp fee</b><small>Training, accommodation &amp; meals · required</small></div><strong><?= e(format_ugx($f['camp'])) ?></strong></div>
           <div class="pkg-opt locked"><i class="fa-solid fa-person-running"></i><div><b>Sports jersey vest</b><small>Required for all participants</small></div><strong><?= e(format_ugx($f['jersey'])) ?></strong></div>
           <div class="pkg-opt locked free"><i class="fa-solid fa-shirt"></i><div><b>Camp shirt</b><small>Included for everyone</small></div><strong>FREE</strong></div>
@@ -615,7 +614,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
             <div class="input-icon"><i class="fa-solid fa-shirt"></i><select id="f_jersey" name="jersey_size" required><option value="">Select size…</option><?php foreach (jersey_sizes() as $s): ?><option><?= $s ?></option><?php endforeach; ?></select></div>
             <span class="err" data-err="jersey_size"></span>
           </div>
-          <div class="field pkg-total-field"><label>Package total</label><div class="pkg-total"><b class="js-total"><?= e(format_ugx($base)) ?></b><small>Book with <span class="js-deposit"><?= e(format_ugx((int) ceil($base * $f['deposit_pct'] / 100))) ?></span></small></div></div>
+          <div class="field pkg-total-field"><label>Package total</label><div class="pkg-total"><b class="js-total"><?= e(format_ugx($base)) ?></b><small>Instalments welcome</small></div></div>
         </div>
         <label class="check mentor-check">
           <input type="checkbox" name="mentorship" value="1" checked>

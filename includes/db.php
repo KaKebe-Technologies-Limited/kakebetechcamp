@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function db(): PDO
 {
@@ -58,8 +58,22 @@ function migrate(PDO $pdo): void
     if ($version === 1) {
         migrate_v1_to_v2($pdo);
     }
-    if ($version >= 1 && $version < 3 && !column_exists($pdo, 'registrations', 'email_verified')) {
-        $pdo->exec("ALTER TABLE registrations ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER email");
+    if ($version >= 1) {
+        // Columns added after the first release (v3: email verification, v4: passwords & sponsorship).
+        $add = [
+            'email_verified'     => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER email',
+            'password_hash'      => 'VARCHAR(255) NULL AFTER email_verified',
+            'funding'            => "VARCHAR(20) NOT NULL DEFAULT 'self' AFTER total_amount",
+            'sponsor_id'         => 'INT UNSIGNED NULL AFTER funding',
+            'sponsor_name'       => 'VARCHAR(150) NULL AFTER sponsor_id',
+            'sponsor_decided_at' => 'DATETIME NULL AFTER sponsor_name',
+            'sponsor_note'       => 'VARCHAR(255) NULL AFTER sponsor_decided_at',
+        ];
+        foreach ($add as $col => $def) {
+            if (!column_exists($pdo, 'registrations', $col)) {
+                $pdo->exec("ALTER TABLE registrations ADD COLUMN `$col` $def");
+            }
+        }
     }
 
     $defaults = default_settings();
@@ -141,6 +155,7 @@ function schema_statements(): array
             gender         VARCHAR(30) NULL,
             email          VARCHAR(190) NOT NULL,
             email_verified TINYINT(1) NOT NULL DEFAULT 0,
+            password_hash  VARCHAR(255) NULL,
             phone          VARCHAR(40) NOT NULL,
             district       VARCHAR(100) NOT NULL,
             country        VARCHAR(100) NOT NULL,
@@ -152,6 +167,11 @@ function schema_statements(): array
             jersey_amount  INT UNSIGNED NOT NULL DEFAULT 0,
             park_amount    INT UNSIGNED NOT NULL DEFAULT 0,
             total_amount   INT UNSIGNED NOT NULL DEFAULT 0,
+            funding        VARCHAR(20) NOT NULL DEFAULT 'self',
+            sponsor_id     INT UNSIGNED NULL,
+            sponsor_name   VARCHAR(150) NULL,
+            sponsor_decided_at DATETIME NULL,
+            sponsor_note   VARCHAR(255) NULL,
             source         VARCHAR(40) NOT NULL,
             source_other   VARCHAR(150) NULL,
             referred_by    VARCHAR(150) NULL,
@@ -222,6 +242,33 @@ function schema_statements(): array
             created_at   DATETIME NOT NULL,
             paid_at      DATETIME NULL,
             KEY idx_status (status)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS sponsors (
+            id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name         VARCHAR(150) NOT NULL,
+            organization VARCHAR(150) NULL,
+            email        VARCHAR(190) NULL,
+            phone        VARCHAR(40) NULL,
+            seats        INT UNSIGNED NOT NULL DEFAULT 0,
+            notes        VARCHAR(255) NULL,
+            source       VARCHAR(20) NOT NULL DEFAULT 'admin',
+            donation_id  INT UNSIGNED NULL,
+            is_active    TINYINT(1) NOT NULL DEFAULT 1,
+            created_at   DATETIME NOT NULL,
+            KEY idx_active (is_active)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS password_resets (
+            id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            registration_id INT UNSIGNED NOT NULL,
+            token_hash      CHAR(64) NOT NULL,
+            expires_at      DATETIME NOT NULL,
+            used_at         DATETIME NULL,
+            ip              VARCHAR(45) NULL,
+            created_at      DATETIME NOT NULL,
+            KEY idx_token (token_hash),
+            KEY idx_ip (ip, created_at)
         ) $t",
 
         "CREATE TABLE IF NOT EXISTS team_members (

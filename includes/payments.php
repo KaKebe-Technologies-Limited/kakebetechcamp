@@ -287,10 +287,11 @@ function recompute_registration(int $id): ?array
     $paid = (int) $stmt->fetchColumn();
     $total = (int) $r['total_amount'];
 
-    $pay = $r['payment_status'] === 'waived' ? 'waived' : ($paid >= $total && $total > 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'));
+    $pay = in_array($r['payment_status'], ['waived', 'sponsored'], true) ? $r['payment_status'] : ($paid >= $total && $total > 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'));
     $status = $r['status'];
-    if (!in_array($status, ['waitlisted', 'cancelled'], true)) {
-        if ($pay === 'paid' || $pay === 'waived') {
+    // Sponsored applications stay "awaiting approval" until an admin decides.
+    if (!in_array($status, ['waitlisted', 'cancelled', 'review'], true)) {
+        if (in_array($pay, ['paid', 'waived', 'sponsored'], true)) {
             $status = 'confirmed';
         } elseif ($paid > 0 && $paid * 100 >= $total * fees()['deposit_pct']) {
             $status = 'booked';
@@ -311,6 +312,17 @@ function recompute_donation(int $id): void
     $paid = (int) $stmt->fetchColumn();
     db()->prepare("UPDATE donations SET amount_paid = ?, status = IF(? > 0, 'paid', status), paid_at = IF(? > 0, COALESCE(paid_at, ?), paid_at) WHERE id = ?")
         ->execute([$paid, $paid, $paid, now(), $id]);
+
+    // Website sponsors who paid (and are not anonymous) become selectable when participants register as sponsored.
+    if ($paid > 0) {
+        $d = db()->query('SELECT * FROM donations WHERE id = ' . (int) $id)->fetch();
+        $exists = db()->prepare('SELECT COUNT(*) FROM sponsors WHERE donation_id = ?');
+        $exists->execute([$id]);
+        if ($d && !$d['is_anonymous'] && !(int) $exists->fetchColumn()) {
+            db()->prepare("INSERT INTO sponsors (name, organization, email, phone, seats, source, donation_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, 'website', ?, 1, ?)")
+                ->execute([$d['donor_name'], $d['organization'], $d['email'], $d['phone'], (int) $d['children'], $id, now()]);
+        }
+    }
 }
 
 /** Email the payer a PDF receipt and notify the admin team. */
@@ -373,6 +385,9 @@ function begin_registration_payment(array $r, int $amount, string $method, strin
     }
     if (in_array($r['status'], ['cancelled'], true)) {
         return ['ok' => false, 'message' => 'This registration was cancelled. Please contact us.'];
+    }
+    if ($r['status'] === 'review') {
+        return ['ok' => false, 'message' => 'Your sponsorship is being reviewed — no payment is needed right now. We will email you once it is confirmed.'];
     }
     $min = min_payment($r);
     if ($amount < $min || $amount > $bal) {

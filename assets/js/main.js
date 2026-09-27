@@ -237,7 +237,6 @@
       const total = fees.camp + fees.jersey + (park.checked ? fees.park : 0);
       $$('.js-total').forEach((el) => { el.textContent = money(total); });
       $$('.js-deposit').forEach((el) => { el.textContent = money(Math.ceil(total * fees.pct / 100)); });
-      $('.js-park-row', summary).hidden = !park.checked;
     };
     park.addEventListener('change', updateTotals);
     updateTotals();

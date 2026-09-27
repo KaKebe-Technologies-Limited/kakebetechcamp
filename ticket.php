@@ -12,10 +12,23 @@ if ($isAdmin && isset($_GET['id'])) {
     $r = find_registration((int) $_GET['id']);
 } elseif (isset($_GET['ref']) && is_string($_GET['ref']) && sign_valid('ticket', $_GET['ref'], $_GET['t'] ?? null)) {
     $r = find_registration_by_ref($_GET['ref']);
+} elseif (isset($_GET['me']) && ($p = current_participant())) {
+    $r = $p;
 }
 
-$valid = $r && $r['status'] === 'confirmed' && in_array($r['payment_status'], ['paid', 'waived'], true);
+$valid = $r && $r['status'] === 'confirmed' && in_array($r['payment_status'], ['paid', 'waived', 'sponsored'], true);
 $showTicket = $r && ($valid || $isAdmin);
+
+if ($showTicket && ($_GET['format'] ?? '') === 'pdf') {
+    $pdf = ticket_pdf($r);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: ' . (isset($_GET['download']) ? 'attachment' : 'inline') . '; filename="Kakebe-Tech-Camp-Ticket-' . $r['reference'] . '.pdf"');
+    header('Content-Length: ' . strlen($pdf));
+    header('Cache-Control: private, no-store');
+    echo $pdf;
+    exit;
+}
+$pdfUrl = $r ? (strtok($_SERVER['REQUEST_URI'], '#') . (str_contains($_SERVER['REQUEST_URI'], '?') ? '&' : '?') . 'format=pdf&download=1') : '';
 
 if ($r) {
     $photoUrl = photo_path($r['photo']) ? 'photo.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference']) : null;
@@ -109,7 +122,10 @@ if ($r) {
   <?php if (!$valid): ?><div class="notice"><i class="fa-solid fa-eye"></i> Admin preview — this ticket is not yet valid for the participant (status: <?= e(statuses()[$r['status']] ?? $r['status']) ?>, balance <?= e(format_ugx(balance($r))) ?>).</div><?php endif; ?>
   <div class="toolbar">
     <a class="home" href="./"><i class="fa-solid fa-arrow-left"></i> Kakebe Tech Camp</a>
-    <button class="btn" onclick="window.print()"><i class="fa-solid fa-download"></i> Download / Print (PDF)</button>
+    <span style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a class="btn" href="<?= e($pdfUrl) ?>"><i class="fa-solid fa-file-pdf"></i> Download PDF ticket</a>
+      <button class="btn" style="background:#0F2557;box-shadow:none;" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+    </span>
   </div>
   <article class="ticket">
     <div class="main">

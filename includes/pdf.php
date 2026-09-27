@@ -102,6 +102,24 @@ class SimplePdf
         $this->content .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /Im%d Do Q\n", $w, $h, $x, $this->height - $y - $h, $i);
     }
 
+    /** Draw a JPEG scaled to cover the box (centre-cropped via a clipping path). Returns false if not a JPEG. */
+    public function jpegCover(string $path, float $x, float $y, float $w, float $h): bool
+    {
+        $info = @getimagesize($path);
+        if (!$info || $info[2] !== IMAGETYPE_JPEG) {
+            return false;
+        }
+        $scale = max($w / $info[0], $h / $info[1]);
+        $dw = $info[0] * $scale;
+        $dh = $info[1] * $scale;
+        $i = count($this->images) + 1;
+        $this->images[$i] = ['data' => file_get_contents($path), 'w' => $info[0], 'h' => $info[1], 'cs' => ($info['channels'] ?? 3) === 4 ? 'DeviceCMYK' : 'DeviceRGB'];
+        $py = $this->height - $y - $h;
+        $this->content .= sprintf("q %.2F %.2F %.2F %.2F re W n %.2F 0 0 %.2F %.2F %.2F cm /Im%d Do Q\n",
+            $x, $py, $w, $h, $dw, $dh, $x - ($dw - $w) / 2, $py - ($dh - $h) / 2, $i);
+        return true;
+    }
+
     public function output(): string
     {
         $objects = [];
@@ -295,7 +313,7 @@ function receipt_pdf(array $p): string
         $rows = [
             ['Sponsor', $d['is_anonymous'] ? $d['donor_name'] . ' (listed as anonymous)' : $d['donor_name']],
             ['Organisation', $d['organization'] ?: '—'],
-            ['Children sponsored', $d['children'] ? (string) $d['children'] : 'General support'],
+            ['Innovators sponsored', $d['children'] ? (string) $d['children'] : 'General support'],
             ['Pledged amount', format_ugx($d['amount'], $cur)],
         ];
         foreach ($rows as $i => [$label, $val]) {
@@ -319,6 +337,121 @@ function receipt_pdf(array $p): string
     $pdf->textCenter(297.5, 811, 'Kakebe Technologies Limited  ·  Support / WhatsApp: ' . setting('contact_phone', '0779 712 990') . '  ·  ' . preg_replace('~^https?://~', '', base_url()), 9, true);
     $pdf->fill([196, 205, 234]);
     $pdf->textCenter(297.5, 826, 'This is a system-generated receipt — no signature required.', 8);
+
+    return $pdf->output();
+}
+
+/** Camp ticket as a PDF (landscape card) — available once the participant is confirmed. */
+function ticket_pdf(array $r): string
+{
+    $red = [225, 29, 42];
+    $navy = [15, 37, 87];
+    $ink = [16, 25, 53];
+    $gray = [110, 116, 140];
+    $soft = [246, 248, 252];
+    $W = 842;
+    $H = 440;
+    $pdf = new SimplePdf($W, $H);
+    $confirmed = $r['status'] === 'confirmed';
+
+    $pdf->fill([255, 255, 255]);
+    $pdf->rect(0, 0, $W, $H);
+
+    // Stub (right)
+    $stubX = 612;
+    $pdf->fill($navy);
+    $pdf->rect($stubX, 0, $W - $stubX, $H);
+    $pdf->fill($red);
+    $pdf->rect($stubX, 0, $W - $stubX, 8);
+    $pdf->stroke([214, 219, 232]);
+    $pdf->line($stubX - 1, 24, $stubX - 1, $H - 24, 1.2, true);
+    $cx = $stubX + ($W - $stubX) / 2;
+    $pdf->fill([196, 205, 234]);
+    $pdf->textCenter($cx, 70, 'REFERENCE', 9, true);
+    $pdf->fill([255, 255, 255]);
+    $pdf->textCenter($cx, 100, $r['reference'], 24, true);
+    $pdf->fill($confirmed ? [34, 160, 90] : [214, 139, 20]);
+    $pdf->rect($cx - 70, 130, 140, 30);
+    $pdf->fill([255, 255, 255]);
+    $pdf->textCenter($cx, 150, $confirmed ? 'CONFIRMED' : 'PENDING', 12, true);
+    $pdf->fill([196, 205, 234]);
+    $pdf->textCenter($cx, 205, 'ADMIT ONE', 9, true);
+    $pdf->fill([255, 255, 255]);
+    $pdf->textCenter($cx, 228, camp()['dates_short'], 14, true);
+    $pdf->fill([196, 205, 234]);
+    $pdf->textCenter($cx, 248, 'Kitgum · Residential camp', 9.5);
+    if (is_sponsored($r) && $r['sponsor_name']) {
+        $pdf->fill([196, 205, 234]);
+        $pdf->textCenter($cx, 300, 'SPONSORED BY', 8.5, true);
+        $pdf->fill([255, 255, 255]);
+        $pdf->textCenter($cx, 318, mb_strimwidth($r['sponsor_name'], 0, 30, '…'), 11, true);
+    }
+    $pdf->fill([196, 205, 234]);
+    $pdf->textCenter($cx, 392, 'Present this ticket at check-in', 8.5);
+    $pdf->textCenter($cx, 406, 'Support: ' . setting('contact_phone', '0779 712 990'), 8.5);
+
+    // Main (left)
+    $pdf->jpeg(ROOT . '/assets/img/techcamp-logo-pdf.jpg', 18, 14, 190, 100);
+    $pdf->fill($gray);
+    $pdf->textRight(588, 52, 'PARTICIPANT TICKET', 10, true);
+    $pdf->fill($red);
+    $pdf->textRight(588, 72, 'KAKEBE TECH CAMP 2026', 9, true);
+
+    // Photo
+    $px = 40;
+    $py = 130;
+    $pw = 118;
+    $ph = 140;
+    $pdf->fill($soft);
+    $pdf->rect($px - 4, $py - 4, $pw + 8, $ph + 8);
+    $photo = photo_path($r['photo'] ?? null);
+    if (!$photo || !$pdf->jpegCover($photo, $px, $py, $pw, $ph)) {
+        $pdf->fill($red);
+        $pdf->rect($px, $py, $pw, $ph);
+        $pdf->fill([255, 255, 255]);
+        $pdf->textCenter($px + $pw / 2, $py + $ph / 2 + 14, initials($r['full_name']), 38, true);
+    }
+
+    // Name & details
+    $tx = 186;
+    $pdf->fill($gray);
+    $pdf->text($tx, 146, 'PARTICIPANT', 8.5, true);
+    $pdf->fill($navy);
+    $y = $pdf->paragraph($tx, 172, 400, $r['full_name'], 22, 26, true);
+    $pdf->fill($ink);
+    $pdf->text($tx, $y + 2, $r['district'] . ', ' . $r['country'] . '  ·  Age ' . (int) $r['age'], 10.5);
+    $pdf->fill($gray);
+    $pdf->text($tx, $y + 26, 'LEARNING TRACKS', 8.5, true);
+    $pdf->fill($red);
+    $pdf->paragraph($tx, $y + 42, 400, $r['interests'] ?: '—', 11, 15, true);
+
+    // Info cells
+    $cells = [
+        ['DATES', camp()['dates']],
+        ['VENUE', 'Kitgum, Northern Uganda'],
+        ['JERSEY SIZE', ($r['jersey_size'] ?: '—') . ' + camp shirt'],
+    ];
+    $cw = 176;
+    foreach ($cells as $i => [$label, $value]) {
+        $x = 36 + $i * ($cw + 8);
+        $pdf->fill($soft);
+        $pdf->rect($x, 300, $cw, 54);
+        $pdf->fill($gray);
+        $pdf->text($x + 12, 320, $label, 8, true);
+        $pdf->fill($ink);
+        $pdf->text($x + 12, 340, mb_strimwidth($value, 0, 30, '…'), 10, true);
+    }
+    $extras = [];
+    if (!empty($r['park_visit'])) {
+        $extras[] = fees()['park_name'] . ' excursion';
+    }
+    if (!empty($r['mentorship'])) {
+        $extras[] = 'Mentorship & Digital Bridge (Oct – Nov)';
+    }
+    $pdf->fill($gray);
+    $pdf->text(36, 380, $extras ? 'Also includes: ' . implode('  ·  ', $extras) : 'Kakebe Technologies Limited · Learn. Build. Innovate.', 9);
+    $pdf->fill($gray);
+    $pdf->text(36, 404, 'Verify online: ' . preg_replace('~^https?://~', '', base_url('ticket.php')) . '  ·  Issued ' . date('j M Y'), 8);
 
     return $pdf->output();
 }

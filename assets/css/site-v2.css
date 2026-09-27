@@ -335,3 +335,9 @@
   .btn-verify { height: 48px; }
   .code-row input { flex: 1 1 100%; }
 }
+
+/* Registration sidebar — perks instead of prices */
+.summary-card.perks li { justify-content: flex-start; }
+.summary-card.perks li span { display: flex; align-items: center; gap: 12px; color: rgba(255, 255, 255, .9); }
+.summary-card.perks li i { width: 18px; text-align: center; color: #FF7A7F; }
+.summary-card.perks li:last-child { border-bottom: 0; }

@@ -76,6 +76,25 @@ if (!in_array($jersey, jersey_sizes(), true)) {
 $park = !empty($_POST['park_visit']);
 $mentorship = !empty($_POST['mentorship']);
 
+// Funding: self-funded, or sponsored by someone else (needs admin approval)
+$funding = ($_POST['funding'] ?? 'self') === 'sponsored' ? 'sponsored' : 'self';
+$sponsorId = null;
+$sponsorName = null;
+if ($funding === 'sponsored') {
+    $choice = (string) ($_POST['sponsor_id'] ?? '');
+    if ($choice === 'other') {
+        $sponsorName = $clean('sponsor_other', 150);
+        if (mb_strlen($sponsorName) < 2) {
+            $errors['sponsor_other'] = 'Please enter the name of the person or organisation sponsoring you.';
+        }
+    } elseif (ctype_digit($choice) && ($sp = find_sponsor((int) $choice)) && $sp['is_active']) {
+        $sponsorId = (int) $sp['id'];
+        $sponsorName = sponsor_label($sp);
+    } else {
+        $errors['sponsor_id'] = 'Please choose who is sponsoring you.';
+    }
+}
+
 $source = $clean('source', 40);
 if (!in_array($source, sources(), true)) {
     $errors['source'] = 'Please tell us how you heard about the program.';
@@ -117,14 +136,14 @@ try {
     $pdo->beginTransaction();
     $stmt = $pdo->prepare('INSERT INTO registrations
         (program, full_name, age, gender, email, email_verified, phone, district, country, interests, jersey_size, park_visit, mentorship,
-         camp_amount, jersey_amount, park_amount, total_amount, source, source_other, referred_by, motivation, photo,
+         camp_amount, jersey_amount, park_amount, total_amount, funding, sponsor_id, sponsor_name, source, source_other, referred_by, motivation, photo,
          status, payment_status, ip, user_agent, created_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         'techcamp', $fullName, $age, $gender ?: null, $email, $phone, $district, $country, implode(', ', $interests), $jersey, (int) $park, (int) $mentorship,
         $amounts['camp_amount'], $amounts['jersey_amount'], $amounts['park_amount'], $amounts['total_amount'],
-        $source, $sourceOther ?: null, $referredBy ?: null, $motivation ?: null, $photoFile,
-        'pending', 'unpaid', $ip, mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255), now(),
+        $funding, $sponsorId, $sponsorName, $source, $sourceOther ?: null, $referredBy ?: null, $motivation ?: null, $photoFile,
+        $funding === 'sponsored' ? 'review' : 'pending', 'unpaid', $ip, mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255), now(),
     ]);
     $id = (int) $pdo->lastInsertId();
     $reference = reference_for($id);
@@ -153,6 +172,8 @@ respond_and_continue([
     'total'     => (int) $r['total_amount'],
     'deposit'   => deposit_amount($r),
     'pay_url'   => pay_url($r),
+    'sponsored' => $funding === 'sponsored',
+    'sponsor'   => $sponsorName,
     'message'   => 'Thank you, ' . explode(' ', $fullName)[0] . '! Your registration has been received.',
 ]);
 
