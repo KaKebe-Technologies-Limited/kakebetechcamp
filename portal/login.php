@@ -100,6 +100,10 @@ app_header('Participant login', '../', 'login');
   <?php if ($info): ?><div class="notice ok"><i class="fa-solid fa-paper-plane"></i> <?= e($info) ?></div><?php endif; ?>
 
   <?php if ($mode === 'password'): ?>
+  <?php if (google_enabled()): ?>
+  <?= google_button('login', '../api/google-auth.php', 'signin_with') ?>
+  <div class="or-sep"><span>or log in with your email</span></div>
+  <?php endif; ?>
   <form method="post" class="stack">
     <?= csrf_field() ?><input type="hidden" name="action" value="password">
     <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" value="<?= e($email) ?>" required autofocus autocomplete="username" placeholder="you@example.com"></div>
@@ -124,4 +128,8 @@ app_header('Participant login', '../', 'login');
   <?php endif; ?>
   <p class="center muted small">Not registered yet? <a href="../#register">Register for the camp</a></p>
 </section>
+<?php if (google_enabled() && $mode === 'password'): ?>
+<script src="../assets/js/google.js?v=<?= filemtime(ROOT . '/assets/js/google.js') ?>"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<?php endif; ?>
 <?php app_footer('../');

@@ -23,7 +23,7 @@ app_header('My dashboard', '../', 'portal');
   <div class="notice warn"><i class="fa-solid fa-user-secret"></i> You are viewing this dashboard as an administrator. <a href="../admin/view.php?id=<?= (int) $r['id'] ?>">Back to the control panel</a></div>
 <?php endif; ?>
 <?php if ($flash): ?><div class="notice <?= $flash[0] === 'ok' ? 'ok' : 'warn' ?>"><i class="fa-solid fa-circle-info"></i> <?= e($flash[1]) ?></div><?php endif; ?>
-<?php if (!$r['password_hash'] && empty($_SESSION['impersonated_by'])): ?>
+<?php if (!$r['password_hash'] && !$r['google_sub'] && empty($_SESSION['impersonated_by'])): ?>
   <div class="notice"><i class="fa-solid fa-key"></i> Create a password so you can log in from any device. <a href="profile.php#password">Create password</a></div>
 <?php endif; ?>
 

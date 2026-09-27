@@ -19,10 +19,10 @@ $write = static function (array $row) use ($out, $safe) {
 
 if ($type === 'participants') {
     [$where, $params] = registration_filters($_GET);
-    $write(['Reference', 'Full name', 'Age', 'Gender', 'Email', 'Phone', 'District', 'Country', 'Learning tracks', 'Jersey size', fees()['park_name'] . ' visit', 'Mentorship', 'Funding', 'Sponsor', 'Package (UGX)', 'Paid (UGX)', 'Balance (UGX)', 'Payment status', 'Status', 'Heard via', 'Referred by', 'Motivation', 'Admin notes', 'Registered at']);
+    $write(['Reference', 'Full name', 'Age', 'Gender', 'Email', 'Phone', 'District', 'Country', 'Learning tracks', 'Jersey size', fees()['park_name'] . ' visit', 'Mentorship', 'Funding', 'Sponsor', 'Signed up with', 'Package (UGX)', 'Paid (UGX)', 'Balance (UGX)', 'Payment status', 'Status', 'Heard via', 'Referred by', 'Motivation', 'Admin notes', 'Registered at']);
     foreach (q("SELECT * FROM registrations $where ORDER BY id", $params) as $r) {
         $write([$r['reference'], $r['full_name'], $r['age'], $r['gender'], $r['email'], $r['phone'], $r['district'], $r['country'], $r['interests'], $r['jersey_size'],
-            $r['park_visit'] ? 'Yes' : 'No', $r['mentorship'] ? 'Yes' : 'No', is_sponsored($r) ? 'Sponsored' : 'Self', $r['sponsor_name'], $r['total_amount'], $r['amount_paid'], balance($r),
+            $r['park_visit'] ? 'Yes' : 'No', $r['mentorship'] ? 'Yes' : 'No', is_sponsored($r) ? 'Sponsored' : 'Self', $r['sponsor_name'], $r['auth_provider'] === 'google' ? 'Google' : 'Email link', $r['total_amount'], $r['amount_paid'], balance($r),
             payment_statuses()[$r['payment_status']] ?? $r['payment_status'], statuses()[$r['status']] ?? $r['status'],
             $r['source'] . ($r['source_other'] ? ' — ' . $r['source_other'] : ''), $r['referred_by'], $r['motivation'], $r['admin_notes'], $r['created_at']]);
     }

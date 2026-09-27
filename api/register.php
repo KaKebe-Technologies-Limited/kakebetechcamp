@@ -160,6 +160,13 @@ try {
     json_response(['ok' => false, 'message' => 'Sorry, we could not save your registration right now. Please try again in a moment.'], 500);
 }
 
+// Registered with "Continue with Google": remember the Google account, and use the Google photo if none was uploaded.
+if ($g = google_profile_for($email)) {
+    $gPhoto = $photoFile ? null : google_fetch_photo($g['picture'] ?? null);
+    $pdo->prepare("UPDATE registrations SET auth_provider = 'google', google_sub = ?, photo = COALESCE(photo, ?) WHERE id = ?")->execute([$g['sub'], $gPhoto, $id]);
+    unset($_SESSION['google_profile']);
+}
+
 $r = find_registration($id);
 $_SESSION['participant_id'] = $id; // lets them open the portal straight away on this device
 unset($_SESSION['reg_email'], $_SESSION['verified_emails'][$email]); // registering someone else starts again at step 1

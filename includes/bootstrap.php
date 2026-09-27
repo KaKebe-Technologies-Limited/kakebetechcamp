@@ -41,7 +41,7 @@ if (!empty($GLOBALS['config']['app']['debug'])) {
     ini_set('display_errors', '0');
 }
 
-foreach ([STORAGE . '/uploads/photos', STORAGE . '/logs', ROOT . '/uploads/team'] as $dir) {
+foreach ([STORAGE . '/uploads/photos', STORAGE . '/logs', STORAGE . '/cache', ROOT . '/uploads/team'] as $dir) {
     if (!is_dir($dir)) {
         @mkdir($dir, 0775, true);
     }
@@ -67,6 +67,7 @@ require ROOT . '/includes/mailer.php';
 require ROOT . '/includes/pdf.php';
 require ROOT . '/includes/emails.php';
 require ROOT . '/includes/payments.php';
+require ROOT . '/includes/google.php';
 
 // Fail with a clear message (not a blank error page) if the live database can't be reached.
 if (PHP_SAPI !== 'cli') {

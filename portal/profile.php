@@ -135,7 +135,7 @@ app_header('Edit profile', '../', 'portal');
 
 <section class="app-card" id="password" style="max-width:860px;margin:0 auto 22px;">
   <h3><?= $r['password_hash'] ? 'Change password' : 'Create a password' ?></h3>
-  <p class="muted"><?= $r['password_hash'] ? 'Choose a new password for your dashboard.' : 'Create a password so you can log in to your dashboard from any device.' ?></p>
+  <p class="muted"><?= $r['password_hash'] ? 'Choose a new password for your dashboard.' : ($r['google_sub'] ? 'You log in with Google. You can also create a password to log in with your email address.' : 'Create a password so you can log in to your dashboard from any device.') ?></p>
   <?php if ($pwError): ?><div class="form-alert"><?= e($pwError) ?></div><?php endif; ?>
   <form method="post" class="stack">
     <?= csrf_field() ?><input type="hidden" name="action" value="password">

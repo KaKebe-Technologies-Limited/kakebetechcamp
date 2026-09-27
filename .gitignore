@@ -12,3 +12,4 @@ imgs/*.ARW
 # Public team photo uploads
 uploads/team/*
 !uploads/team/.htaccess
+storage/cache/

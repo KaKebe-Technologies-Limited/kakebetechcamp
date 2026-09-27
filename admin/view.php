@@ -247,7 +247,8 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
         <div><dt>Jersey size</dt><dd><?= e($r['jersey_size'] ?: '—') ?></dd></div>
         <div><dt><?= e(fees()['park_name']) ?> visit</dt><dd><?= $r['park_visit'] ? 'Yes (' . e(format_ugx($r['park_amount'])) . ')' : 'No' ?></dd></div>
         <div><dt>Funding</dt><dd><?= is_sponsored($r) ? 'Sponsored by ' . e($r['sponsor_name'] ?: '—') . ($r['payment_status'] === 'sponsored' ? ' (approved)' : ' (awaiting approval)') : 'Self-funded' ?><?= $r['sponsor_note'] ? '<small class="block muted">' . e($r['sponsor_note']) . '</small>' : '' ?></dd></div>
-        <div><dt>Dashboard password</dt><dd><?= $r['password_hash'] ? 'Created' : 'Not created yet' ?></dd></div>
+        <div><dt>Signed up with</dt><dd><?= $r['auth_provider'] === 'google' ? '<span class="badge pay-waived"><i class="fa-brands fa-google"></i> Google</span>' : 'Email link' ?><?= $r['google_sub'] && $r['auth_provider'] !== 'google' ? ' <small class="muted">(Google linked)</small>' : '' ?></dd></div>
+        <div><dt>Dashboard login</dt><dd><?= implode(' · ', array_filter([$r['google_sub'] ? 'Google' : null, $r['password_hash'] ? 'Password' : null])) ?: 'Not set up yet' ?><?= $r['last_login_at'] ? ' <small class="muted">· last login ' . e(time_ago($r['last_login_at'])) . '</small>' : '' ?></dd></div>
         <div><dt>Mentorship &amp; DBIP</dt><dd><?= $r['mentorship'] ? 'Enrolled (free)' : 'Opted out' ?></dd></div>
         <div><dt>Heard via</dt><dd><?= e($r['source']) ?><?= $r['source_other'] ? ' — ' . e($r['source_other']) : '' ?></dd></div>
         <div><dt>Referred by</dt><dd><?= e($r['referred_by'] ?: '—') ?></dd></div>

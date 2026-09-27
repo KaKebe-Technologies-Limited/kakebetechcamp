@@ -47,6 +47,13 @@ It is built with HTML, CSS and JavaScript, plus PHP 8.1+ and MySQL/MariaDB. Ther
 
 Gmail SMTP (App Password) is configured in **Admin → Settings → Email**, and the password is stored encrypted. Every email sent is listed in **Admin → Email log**.
 
+## Google sign-in
+
+- "Continue with Google" appears on the registration form and on the participant login page (`GOOGLE_CLIENT_ID` in `.env`).
+- New Google users skip the email-link step and continue straight to the form, with their name and email filled in. If they don't upload a photo, their Google photo is used. Existing participants are logged straight into their dashboard.
+- Google's sign-in token is verified on the server against Google's public certificates, so the client secret isn't needed for sign-in.
+- In Google Cloud Console → Credentials → your OAuth client, **Authorised JavaScript origins** must include `http://localhost`, `https://kakebetechcamp.com` and `https://www.kakebetechcamp.com`.
+
 ## Local vs live (automatic)
 
 All secrets and server settings live in `.env`, which is never committed (`.env.example` lists the keys). With `APP_ENV=auto`:

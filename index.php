@@ -17,7 +17,10 @@ $sponsorList = active_sponsors();
 // Registration step 1: the applicant opens the link we emailed them → their email is confirmed for this browser.
 $self = strtok($_SERVER['REQUEST_URI'], '?');
 if (isset($_GET['restart'])) {
-    unset($_SESSION['reg_email']);
+    unset($_SESSION['reg_email'], $_SESSION['google_profile']);
+    redirect($self . '#register');
+}
+if (isset($_GET['continue'])) {
     redirect($self . '#register');
 }
 if (isset($_GET['verify'])) {
@@ -46,6 +49,7 @@ if (isset($_GET['verify'])) {
 }
 $regEmail = (string) ($_SESSION['reg_email'] ?? '');
 $regVerified = $regEmail !== '' && email_verified_in_session($regEmail);
+$gProfile = $regVerified ? google_profile_for($regEmail) : null;
 $regNotice = $_SESSION['reg_notice'] ?? null;
 unset($_SESSION['reg_notice']);
 
@@ -509,7 +513,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <h2>Secure your place at <span>Kakebe Tech Camp</span></h2>
       <p>Registration takes about 2 minutes and also enrols you free in the Mentorship Program and Digital Bridge Internship.</p>
       <ol class="steps">
-        <li><span>1</span><div><b>Enter your email</b><small>We send you a secure link — this confirms your email is genuine.</small></div></li>
+        <li><span>1</span><div><b>Confirm your email</b><small>Continue with Google, or enter your email and open the secure link we send you.</small></div></li>
         <li><span>2</span><div><b>Complete your details</b><small>Open the link, then tell us about yourself and pick your tracks.</small></div></li>
         <li><span>3</span><div><b>Pay now or later</b><small>No payment is needed to register. We email you the payment details — pay later or instantly online.</small></div></li>
         <li><span>4</span><div><b>Get your ticket</b><small>Your camp ticket arrives by email, ready for check-in.</small></div></li>
@@ -541,9 +545,13 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <div class="email-gate" id="emailGate">
         <div class="form-head">
           <h3>Start your registration</h3>
-          <p>Enter your email address and we'll send you a secure link to continue. This confirms your email is genuine — it's where your confirmation, payment details and camp ticket will be sent.</p>
+          <p><?= google_enabled() ? 'Continue with Google for the quickest start, or enter your email address and we will send you a secure link.' : 'Enter your email address and we will send you a secure link to continue.' ?> Either way we confirm your email is genuine — it's where your confirmation, payment details and camp ticket will be sent.</p>
         </div>
         <?php if ($regNotice): ?><div class="form-alert <?= $regNotice[0] === 'ok' ? 'ok' : '' ?>"><?= e($regNotice[1]) ?></div><?php endif; ?>
+        <?php if (google_enabled()): ?>
+        <?= google_button('register', 'api/google-auth.php', 'continue_with') ?>
+        <div class="or-sep"><span>or register with your email</span></div>
+        <?php endif; ?>
         <form id="gateForm" novalidate>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -577,7 +585,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <div class="form-grid">
           <div class="field full">
             <label for="f_name">Full name <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-regular fa-user"></i><input id="f_name" name="full_name" type="text" maxlength="150" autocomplete="name" placeholder="e.g. Akello Grace" required></div>
+            <div class="input-icon"><i class="fa-regular fa-user"></i><input id="f_name" name="full_name" type="text" maxlength="150" autocomplete="name" placeholder="e.g. Akello Grace" value="<?= e($gProfile['name'] ?? '') ?>" required></div>
             <span class="err" data-err="full_name"></span>
           </div>
           <div class="field">
@@ -590,7 +598,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
             <div class="input-icon"><i class="fa-solid fa-venus-mars"></i><select id="f_gender" name="gender"><option value="">Select…</option><?php foreach (genders() as $g): ?><option><?= e($g) ?></option><?php endforeach; ?></select></div>
           </div>
           <div class="field full" id="emailField">
-            <label for="f_email">Email address <span class="verified-tag"><i class="fa-solid fa-circle-check"></i> Confirmed</span></label>
+            <label for="f_email">Email address <span class="verified-tag"><i class="fa-solid fa-circle-check"></i> <?= $gProfile ? 'Confirmed with Google' : 'Confirmed' ?></span></label>
             <div class="email-row">
               <input id="f_email" name="email" type="email" value="<?= e($regEmail) ?>" readonly>
               <a class="btn-verify navy" href="?restart=1#register">Change</a>
@@ -701,7 +709,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
             <label class="upload" for="f_photo">
               <input id="f_photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
               <span class="upload-preview" id="photoPreview"><i class="fa-regular fa-image"></i></span>
-              <span class="upload-text"><b id="photoName">Click to upload a photo</b><small>JPG, PNG or WEBP · max 3 MB</small></span>
+              <span class="upload-text"><b id="photoName">Click to upload a photo</b><small><?= $gProfile && !empty($gProfile['picture']) ? 'Optional — we will use your Google profile photo if you skip this' : 'JPG, PNG or WEBP · max 3 MB' ?></small></span>
             </label>
             <span class="err" data-err="photo"></span>
           </div>
@@ -989,5 +997,9 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <script id="programData" type="application/json"><?= json_encode($details, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 <script src="assets/js/main.js?v=<?= filemtime(__DIR__ . '/assets/js/main.js') ?>"></script>
 <script src="assets/js/payment.js?v=<?= filemtime(__DIR__ . '/assets/js/payment.js') ?>"></script>
+<?php if (google_enabled() && $regOpen && !$regVerified): ?>
+<script src="assets/js/google.js?v=<?= filemtime(__DIR__ . '/assets/js/google.js') ?>"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<?php endif; ?>
 </body>
 </html>

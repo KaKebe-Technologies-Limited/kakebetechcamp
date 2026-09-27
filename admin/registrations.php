@@ -110,7 +110,7 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
       <?php foreach ($list as $r): ?>
         <tr class="row-link" data-href="view.php?id=<?= (int) $r['id'] ?>">
           <td class="w-check"><input type="checkbox" name="ids[]" value="<?= (int) $r['id'] ?>" class="row-check" aria-label="Select <?= e($r['full_name']) ?>"></td>
-          <td><div class="person"><?= avatar_html($r) ?><div><b><?= e($r['full_name']) ?></b><small><?= e($r['email']) ?></small></div></div></td>
+          <td><div class="person"><?= avatar_html($r) ?><div><b><?= e($r['full_name']) ?><?= $r['auth_provider'] === 'google' ? ' <i class="fa-brands fa-google g-mark" title="Signed up with Google"></i>' : '' ?></b><small><?= e($r['email']) ?></small></div></div></td>
           <td><a class="ref" href="view.php?id=<?= (int) $r['id'] ?>"><?= e($r['reference']) ?></a></td>
           <td class="nowrap"><a href="<?= e(tel_link($r['phone'])) ?>"><?= e($r['phone']) ?></a></td>
           <td><?= e($r['district']) ?></td>

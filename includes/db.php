@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function db(): PDO
 {
@@ -68,6 +68,8 @@ function migrate(PDO $pdo): void
             'sponsor_name'       => 'VARCHAR(150) NULL AFTER sponsor_id',
             'sponsor_decided_at' => 'DATETIME NULL AFTER sponsor_name',
             'sponsor_note'       => 'VARCHAR(255) NULL AFTER sponsor_decided_at',
+            'auth_provider'      => "VARCHAR(20) NOT NULL DEFAULT 'email' AFTER password_hash",
+            'google_sub'         => 'VARCHAR(64) NULL AFTER auth_provider',
         ];
         foreach ($add as $col => $def) {
             if (!column_exists($pdo, 'registrations', $col)) {
@@ -156,6 +158,8 @@ function schema_statements(): array
             email          VARCHAR(190) NOT NULL,
             email_verified TINYINT(1) NOT NULL DEFAULT 0,
             password_hash  VARCHAR(255) NULL,
+            auth_provider  VARCHAR(20) NOT NULL DEFAULT 'email',
+            google_sub     VARCHAR(64) NULL,
             phone          VARCHAR(40) NOT NULL,
             district       VARCHAR(100) NOT NULL,
             country        VARCHAR(100) NOT NULL,
