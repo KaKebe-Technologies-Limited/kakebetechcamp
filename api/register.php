@@ -185,11 +185,8 @@ respond_and_continue([
     'message'   => 'Thank you, ' . explode(' ', $fullName)[0] . '! Your registration has been received.',
 ]);
 
-$notify = trim((string) setting('notify_emails'));
-if ($notify !== '') {
-    [$subject, $html] = tpl_admin_registration($r);
-    send_mail($notify, $subject, $html, $email);
-}
+[$subject, $html] = tpl_admin_registration($r);
+notify_team('registration', $subject, $html, $email);
 if (setting('applicant_confirmation', '1') === '1') {
     [$subject, $html] = tpl_applicant_received($r);
     send_mail($email, $subject, $html, setting('contact_email') ?: null);

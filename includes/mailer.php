@@ -14,18 +14,18 @@ class SmtpMailer
     }
 
     /** @param string[] $to */
-    public function send(array $to, string $subject, string $html, string $text, ?string $replyTo = null, array $attachments = []): bool
+    public function send(array $to, string $subject, string $html, string $text, ?string $replyTo = null, array $attachments = [], array $cc = []): bool
     {
         $this->error = '';
         try {
             $this->connect();
             $this->authenticate();
             $this->command('MAIL FROM:<' . $this->fromEmail() . '>', [250]);
-            foreach ($to as $addr) {
+            foreach (array_merge($to, $cc) as $addr) {
                 $this->command('RCPT TO:<' . $addr . '>', [250, 251]);
             }
             $this->command('DATA', [354]);
-            $message = preg_replace('/^\./m', '..', build_mime_message($this->fromEmail(), (string) ($this->cfg['from_name'] ?? ''), $to, $subject, $html, $text, $replyTo, true, $attachments));
+            $message = preg_replace('/^\./m', '..', build_mime_message($this->fromEmail(), (string) ($this->cfg['from_name'] ?? ''), $to, $subject, $html, $text, $replyTo, true, $attachments, $cc));
             fwrite($this->sock, $message . "\r\n.\r\n");
             $this->expect([250]);
             try {
@@ -170,7 +170,7 @@ function format_address(string $email, string $name = ''): string
  * With $full = false the To/Subject headers are omitted (for mail()).
  * $attachments: list of ['name' => 'file.pdf', 'type' => 'application/pdf', 'data' => bytes].
  */
-function build_mime_message(string $fromEmail, string $fromName, array $to, string $subject, string $html, string $text, ?string $replyTo, bool $full, array $attachments = []): string
+function build_mime_message(string $fromEmail, string $fromName, array $to, string $subject, string $html, string $text, ?string $replyTo, bool $full, array $attachments = [], array $cc = []): string
 {
     $boundary = 'ktc_' . bin2hex(random_bytes(12));
     $mixed = 'ktm_' . bin2hex(random_bytes(12));
@@ -182,6 +182,9 @@ function build_mime_message(string $fromEmail, string $fromName, array $to, stri
     if ($full) {
         $headers[] = 'To: ' . implode(', ', $to);
         $headers[] = 'Subject: ' . encode_header($subject);
+    }
+    if ($cc) {
+        $headers[] = 'Cc: ' . implode(', ', $cc);
     }
     if ($replyTo && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
         $headers[] = 'Reply-To: ' . $replyTo;
@@ -241,10 +244,10 @@ function smtp_config(): array
  *
  * @param string|string[] $to
  */
-function send_mail($to, string $subject, string $html, ?string $replyTo = null, ?string &$error = null, array $attachments = []): bool
+function send_mail($to, string $subject, string $html, ?string $replyTo = null, ?string &$error = null, array $attachments = [], array $cc = []): bool
 {
-    $list = is_array($to) ? $to : preg_split('/[\s,;]+/', (string) $to);
-    $list = array_values(array_unique(array_filter(array_map('trim', $list), fn($a) => filter_var($a, FILTER_VALIDATE_EMAIL))));
+    $list = email_list($to);
+    $cc = array_values(array_diff(email_list($cc), $list));
     if (!$list) {
         $error = 'No valid recipient.';
         return false;
@@ -257,27 +260,53 @@ function send_mail($to, string $subject, string $html, ?string $replyTo = null, 
 
     if ($transport === 'smtp') {
         $mailer = new SmtpMailer(smtp_config());
-        $ok = $mailer->send($list, $subject, $html, $text, $replyTo, $attachments);
+        $ok = $mailer->send($list, $subject, $html, $text, $replyTo, $attachments, $cc);
         $error = $ok ? null : $mailer->error;
     } elseif ($transport === 'mail') {
         $cfg = smtp_config();
         $from = $cfg['from_email'] ?: ('no-reply@' . preg_replace('/^www\./', '', $_SERVER['HTTP_HOST'] ?? 'localhost'));
-        $raw = build_mime_message($from, $cfg['from_name'], $list, $subject, $html, $text, $replyTo, false, $attachments);
+        $raw = build_mime_message($from, $cfg['from_name'], $list, $subject, $html, $text, $replyTo, false, $attachments, $cc);
         [$headers, $body] = explode("\r\n\r\n", $raw, 2);
         $ok = @mail(implode(', ', $list), encode_header($subject), $body, $headers);
         $error = $ok ? null : 'PHP mail() returned false — your server may not be configured to send mail. Use SMTP instead.';
     } else {
         $files = $attachments ? "\nAttachments: " . implode(', ', array_column($attachments, 'name')) : '';
-        $entry = str_repeat('=', 70) . "\n" . now() . "\nTo: " . implode(', ', $list) . "\nSubject: $subject$files\n\n$text\n\n";
+        $entry = str_repeat('=', 70) . "\n" . now() . "\nTo: " . implode(', ', $list) . ($cc ? "\nCc: " . implode(', ', $cc) : '') . "\nSubject: $subject$files\n\n$text\n\n";
         $ok = file_put_contents(STORAGE . '/logs/mail.log', $entry, FILE_APPEND | LOCK_EX) !== false;
         $status = 'logged';
     }
 
     try {
         db()->prepare('INSERT INTO email_log (recipient, subject, status, error, created_at) VALUES (?, ?, ?, ?, ?)')
-            ->execute([substr(implode(', ', $list), 0, 255), substr($subject, 0, 255), $ok ? $status : 'failed', $error, now()]);
+            ->execute([substr(implode(', ', $list) . ($cc ? ' (cc: ' . implode(', ', $cc) . ')' : ''), 0, 255), substr($subject, 0, 255), $ok ? $status : 'failed', $error, now()]);
     } catch (Throwable $ignored) {
     }
 
     return $ok;
+}
+
+/** Parse "a@x.com, b@y.com" (or an array) into a clean, unique, lower-case list of valid emails. */
+function email_list($value): array
+{
+    $items = is_array($value) ? $value : preg_split('/[\s,;]+/', (string) $value);
+    $items = array_map(fn($a) => strtolower(trim((string) $a)), $items);
+    return array_values(array_unique(array_filter($items, fn($a) => filter_var($a, FILTER_VALIDATE_EMAIL))));
+}
+
+/**
+ * Email the team: sent to Admin → Settings "notify" addresses, with the copy (CC) list for the event type.
+ * $type: 'registration', 'payment' or 'message'.
+ */
+function notify_team(string $type, string $subject, string $html, ?string $replyTo = null, array $attachments = []): bool
+{
+    $to = email_list((string) setting('notify_emails'));
+    $ccKey = ['registration' => 'notify_registration_cc', 'payment' => 'notify_payment_cc'][$type] ?? null;
+    $cc = $ccKey ? array_values(array_diff(email_list((string) setting($ccKey)), $to)) : [];
+    if (!$to && !$cc) {
+        return false;
+    }
+    if (!$to) {
+        [$to, $cc] = [$cc, []];
+    }
+    return send_mail($to, $subject, $html, $replyTo, $err, $attachments, $cc);
 }

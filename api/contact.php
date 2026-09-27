@@ -46,8 +46,5 @@ db()->prepare('INSERT INTO messages (name, email, phone, message, ip, created_at
 
 respond_and_continue(['ok' => true, 'message' => 'Thank you, ' . explode(' ', $name)[0] . '! Your message has been sent — we will get back to you soon.']);
 
-$notify = trim((string) setting('notify_emails'));
-if ($notify !== '') {
-    [$subject, $html] = tpl_admin_message(['name' => $name, 'email' => $email, 'phone' => $phone, 'message' => $message]);
-    send_mail($notify, $subject, $html, $email);
-}
+[$subject, $html] = tpl_admin_message(['name' => $name, 'email' => $email, 'phone' => $phone, 'message' => $message]);
+notify_team('message', $subject, $html, $email);

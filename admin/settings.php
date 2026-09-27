@@ -28,6 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'email':
             $emails = array_filter(array_map('trim', preg_split('/[\s,;]+/', $str('notify_emails', 1000))), fn($e) => filter_var($e, FILTER_VALIDATE_EMAIL));
             setting_set('notify_emails', implode(', ', array_unique($emails)));
+            setting_set('notify_registration_cc', implode(', ', email_list($str('notify_registration_cc', 1000))));
+            setting_set('notify_payment_cc', implode(', ', email_list($str('notify_payment_cc', 1000))));
             setting_set('applicant_confirmation', !empty($_POST['applicant_confirmation']) ? '1' : '0');
             setting_set('mail_transport', in_array($_POST['mail_transport'] ?? '', ['smtp', 'mail', 'log'], true) ? $_POST['mail_transport'] : 'log');
             setting_set('smtp_host', $str('smtp_host', 190));
@@ -134,6 +136,12 @@ admin_header('Settings', 'settings');
   <form method="post" class="stack">
     <?= csrf_field() ?><input type="hidden" name="section" value="email">
     <label>Send admin alerts (registrations, payments, messages) to <small class="muted">comma separated</small><input type="text" name="notify_emails" value="<?= e($s['notify_emails']) ?>"></label>
+    <div class="row-2">
+      <label>Also copy (CC) on every new registration <small class="muted">comma separated</small><textarea name="notify_registration_cc" rows="2">
+<?= e($s['notify_registration_cc']) ?></textarea></label>
+      <label>Also copy (CC) on every payment <small class="muted">comma separated</small><textarea name="notify_payment_cc" rows="2">
+<?= e($s['notify_payment_cc']) ?></textarea></label>
+    </div>
     <label class="switch"><input type="checkbox" name="applicant_confirmation" value="1" <?= $s['applicant_confirmation'] === '1' ? 'checked' : '' ?>><span class="slider"></span> Email applicants a confirmation when they register</label>
     <div class="row-3">
       <label>Transport<select name="mail_transport"><option value="smtp" <?= $s['mail_transport'] === 'smtp' ? 'selected' : '' ?>>SMTP (Gmail)</option><option value="mail" <?= $s['mail_transport'] === 'mail' ? 'selected' : '' ?>>PHP mail()</option><option value="log" <?= $s['mail_transport'] === 'log' ? 'selected' : '' ?>>Log only (don't send)</option></select></label>

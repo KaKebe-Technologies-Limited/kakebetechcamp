@@ -255,7 +255,7 @@ function sync_payment(int $id, bool $force = false): ?array
  * Mark a payment successful (idempotent), update the participant/sponsor totals and send receipts.
  * Returns true only the first time a payment is finalised.
  */
-function finalize_payment(int $id, bool $sendEmails = true): bool
+function finalize_payment(int $id, bool $emailPayer = true): bool
 {
     $stmt = db()->prepare("UPDATE payments SET status = 'success', completed_at = COALESCE(completed_at, ?) WHERE id = ? AND status <> 'success'");
     $stmt->execute([now(), $id]);
@@ -269,9 +269,7 @@ function finalize_payment(int $id, bool $sendEmails = true): bool
     if ($p['donation_id']) {
         recompute_donation((int) $p['donation_id']);
     }
-    if ($sendEmails) {
-        send_payment_emails($p);
-    }
+    send_payment_emails($p, $emailPayer);
     return true;
 }
 
@@ -325,29 +323,28 @@ function recompute_donation(int $id): void
     }
 }
 
-/** Email the payer a PDF receipt and notify the admin team. */
-function send_payment_emails(array $p): void
+/** Notify the team (always, with the payment copy list) and email the payer their PDF receipt (when $emailPayer). */
+function send_payment_emails(array $p, bool $emailPayer = true): void
 {
     try {
         $pdf = receipt_pdf($p);
         $attach = [['name' => 'Kakebe-Receipt-' . receipt_no($p) . '.pdf', 'type' => 'application/pdf', 'data' => $pdf]];
-        $notify = trim((string) setting('notify_emails'));
         if ($p['registration_id']) {
             $r = find_registration((int) $p['registration_id']);
-            [$s, $h] = tpl_payment_receipt($r, $p);
-            $ok = send_mail($r['email'], $s, $h, setting('contact_email') ?: null, $err, $attach);
-            if ($notify !== '') {
-                [$s2, $h2] = tpl_admin_payment($p, $r, null);
-                send_mail($notify, $s2, $h2, $r['email'], $e2, $attach);
+            if ($emailPayer) {
+                [$s, $h] = tpl_payment_receipt($r, $p);
+                $ok = send_mail($r['email'], $s, $h, setting('contact_email') ?: null, $err, $attach);
             }
+            [$s2, $h2] = tpl_admin_payment($p, $r, null);
+            notify_team('payment', $s2, $h2, $r['email'], $attach);
         } elseif ($p['donation_id']) {
             $d = db()->query('SELECT * FROM donations WHERE id = ' . (int) $p['donation_id'])->fetch();
-            [$s, $h] = tpl_donation_thanks($d, $p);
-            $ok = send_mail($d['email'], $s, $h, setting('contact_email') ?: null, $err, $attach);
-            if ($notify !== '') {
-                [$s2, $h2] = tpl_admin_payment($p, null, $d);
-                send_mail($notify, $s2, $h2, $d['email'], $e2, $attach);
+            if ($emailPayer) {
+                [$s, $h] = tpl_donation_thanks($d, $p);
+                $ok = send_mail($d['email'], $s, $h, setting('contact_email') ?: null, $err, $attach);
             }
+            [$s2, $h2] = tpl_admin_payment($p, null, $d);
+            notify_team('payment', $s2, $h2, $d['email'], $attach);
         }
         if (!empty($ok)) {
             db()->prepare('UPDATE payments SET receipt_sent = 1 WHERE id = ?')->execute([$p['id']]);

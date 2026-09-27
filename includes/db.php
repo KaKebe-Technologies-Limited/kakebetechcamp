@@ -354,6 +354,8 @@ function default_settings(): array
         'sponsor_child_amount'   => '120000',
         'camp_capacity'          => '300',
         'notify_emails'          => env('MAIL_NOTIFY', 'info@kakebetechcamp.com'),
+        'notify_registration_cc' => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com',
+        'notify_payment_cc'      => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',
         'applicant_confirmation' => '1',
         'mail_transport'         => env('SMTP_PASS') !== '' ? 'smtp' : 'log',
         'smtp_host'              => env('SMTP_HOST', 'smtp.gmail.com'),
