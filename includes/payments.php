@@ -13,9 +13,9 @@ function iotec(): array
     if ($c !== null) {
         return $c;
     }
-    // Sandbox only ever on localhost/CLI when IOTEC_SANDBOX=true; any live domain always uses the live wallet.
+    // Sandbox only in the LOCAL environment and only when IOTEC_SANDBOX=true; production always uses the live wallet.
     $sandboxFlag = filter_var(env('IOTEC_SANDBOX', 'false'), FILTER_VALIDATE_BOOLEAN);
-    $sandbox = (PHP_SAPI === 'cli' || is_local_host()) ? $sandboxFlag : false;
+    $sandbox = app_env() === 'local' ? $sandboxFlag : false;
     return $c = [
         'client_id'     => env('IOTEC_CLIENT_ID'),
         'client_secret' => env('IOTEC_CLIENT_SECRET'),

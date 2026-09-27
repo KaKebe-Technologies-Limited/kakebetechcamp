@@ -123,6 +123,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash($ok ? 'Email sent to ' . $r['email'] . '.' . mail_note() : 'Email failed: ' . $err, $ok ? 'success' : 'error');
             break;
 
+        case 'approve_sponsorship':
+            if ($r['status'] !== 'review') {
+                flash('This registration is not awaiting sponsorship approval.', 'error');
+                break;
+            }
+            $sent = approve_sponsorship($r, $notify);
+            flash('Sponsorship approved — ' . $r['full_name'] . ' is confirmed.' . ($sent ? ' Ticket emailed to ' . $r['email'] . '.' . mail_note() : ''));
+            break;
+
+        case 'decline_sponsorship':
+            if ($r['status'] !== 'review') {
+                flash('This registration is not awaiting sponsorship approval.', 'error');
+                break;
+            }
+            $sent = decline_sponsorship($r, trim((string) ($_POST['note'] ?? '')), $notify);
+            flash('Sponsorship declined — the registration is now self-funded.' . ($sent ? ' The participant has been emailed.' . mail_note() : ''));
+            break;
+
+        case 'impersonate':
+            session_regenerate_id(true);
+            $_SESSION['participant_id'] = $id;
+            $_SESSION['impersonated_by'] = (int) $admin['id'];
+            redirect('../portal/');
+
+        case 'send_reset':
+            [$s2, $h2] = tpl_password_reset($r, password_reset_link($r, 24 * 60));
+            $ok = send_mail($r['email'], $s2, $h2, setting('contact_email') ?: null, $err);
+            flash($ok ? 'Password link emailed to ' . $r['email'] . ' (valid 24 hours).' . mail_note() : 'Email failed: ' . $err, $ok ? 'success' : 'error');
+            break;
+
         case 'delete':
             delete_registration($r);
             flash('Participant ' . $r['reference'] . ' deleted.');
@@ -159,6 +189,7 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
     <a class="btn btn-light btn-sm" href="https://wa.me/<?= e($waNum) ?>?text=<?= rawurlencode('Hello ' . explode(' ', $r['full_name'])[0] . ', this is the Kakebe Tech Camp team regarding your registration ' . $r['reference'] . '.') ?>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
     <a class="btn btn-light btn-sm" href="<?= e(pay_url($r)) ?>" target="_blank"><i class="fa-solid fa-link"></i> Pay page</a>
     <a class="btn btn-light btn-sm" href="../ticket.php?id=<?= $id ?>" target="_blank"><i class="fa-solid fa-ticket"></i> Ticket</a>
+    <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="impersonate"><button class="btn btn-navy btn-sm" type="submit" title="Open this participant's dashboard exactly as they see it"><i class="fa-regular fa-eye"></i> View their dashboard</button></form>
   </div>
 </section>
 
@@ -214,6 +245,8 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
         <div><dt>Learning tracks</dt><dd><?= e($r['interests'] ?: '—') ?></dd></div>
         <div><dt>Jersey size</dt><dd><?= e($r['jersey_size'] ?: '—') ?></dd></div>
         <div><dt><?= e(fees()['park_name']) ?> visit</dt><dd><?= $r['park_visit'] ? 'Yes (' . e(format_ugx($r['park_amount'])) . ')' : 'No' ?></dd></div>
+        <div><dt>Funding</dt><dd><?= is_sponsored($r) ? 'Sponsored by ' . e($r['sponsor_name'] ?: '—') . ($r['payment_status'] === 'sponsored' ? ' (approved)' : ' (awaiting approval)') : 'Self-funded' ?><?= $r['sponsor_note'] ? '<small class="block muted">' . e($r['sponsor_note']) . '</small>' : '' ?></dd></div>
+        <div><dt>Dashboard password</dt><dd><?= $r['password_hash'] ? 'Created' : 'Not created yet' ?></dd></div>
         <div><dt>Mentorship &amp; DBIP</dt><dd><?= $r['mentorship'] ? 'Enrolled (free)' : 'Opted out' ?></dd></div>
         <div><dt>Heard via</dt><dd><?= e($r['source']) ?><?= $r['source_other'] ? ' — ' . e($r['source_other']) : '' ?></dd></div>
         <div><dt>Referred by</dt><dd><?= e($r['referred_by'] ?: '—') ?></dd></div>
@@ -263,6 +296,30 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
   </div>
 
   <div class="stack-cards">
+    <?php if ($r['status'] === 'review'): ?>
+    <div class="card approval-card">
+      <div class="card-head"><h3><i class="fa-solid fa-user-check"></i> Sponsorship approval</h3><span class="badge st-pending">Awaiting approval</span></div>
+      <p>This participant says their camp fees are covered by <b><?= e($r['sponsor_name'] ?: '—') ?></b><?= $r['sponsor_id'] ? '' : ' <span class="muted">(not on the sponsor list)</span>' ?>. Confirm with the sponsor, then approve or decline.</p>
+      <form method="post" class="stack">
+        <?= csrf_field() ?><input type="hidden" name="action" value="approve_sponsorship">
+        <label class="check-inline"><input type="checkbox" name="notify" value="1" checked> Email the participant their confirmation &amp; ticket</label>
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-check"></i> Approve sponsorship</button>
+      </form>
+      <form method="post" class="stack decline" data-confirm="Decline this sponsorship? The participant will be asked to pay the camp package themselves.">
+        <?= csrf_field() ?><input type="hidden" name="action" value="decline_sponsorship">
+        <label>Reason (included in the email)<input type="text" name="note" maxlength="250" placeholder="e.g. The sponsor could not confirm your sponsorship"></label>
+        <label class="check-inline"><input type="checkbox" name="notify" value="1" checked> Email the participant</label>
+        <button class="btn btn-light" type="submit"><i class="fa-solid fa-xmark"></i> Decline</button>
+      </form>
+    </div>
+    <?php endif; ?>
+
+    <div class="card">
+      <div class="card-head"><h3><i class="fa-solid fa-key"></i> Dashboard access</h3></div>
+      <p class="small muted"><?= $r['password_hash'] ? 'The participant has created a password.' : 'The participant has not created a password yet.' ?> Send them a secure link to set or reset it.</p>
+      <form method="post" data-confirm="Email a password link to <?= e($r['email']) ?>?"><?= csrf_field() ?><input type="hidden" name="action" value="send_reset"><button class="btn btn-light" type="submit"><i class="fa-solid fa-paper-plane"></i> Email password link</button></form>
+    </div>
+
     <div class="card accent-card">
       <div class="card-head"><h3><i class="fa-solid fa-cash-register"></i> Record a payment</h3><span class="muted small">cash, bank or direct MoMo</span></div>
       <?php if ($bal > 0): ?>

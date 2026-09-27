@@ -251,6 +251,19 @@
     trackInputs.forEach((i) => i.addEventListener('change', syncTracks));
     syncTracks();
 
+    /* Funding: self or sponsored */
+    const sponsorPick = $('#sponsorPick');
+    const sponsorSelect = $('#f_sponsor');
+    const sponsorOtherWrap = $('#sponsorOtherWrap');
+    const isSponsoredChoice = () => (form.querySelector('input[name="funding"]:checked') || {}).value === 'sponsored';
+    const syncFunding = () => {
+      sponsorPick.hidden = !isSponsoredChoice();
+      sponsorOtherWrap.hidden = !(isSponsoredChoice() && sponsorSelect.value === 'other');
+    };
+    $$('input[name="funding"]', form).forEach((r) => r.addEventListener('change', syncFunding));
+    sponsorSelect.addEventListener('change', syncFunding);
+    syncFunding();
+
     const source = $('#f_source');
     const otherWrap = $('#sourceOtherWrap');
     source.addEventListener('change', () => {
@@ -391,6 +404,10 @@
       const tracks = f.getAll('interests[]').length;
       if (!tracks) errors.interests = 'Choose at least one learning track.';
       if (!val('jersey_size')) errors.jersey_size = 'Please choose your jersey size.';
+      if (isSponsoredChoice()) {
+        if (!val('sponsor_id')) errors.sponsor_id = 'Please choose who is sponsoring you.';
+        else if (val('sponsor_id') === 'other' && val('sponsor_other').length < 2) errors.sponsor_other = 'Please enter your sponsor\'s name.';
+      }
       if (!val('source')) errors.source = 'Please tell us how you heard about the program.';
       if (val('source') === 'Other' && val('source_other').length < 2) errors.source_other = 'Please specify where you heard about us.';
       if (!f.get('consent')) errors.consent = 'Please confirm to continue.';
@@ -420,6 +437,9 @@
           $('#successDeposit').textContent = money(json.deposit);
           $('#payNowBtn').href = (json.pay_url || 'pay.php') + '&new=1';
           $('#laterNote').hidden = true;
+          $('#selfPayBlock').hidden = !!json.sponsored;
+          $('#reviewNote').hidden = !json.sponsored;
+          $('#successSponsor').textContent = json.sponsor || 'your sponsor';
           const shareText = `I just registered for Kakebe Tech Camp 2026! 🚀 ${json.reference ? '' : ''}Join me — register here: ${location.origin + location.pathname}#register`;
           $('#shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(shareText);
           form.hidden = true;
@@ -443,6 +463,7 @@
     $('#regAnother').addEventListener('click', () => {
       form.reset();
       resetVerify();
+      syncFunding();
       $('#f_country').value = 'Uganda';
       preview.innerHTML = '<i class="fa-regular fa-image"></i>';
       photoName.textContent = 'Click to upload a photo';

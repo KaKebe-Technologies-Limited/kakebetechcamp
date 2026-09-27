@@ -341,3 +341,95 @@
 .summary-card.perks li span { display: flex; align-items: center; gap: 12px; color: rgba(255, 255, 255, .9); }
 .summary-card.perks li i { width: 18px; text-align: center; color: #FF7A7F; }
 .summary-card.perks li:last-child { border-bottom: 0; }
+
+/* ==========================================================================
+   v4 — About with photo background, fewer icons, sponsorship choice
+   ========================================================================== */
+
+/* About: full photo background with navy overlay, two paragraphs */
+.about-v2 { position: relative; margin: 110px var(--edge) 0; border-radius: 40px; overflow: hidden; color: #fff; isolation: isolate; }
+.about-bg { position: absolute; inset: 0; z-index: -2; background: url('../img/crowd.jpg') center 70% / cover no-repeat; transform: scale(1.03); }
+.about-v2::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(100deg, rgba(10, 26, 63, .94) 0%, rgba(15, 37, 87, .86) 48%, rgba(15, 37, 87, .55) 100%); }
+.about-copy { max-width: 760px; padding: 110px 0; }
+.about-copy h2 { color: #fff; font-size: clamp(30px, 3.4vw, 46px); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 0 0 26px; }
+.about-copy p { font-size: 17.5px; line-height: 1.85; color: rgba(255, 255, 255, .88); margin: 0 0 20px; }
+.about-copy .btn { margin-top: 14px; }
+@media (max-width: 768px) {
+  .about-v2 { margin-top: 80px; border-radius: 28px; }
+  .about-copy { padding: 70px 0; }
+  .about-copy p { font-size: 16px; }
+}
+
+/* Section titles no longer have eyebrow chips above them */
+.title { margin-top: 0; }
+.section-head .title { margin-bottom: 16px; }
+
+/* Hero and quick bar without icons */
+.float-card { padding: 14px 20px; }
+.qb-item { padding: 22px 26px; }
+.qb-item small { margin-bottom: 2px; }
+.cd-label { font-size: 15px; }
+
+/* Ecosystem mini list — simple red bullets */
+.mini-list li { position: relative; padding-left: 18px; }
+.mini-list li::before { content: ''; position: absolute; left: 0; top: 11px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+
+/* Included list — clean two-column bullets */
+.include-grid li { position: relative; padding-left: 20px; font-weight: 600; }
+.include-grid li::before { content: ''; position: absolute; left: 0; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--red); }
+.camp-float-inline { padding: 20px 24px; border-left: 4px solid var(--red); }
+.pt-rows.glance span { color: var(--body); font-weight: 600; }
+
+/* Schedule */
+.s-city { font-size: 24px; margin-bottom: 12px; }
+.tl-dot { font-weight: 800; font-size: 17px; }
+
+/* Why join — numbered text blocks, no icon tiles */
+.why-list { counter-reset: why; }
+.why-item { position: relative; padding-left: 46px; }
+.why-item::before { counter-increment: why; content: counter(why, decimal-leading-zero); position: absolute; left: 0; top: 0; font-size: 22px; font-weight: 800; color: var(--red); line-height: 1.2; }
+
+/* Registration sidebar perks — plain list */
+.summary-card.perks li span { gap: 0; }
+.summary-card.perks li { position: relative; padding-left: 16px; }
+.summary-card.perks li::before { content: ''; position: absolute; left: 0; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #FF7A7F; }
+
+/* Registration form — no icons inside inputs, pickers and package rows */
+.reg-form .input-icon > i { display: none; }
+.reg-form .input-icon input, .reg-form .input-icon select { padding-left: 14px !important; }
+.tpk span > i { display: none; }
+.tpk span { justify-content: center; min-height: 64px; padding-right: 34px; }
+.pkg-opt > i { display: none; }
+
+/* Sponsor impact list — text only */
+.sponsor-impact li { position: relative; padding-left: 20px; border-left: 3px solid var(--red-100); }
+.sponsor-impact li > div { padding: 2px 0; }
+
+/* Contact location card without icon */
+.location-card { padding: 22px 26px; }
+
+/* Funding choice */
+.funding-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.fund-opt { cursor: pointer; }
+.fund-opt input { position: absolute; opacity: 0; }
+.fund-opt span { display: block; height: 100%; padding: 16px 18px; border: 2px solid var(--line); border-radius: 16px; background: #fff; transition: .2s; line-height: 1.4; }
+.fund-opt b { display: block; color: var(--ink); font-size: 15.5px; margin-bottom: 4px; }
+.fund-opt small { color: var(--muted); font-size: 13px; }
+.fund-opt:hover span { border-color: #F3B4B4; }
+.fund-opt input:checked + span { border-color: var(--red); background: #FFF7F7; box-shadow: 0 0 0 4px rgba(225, 29, 42, .08); }
+.fund-opt input:focus-visible + span { outline: 3px solid rgba(225, 29, 42, .4); outline-offset: 2px; }
+.sponsor-pick { padding: 18px; border-radius: 16px; background: var(--soft); border: 1px solid var(--line); margin-bottom: 8px; }
+.sponsor-pick select, .sponsor-pick input { background-color: #fff; }
+.sponsor-note { margin: 6px 0 0; line-height: 1.55; }
+
+/* Success screen */
+.review-note { max-width: 460px; margin: 6px auto 18px; padding: 18px 20px; border-radius: 16px; background: #EEF3FF; border: 1px solid #C9D8FF; text-align: left; }
+.review-note b { color: var(--navy); display: block; margin-bottom: 4px; }
+.review-note p { margin: 0; font-size: 14.5px; }
+.portal-note { font-size: 13.5px; color: var(--muted); max-width: 420px; margin: 0 auto 18px; }
+.choice { gap: 4px; padding: 22px 16px; }
+.later-note { padding: 14px 18px; }
+@media (max-width: 576px) {
+  .funding-options { grid-template-columns: 1fr; }
+}
+.about-v2 + .tracks { margin-top: 28px; }

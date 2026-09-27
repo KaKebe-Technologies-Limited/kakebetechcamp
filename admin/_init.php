@@ -79,11 +79,17 @@ function mail_note(): string
 function registration_filters(array $in): array
 {
     $f = [];
-    foreach (['q', 'status', 'payment', 'park', 'interest', 'source', 'jersey', 'from', 'to'] as $k) {
+    foreach (['q', 'status', 'payment', 'park', 'interest', 'source', 'jersey', 'from', 'to', 'funding'] as $k) {
         $f[$k] = trim((string) ($in[$k] ?? ''));
     }
     $where = [];
     $params = [];
+    if (in_array($f['funding'], ['self', 'sponsored'], true)) {
+        $where[] = 'funding = ?';
+        $params[] = $f['funding'];
+    } else {
+        $f['funding'] = '';
+    }
     if ($f['q'] !== '') {
         $where[] = '(full_name LIKE ? OR email LIKE ? OR phone LIKE ? OR reference LIKE ? OR district LIKE ? OR referred_by LIKE ?)';
         array_push($params, ...array_fill(0, 6, '%' . $f['q'] . '%'));
@@ -164,6 +170,40 @@ function record_manual_payment(array $r, int $amount, string $method, string $re
     }
     finalize_payment((int) $p['id'], $notify);
     return payment_find((int) $p['id']);
+}
+
+/** Approve a sponsored application: fees covered, place confirmed, participant emailed. */
+function approve_sponsorship(array $r, bool $notify): bool
+{
+    q("UPDATE registrations SET payment_status = 'sponsored', status = 'confirmed', sponsor_decided_at = ?, updated_at = ? WHERE id = ?", [now(), now(), $r['id']]);
+    $r = recompute_registration((int) $r['id']);
+    if ($notify) {
+        [$s, $h] = tpl_sponsorship_approved($r);
+        return send_mail($r['email'], $s, $h, setting('contact_email') ?: null);
+    }
+    return false;
+}
+
+/** Decline a sponsorship: the registration stays, but becomes self-funded so they can pay. */
+function decline_sponsorship(array $r, string $note, bool $notify): bool
+{
+    q("UPDATE registrations SET funding = 'self', payment_status = 'unpaid', status = 'pending', sponsor_decided_at = ?, sponsor_note = ?, updated_at = ? WHERE id = ?",
+        [now(), $note !== '' ? mb_substr($note, 0, 255) : 'Sponsorship not confirmed', now(), $r['id']]);
+    $r = recompute_registration((int) $r['id']);
+    if ($notify) {
+        [$s, $h] = tpl_sponsorship_declined($r, $note);
+        return send_mail($r['email'], $s, $h, setting('contact_email') ?: null);
+    }
+    return false;
+}
+
+function funding_badge(array $r): string
+{
+    if (is_sponsored($r)) {
+        $cls = $r['payment_status'] === 'sponsored' ? 'st-confirmed' : 'st-pending';
+        return '<span class="badge ' . $cls . '" title="' . e($r['sponsor_name']) . '">Sponsored</span>';
+    }
+    return '<span class="badge st-waitlisted">Self</span>';
 }
 
 function delete_registration(array $r): void
@@ -270,7 +310,7 @@ function bar_list(array $items, int $total, string $color = 'red'): string
 function admin_header(string $title, string $active = '', string $subtitle = ''): void
 {
     $admin = current_admin();
-    $pending = (int) db()->query("SELECT COUNT(*) FROM registrations WHERE status = 'pending'")->fetchColumn();
+    $pending = (int) db()->query("SELECT COUNT(*) FROM registrations WHERE status = 'review'")->fetchColumn();
     $unread = (int) db()->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
     $pendingPay = (int) db()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
     $groups = [

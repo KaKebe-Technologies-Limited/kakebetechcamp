@@ -47,15 +47,23 @@ It is built with HTML, CSS and JavaScript, plus PHP 8.1+ and MySQL/MariaDB. Ther
 
 Gmail SMTP (App Password) is configured in **Admin → Settings → Email**, and the password is stored encrypted. Every email sent is listed in **Admin → Email log**.
 
-## Deploy to a live server
+## Local vs live (automatic)
 
-1. Upload everything except `imgs/`, which holds the original photos.
-2. Create the database, then edit `includes/config.php`:
-   - enter the database details
-   - set `app.url` to your live address, e.g. `https://techcamp.kakebe.tech`
-3. Copy `.env` to the server.
-4. Make sure `storage/` and `uploads/team/` are writable by PHP.
-5. Enable HTTPS. Add the cron job. Visit `/admin/setup.php`.
+All secrets and server settings live in `.env`, which is never committed (`.env.example` lists the keys). With `APP_ENV=auto`:
+
+- **localhost, 127.0.0.1 or *.test** → local XAMPP database (`DB_LOCAL_*`), ioTec sandbox if `IOTEC_SANDBOX=true`.
+- **kakebetechcamp.com** (and cron jobs on the Linux server) → live database (`DB_LIVE_*`), live ioTec wallet, links use `https://kakebetechcamp.com`.
+
+Set `APP_ENV=local` or `APP_ENV=production` to force one. The official contact email is info@kakebetechcamp.com.
+
+## Deploy to kakebetechcamp.com
+
+1. Upload all files except `imgs/` (the original photos), **including the `.env` file**. The live database details are already in it.
+2. Tables are created automatically on the first visit. If your host blocks that, import `database/schema.sql` in phpMyAdmin.
+3. Make sure `storage/` and `uploads/team/` are writable by PHP, and enable HTTPS.
+4. Visit `/admin/setup.php` to create the first admin on the live database.
+5. Add a cron job every 5–10 minutes: `php /path/to/public_html/cron/sync-payments.php`.
+6. Keep `APP_KEY` the same on local and live. It signs links and encrypts the saved email password.
 
 ## Project structure
 

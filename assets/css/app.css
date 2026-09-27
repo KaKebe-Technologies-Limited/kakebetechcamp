@@ -211,3 +211,18 @@ b.ok, .ok-text { color: var(--green); }
   .sl:nth-child(3)::before { display: none; }
   .portal-hero { padding: 22px 20px; }
 }
+
+/* Dashboard v2 */
+.stack-col { min-width: 0; }
+.ph-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin: 6px 0 8px; }
+.profile-grid > div { padding: 11px 0; border-bottom: 1px dashed var(--line); min-width: 0; }
+.profile-grid small { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.profile-grid b { color: var(--ink); font-weight: 600; word-break: break-word; }
+.sub-h { font-size: 15px; margin: 18px 0 10px; }
+.track-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.track-tags span { padding: 8px 14px; border-radius: 999px; background: var(--red-50); color: var(--red); font-weight: 700; font-size: 13.5px; }
+.info-list.plain li { display: block; }
+.sl span { font-size: 13px; }
+.done-box h2 { margin-bottom: 6px; }
+@media (max-width: 600px) { .profile-grid { grid-template-columns: 1fr; } }

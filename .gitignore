@@ -1,5 +1,3 @@
-# Local configuration (contains DB credentials and the app secret)
-includes/config.php
 
 # Uploaded photos and logs
 storage/uploads/
@@ -8,7 +6,7 @@ storage/logs/
 # Camera RAW originals are not used by the site
 imgs/*.ARW
 
-# Secrets
+# Secrets — .env holds the database, payment and email passwords. NEVER commit it (the repo is public).
 .env
 
 # Public team photo uploads

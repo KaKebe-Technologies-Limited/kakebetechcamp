@@ -226,7 +226,8 @@ function smtp_config(): array
         'port'       => (int) setting('smtp_port', 587),
         'secure'     => setting('smtp_secure', 'tls'),
         'user'       => setting('smtp_user'),
-        'pass'       => decrypt_secret((string) setting('smtp_pass')),
+        // Password saved in Admin → Settings wins; otherwise the SMTP_PASS from .env is used.
+        'pass'       => decrypt_secret((string) setting('smtp_pass')) ?: env('SMTP_PASS'),
         'from_email' => setting('mail_from_email'),
         'from_name'  => setting('mail_from_name', 'Kakebe Tech Camp'),
     ];

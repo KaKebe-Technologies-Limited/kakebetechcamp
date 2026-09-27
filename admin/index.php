@@ -52,6 +52,9 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
 <?php if (!$emailReady): ?>
 <div class="alert alert-warning"><i class="fa-solid fa-envelope-circle-check"></i> <span>Email sending is switched off — emails are only logged. <a href="settings.php#email">Turn on Gmail notifications →</a></span></div>
 <?php endif; ?>
+<?php $awaitingApproval = (int) $one("SELECT COUNT(*) FROM registrations WHERE status = 'review'"); if ($awaitingApproval): ?>
+<div class="alert alert-warning"><i class="fa-solid fa-user-check"></i> <span><b><?= $awaitingApproval ?></b> sponsored registration<?= $awaitingApproval === 1 ? ' is' : 's are' ?> waiting for your approval. <a href="sponsors.php">Review sponsorships →</a></span></div>
+<?php endif; ?>
 <?php if ($testMoney): ?>
 <div class="alert alert-info"><i class="fa-solid fa-flask"></i> <span>Some payments below were made in <b>ioTec sandbox (test) mode</b> — no real money. They are marked "ITX".</span></div>
 <?php endif; ?>

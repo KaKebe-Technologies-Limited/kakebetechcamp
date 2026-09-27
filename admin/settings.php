@@ -120,7 +120,7 @@ admin_header('Settings', 'settings');
       <label>Deposit to book a slot (%)<input type="number" min="1" max="100" name="min_deposit_percent" value="<?= e($s['min_deposit_percent']) ?>"></label>
       <label>Optional excursion name<input type="text" name="park_name" value="<?= e($s['park_name']) ?>"></label>
       <label>Excursion fee (UGX)<input type="text" inputmode="numeric" name="park_fee" value="<?= e($s['park_fee']) ?>"></label>
-      <label>Sponsor-a-child amount (UGX)<input type="text" inputmode="numeric" name="sponsor_child_amount" value="<?= e($s['sponsor_child_amount']) ?>"></label>
+      <label>Sponsor-an-innovator amount (UGX)<input type="text" inputmode="numeric" name="sponsor_child_amount" value="<?= e($s['sponsor_child_amount']) ?>"></label>
     </div>
     <p class="small muted">Camp shirts are free for everyone. Package = camp fee + jersey (+ excursion if chosen).</p>
     <div><button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save pricing</button></div>

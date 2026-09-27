@@ -34,3 +34,29 @@ function is_local_host(): bool
     $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
     return $host === '' ? false : (str_contains($host, 'localhost') || str_starts_with($host, '127.0.0.1') || str_ends_with(explode(':', $host)[0], '.test'));
 }
+
+/**
+ * 'local' or 'production'.
+ * APP_ENV=auto (default): web requests on localhost/127.0.0.1/*.test are local, any other host is production;
+ * command-line runs (cron) are local on Windows (XAMPP) and production on the Linux server.
+ */
+function app_env(): string
+{
+    static $env = null;
+    if ($env !== null) {
+        return $env;
+    }
+    $forced = strtolower(env('APP_ENV', 'auto'));
+    if (in_array($forced, ['local', 'production'], true)) {
+        return $env = $forced;
+    }
+    if (PHP_SAPI === 'cli') {
+        return $env = PHP_OS_FAMILY === 'Windows' ? 'local' : 'production';
+    }
+    return $env = is_local_host() ? 'local' : 'production';
+}
+
+function is_production(): bool
+{
+    return app_env() === 'production';
+}

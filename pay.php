@@ -34,14 +34,17 @@ app_header($r ? 'My registration' : 'Find my registration');
     <section class="app-card">
       <?php if ($justRegistered): ?><div class="notice ok"><i class="fa-solid fa-circle-check"></i> Registration received — a confirmation has been sent to <b><?= e($r['email']) ?></b>.</div><?php endif; ?>
       <h1>Hi <?= e(explode(' ', $r['full_name'])[0]) ?> 👋</h1>
-      <?php if (balance($r) > 0): ?>
-        <p class="muted">Pay now to <?= (int) $r['amount_paid'] < deposit_amount($r) ? 'book your slot' : 'clear your balance' ?> — or come back any time using the link in your email or <b>Pay / My account</b> on the website.</p>
+      <?php if ($r['status'] === 'review'): ?>
+        <div class="notice"><i class="fa-solid fa-hourglass-half"></i> Your sponsorship by <b><?= e($r['sponsor_name'] ?: 'your sponsor') ?></b> is being reviewed. We'll email you as soon as it is approved — there is nothing to pay.</div>
+        <p class="muted">Meanwhile you can <a href="portal/">open your participant dashboard</a> to check your details and learning tracks.</p>
+      <?php elseif (balance($r) > 0): ?>
+        <p class="muted">Complete your camp package to <?= (int) $r['amount_paid'] < deposit_amount($r) ? 'secure your place' : 'clear your balance' ?> — or come back any time using the link in your email or <b>My registration</b> on the website.</p>
         <?= pay_form($r) ?>
-        <p class="later"><i class="fa-regular fa-clock"></i> <b>Prefer to pay later?</b> That's fine — your registration is saved. We've emailed you a payment link, and you can also find it by entering your email and phone on the <a href="pay.php">payment page</a>.</p>
+        <p class="later"><i class="fa-regular fa-clock"></i> <b>Prefer to pay later?</b> That's fine — your registration is saved. We've emailed you a payment link, and you can also find it by entering your email and phone on the <a href="pay.php">My registration</a> page.</p>
       <?php else: ?>
         <div class="done-box">
           <span><i class="fa-solid fa-champagne-glasses"></i></span>
-          <h2>You're fully paid! 🎉</h2>
+          <h2><?= is_covered($r) ? 'Your place is confirmed' : 'You are fully paid' ?></h2>
           <p>Your place at Kakebe Tech Camp 2026 is confirmed.</p>
           <a class="btn btn-primary" href="<?= e(ticket_url($r)) ?>" target="_blank"><i class="fa-solid fa-ticket"></i> View my camp ticket</a>
         </div>

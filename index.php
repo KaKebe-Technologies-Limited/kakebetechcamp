@@ -13,6 +13,7 @@ $base     = $f['camp'] + $f['jersey'];
 $sandbox  = iotec()['sandbox'];
 $_SESSION['form_rendered_at'] = time();
 $me       = current_participant();
+$sponsorList = active_sponsors();
 
 $img = fn(string $name) => 'assets/img/' . $name;
 
@@ -103,7 +104,7 @@ $faqs = [
     ['I have registered. How do I check my registration?', 'Click "My registration" at the top of the website and enter the email and phone number you registered with, or log in to the participant portal. There you can view your details, complete any payment (Mobile Money or card) and download receipts and your ticket.'],
     ['What do I get with my registration?', 'Ten days of residential training in Kitgum (accommodation and meals included), camp materials, a free camp shirt, your sports jersey, hackathons, Demo Day, a certificate — plus free enrolment in the Mentorship Program and Digital Bridge Internship (October – November 2026).'],
     ['When will I get my camp ticket?', 'Once your package is fully paid, your camp ticket (with your photo and a QR code) is available in your email and portal. Upload a clear photo when registering or from your portal.'],
-    ['Can I sponsor a young person?', 'Yes! Use the "Sponsor a child" section to cover a participant\'s package (' . format_ugx($f['sponsor_child']) . ' per child) or give any amount. You receive a PDF receipt by email.'],
+    ['Can I sponsor a young person?', 'Yes! Use the "Sponsor an innovator" section to cover a participant\'s package (' . format_ugx($f['sponsor_child']) . ' per innovator) or give any amount. You receive a PDF receipt by email.'],
 ];
 
 $contacts = [
@@ -165,9 +166,9 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <div class="topbar">
   <div class="container topbar-inner">
     <ul class="topbar-info">
-      <li><i class="fa-regular fa-calendar"></i> <?= e($c['dates']) ?></li>
-      <li><i class="fa-solid fa-location-dot"></i> Kitgum, Northern Uganda</li>
-      <li><i class="fa-solid fa-headset"></i> Support: <a href="<?= e(tel_link($phone)) ?>"><?= e($phone) ?></a></li>
+      <li><?= e($c['dates']) ?></li>
+      <li>Kitgum, Northern Uganda</li>
+      <li>Support: <a href="<?= e(tel_link($phone)) ?>"><?= e($phone) ?></a></li>
     </ul>
     <div class="topbar-right">
       <a href="pay.php"><i class="fa-solid fa-id-badge"></i> My registration</a>
@@ -213,8 +214,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="hero v2" id="home">
   <div class="hero-deco" aria-hidden="true">
     <span class="deco-dots d1"></span><span class="deco-dots d2"></span>
-    <span class="float-icon fi-2"><i class="fa-solid fa-play"></i></span>
-    <span class="float-icon fi-3"><i class="fa-solid fa-gamepad"></i></span>
   </div>
   <div class="container hero-grid">
     <div class="hero-content">
@@ -223,10 +222,10 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <p class="hero-lead reveal">A 10-day residential tech camp in <strong>Kitgum</strong> for young people aged <strong>14–30</strong> — AI &amp; software, content creation, entrepreneurship, gaming, robotics and digital marketing, plus <strong>free mentorship &amp; internships</strong> from October.</p>
       <div class="hero-cta reveal">
         <a href="#register" class="btn btn-primary btn-lg">Register Now <i class="fa-solid fa-arrow-right"></i></a>
-        <a href="#sponsor" class="btn btn-ghost btn-lg"><span class="play"><i class="fa-solid fa-heart"></i></span> Sponsor a child</a>
+        <a href="#sponsor" class="btn btn-ghost btn-lg">Sponsor an innovator</a>
       </div>
       <div class="countdown reveal" id="countdown" data-target="<?= e($c['start_iso']) ?>" aria-live="polite">
-        <div class="cd-label"><i class="fa-solid fa-hourglass-half"></i> Camp starts in</div>
+        <div class="cd-label">Camp starts in</div>
         <div class="cd-boxes">
           <div class="cd-box"><b data-cd="d">--</b><span>Days</span></div>
           <div class="cd-box"><b data-cd="h">--</b><span>Hours</span></div>
@@ -242,17 +241,17 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <figure class="hero-photo main"><img src="assets/img/robotics.jpg" alt="Participants assembling a robot during a Kakebe hands-on session" width="1600" height="1200" fetchpriority="high"></figure>
       <figure class="hero-photo small"><img src="assets/img/smiles-sm.jpg" alt="Smiling young women at a Kakebe event" width="720" height="480"></figure>
       <div class="fee-badge"><span>Only</span><b>300<small>SEATS</small></b><em>Kitgum 2026</em></div>
-      <div class="float-card fc-1"><span class="fc-icon"><i class="fa-solid fa-campground"></i></span><div><b>10 Days</b><small>14 – 23 December</small></div></div>
-      <div class="float-card fc-2"><span class="fc-icon blue"><i class="fa-solid fa-users"></i></span><div><b>Ages 14 – 30</b><small>300 young innovators</small></div></div>
+      <div class="float-card fc-1"><div><b>10 Days</b><small>14 – 23 December</small></div></div>
+      <div class="float-card fc-2"><div><b>Ages 14 – 30</b><small>300 young innovators</small></div></div>
     </div>
   </div>
 
   <div class="container">
     <div class="quickbar reveal">
-      <div class="qb-item"><span class="qb-icon"><i class="fa-regular fa-calendar-check"></i></span><div><small>Dates</small><b><?= e($c['dates_short']) ?></b></div></div>
-      <div class="qb-item"><span class="qb-icon"><i class="fa-solid fa-location-dot"></i></span><div><small>Location</small><b>Kitgum · Residential</b></div></div>
-      <div class="qb-item"><span class="qb-icon"><i class="fa-solid fa-user-group"></i></span><div><small>Who</small><b>Youth aged 14 – 30</b></div></div>
-      <div class="qb-item"><span class="qb-icon"><i class="fa-solid fa-lightbulb"></i></span><div><small>Learning tracks</small><b>6 tracks · pick 2</b></div></div>
+      <div class="qb-item"><div><small>Dates</small><b><?= e($c['dates_short']) ?></b></div></div>
+      <div class="qb-item"><div><small>Location</small><b>Kitgum · Residential</b></div></div>
+      <div class="qb-item"><div><small>Who</small><b>Youth aged 14 – 30</b></div></div>
+      <div class="qb-item"><div><small>Learning tracks</small><b>6 tracks · pick 2</b></div></div>
       <a href="#register" class="qb-btn">Register <i class="fa-solid fa-arrow-right"></i></a>
     </div>
   </div>
@@ -262,12 +261,11 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section programs" id="programs">
   <div class="container programs-grid">
     <div class="programs-intro reveal">
-      <span class="chip"><i class="fa-solid fa-diagram-project"></i> The Ecosystem</span>
       <h2 class="title">One sign-up.<br>A whole <span class="hl">journey.</span></h2>
       <p>Register for Kakebe Tech Camp 2026 and you are automatically enrolled — free — in the Mentorship Program and the Digital Bridge Internship from October to November, guided by experienced industry professionals.</p>
       <ul class="mini-list">
-        <li><i class="fa-solid fa-circle-check"></i><span>Mentorship &amp; internship <b>free with the camp</b></span></li>
-        <li><i class="fa-solid fa-circle-check"></i><span>Hands-on learning with <b>industry experts</b></span></li>
+        <li><span>Mentorship &amp; internship <b>free with the camp</b></span></li>
+        <li><span>Hands-on learning with <b>industry experts</b></span></li>
       </ul>
       <a href="#register" class="btn btn-primary">Start Your Journey <i class="fa-solid fa-arrow-right"></i></a>
     </div>
@@ -282,7 +280,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       foreach ($eco as [$key, $num, $badge, $when, $blurb]): $d = $details[$key]; ?>
       <button type="button" class="eco-card reveal<?= $key === 'techcamp' ? ' featured' : '' ?>" data-program="<?= e($key) ?>" role="listitem" aria-label="View details: <?= e($d['title']) ?>">
         <span class="eco-top"><span class="eco-icon"><i class="fa-solid <?= e($d['icon']) ?>"></i></span><span class="eco-badge"><?= e($badge) ?></span></span>
-        <small class="eco-when"><i class="fa-regular fa-calendar"></i> <?= e($when) ?></small>
+        <small class="eco-when"><?= e($when) ?></small>
         <b class="eco-title"><?= e($d['title']) ?></b>
         <span class="eco-text"><?= e($blurb) ?></span>
         <span class="eco-more">View details <i class="fa-solid fa-arrow-right"></i></span>
@@ -294,32 +292,14 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 </section>
 
 <!-- ============ ABOUT ============ -->
-<section class="section about" id="about">
-  <div class="container about-grid">
-    <div class="about-media reveal">
-      <figure class="about-img main"><img src="assets/img/crowd.jpg" alt="Hundreds of young people gathered in front of a building in Northern Uganda" loading="lazy" width="1600" height="1067"></figure>
-      <figure class="about-img sub"><img src="assets/img/camp-group-sm.jpg" alt="Kakebe participants and mentors" loading="lazy" width="720" height="405"></figure>
-      <div class="about-badge"><b data-count="500" data-suffix="+">500+</b><span>Youth &amp; community members</span></div>
-      <span class="about-dots" aria-hidden="true"></span>
-    </div>
-    <div class="about-content reveal">
-      <span class="chip"><i class="fa-solid fa-seedling"></i> Get to know us</span>
-      <h2 class="title">Building innovators, problem solvers &amp; <span class="hl">nation builders</span></h2>
-      <p class="lead">The <strong>Kakebe Ecosystem Program</strong> builds youth innovation, digital skills, and economic empowerment in Northern Uganda.</p>
-      <p>It connects young people to mentorship, practical experience, industry networks, and a national tech camp — running from <strong>October to December 2026</strong> and reaching over <strong>500 youth and community members</strong>.</p>
-      <div class="about-features">
-        <div class="af-item"><span class="af-icon"><i class="fa-solid fa-chalkboard-user"></i></span><div><b>Expert Mentorship</b><p>Guidance from professionals in business, tech &amp; content.</p></div></div>
-        <div class="af-item"><span class="af-icon blue"><i class="fa-solid fa-laptop-code"></i></span><div><b>Real Experience</b><p>Internships on real projects with real organisations.</p></div></div>
-      </div>
-      <div class="about-box">
-        <div class="ab-award"><i class="fa-solid fa-trophy"></i><b>Oct – Dec</b><span>2026 Program</span></div>
-        <ul class="check-list">
-          <li><i class="fa-solid fa-check"></i> Mentorship, internships &amp; a national tech camp</li>
-          <li><i class="fa-solid fa-check"></i> Skills in AI, software, content &amp; business</li>
-          <li><i class="fa-solid fa-check"></i> Industry networks across Uganda</li>
-        </ul>
-      </div>
-      <a href="#register" class="btn btn-primary">Join the Ecosystem <i class="fa-solid fa-arrow-right"></i></a>
+<section class="about-v2" id="about">
+  <div class="about-bg" aria-hidden="true"></div>
+  <div class="container">
+    <div class="about-copy reveal">
+      <h2>About Kakebe Tech Camp 2026</h2>
+      <p>From <?= e($c['dates']) ?>, Kakebe Tech Camp brings 300 young people aged 14 to 30 from across Uganda to Kitgum for ten days of living, learning and building together. Each camper follows two of six learning tracks — AI and software development, content creation, entrepreneurship, video gaming, robotics and digital marketing — taught in small groups by people who practise these skills every day. Mornings are hands-on workshops; afternoons turn into studio time where ideas become prototypes, videos, games and business plans.</p>
+      <p>As the days go on, campers form teams around real problems in their communities, test their solutions through hackathons and expert feedback, and close the camp by presenting their work at Demo Day before judges, partners and guests. Between sessions there is sport, networking and an optional visit to Aruu Falls. Every camper is also enrolled in the free Mentorship Program and Digital Bridge Internship from October to November, so they arrive prepared and leave with skills, a certificate and a network that lasts well beyond December.</p>
+      <a href="#register" class="btn btn-white">Register for the camp <i class="fa-solid fa-arrow-right"></i></a>
     </div>
   </div>
 </section>
@@ -328,7 +308,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section tracks" id="techcamp">
   <div class="container">
     <div class="section-head center reveal">
-      <span class="chip"><i class="fa-solid fa-campground"></i> Kakebe Tech Camp 2026</span>
       <h2 class="title">Six tracks. Ten days. <span class="hl">Endless possibilities.</span></h2>
       <p>Pick up to two learning tracks. 300 young people from across Uganda learn, build market-ready innovations and present them at Demo Day.</p>
     </div>
@@ -345,31 +324,30 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 
     <div class="camp-grid">
       <div class="camp-content reveal">
-        <span class="chip"><i class="fa-solid fa-gift"></i> What's included</span>
         <h3 class="title-sm">Everything you need for 10 unforgettable days</h3>
         <ul class="include-grid">
-          <li><i class="fa-solid fa-bed"></i> Accommodation</li>
-          <li><i class="fa-solid fa-utensils"></i> Meals</li>
-          <li><i class="fa-solid fa-chalkboard"></i> Training &amp; classes</li>
-          <li><i class="fa-solid fa-box-open"></i> Camp materials</li>
-          <li><i class="fa-solid fa-shirt"></i> Free camp shirt</li>
-          <li><i class="fa-solid fa-laptop-code"></i> Hackathons</li>
-          <li><i class="fa-solid fa-microphone-lines"></i> Expert-led sessions</li>
-          <li><i class="fa-solid fa-handshake"></i> Networking</li>
-          <li><i class="fa-solid fa-certificate"></i> Certificate of completion</li>
-          <li><i class="fa-solid fa-people-arrows"></i> Free mentorship &amp; internship</li>
+          <li>Accommodation</li>
+          <li>Meals</li>
+          <li>Training &amp; classes</li>
+          <li>Camp materials</li>
+          <li>Free camp shirt</li>
+          <li>Hackathons</li>
+          <li>Expert-led sessions</li>
+          <li>Networking</li>
+          <li>Certificate of completion</li>
+          <li>Free mentorship &amp; internship</li>
         </ul>
-        <div class="camp-float-inline"><i class="fa-solid fa-award"></i><div><b>Demo Day</b><span>Present your innovation to judges, partners and guests.</span></div></div>
+        <div class="camp-float-inline"><div><b>Demo Day</b><span>Present your innovation to judges, partners and guests.</span></div></div>
       </div>
       <div class="price-table reveal">
-        <div class="pt-head"><span>Kakebe Tech Camp 2026</span><b>At a glance</b><small>Everything you need to know</small></div>
+        <div class="pt-head"><b>At a glance</b><small>Kakebe Tech Camp 2026 in brief</small></div>
         <ul class="pt-rows glance">
-          <li><span><i class="fa-regular fa-calendar"></i> Dates</span><b><?= e($c['dates_short']) ?></b></li>
-          <li><span><i class="fa-solid fa-location-dot"></i> Venue</span><b>Kitgum · Residential</b></li>
-          <li><span><i class="fa-solid fa-user-group"></i> Who</span><b>Ages 14 – 30</b></li>
-          <li><span><i class="fa-solid fa-lightbulb"></i> Learning tracks</span><b>6 · choose 2</b></li>
-          <li><span><i class="fa-solid fa-people-arrows"></i> Mentorship &amp; internship</span><b>Oct – Nov · free</b></li>
-          <li><span><i class="fa-solid fa-water"></i> <?= e($f['park_name']) ?> excursion</span><b>Optional</b></li>
+          <li><span>Dates</span><b><?= e($c['dates_short']) ?></b></li>
+          <li><span>Venue</span><b>Kitgum · Residential</b></li>
+          <li><span>Who</span><b>Ages 14 – 30</b></li>
+          <li><span>Learning tracks</span><b>6 · choose 2</b></li>
+          <li><span>Mentorship &amp; internship</span><b>Oct – Nov · free</b></li>
+          <li><span><?= e($f['park_name']) ?> excursion</span><b>Optional</b></li>
         </ul>
         <a href="#register" class="btn btn-primary btn-block">Register Now <i class="fa-solid fa-arrow-right"></i></a>
       </div>
@@ -382,7 +360,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container">
     <div class="stats-inner reveal">
       <div class="stats-head">
-        <span class="chip light"><i class="fa-solid fa-bullseye"></i> Our 2026 targets</span>
         <h2>Let's make Northern Uganda's tech dreams come true</h2>
       </div>
       <div class="stats-grid">
@@ -400,13 +377,12 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section schedule" id="schedule">
   <div class="container">
     <div class="section-head center reveal">
-      <span class="chip"><i class="fa-regular fa-calendar"></i> Program calendar</span>
       <h2 class="title">Your roadmap from <span class="hl">October to December</span></h2>
       <p>Mentorship and the Digital Bridge Internship run from October to November, leading up to the Tech Camp in Kitgum from <?= e($c['dates']) ?>.</p>
     </div>
     <div class="sessions">
       <div class="session-card online reveal">
-        <span class="s-tag"><i class="fa-solid fa-wifi"></i> Online · Free</span>
+        <span class="s-tag">Online · Free</span>
         <h3>Weekly mentorship sessions</h3>
         <div class="s-time"><b>Every Monday</b><span>8:00 – 9:30 PM</span></div>
         <p>From <b>5th October</b> to the end of November 2026, with experienced industry professionals. Included free for every Tech Camp participant.</p>
@@ -414,19 +390,18 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       </div>
       <?php foreach ([['Lira', '2 weeks', 'in October and November'], ['Kitgum', 'Last week', 'of October and November'], ['Kampala', '4 sessions', 'in October']] as [$city, $when, $rest]): ?>
       <div class="session-card city reveal">
-        <span class="s-city"><i class="fa-solid fa-location-dot"></i> <?= $city ?></span>
+        <span class="s-city"><?= $city ?></span>
         <h3>Physical sessions</h3>
         <p><b><?= $when ?></b> <?= $rest ?></p>
-        <span class="s-foot"><i class="fa-solid fa-people-group"></i> In-person mentorship</span>
       </div>
       <?php endforeach; ?>
     </div>
     <ol class="timeline">
-      <li class="tl-item reveal"><span class="tl-dot"><i class="fa-solid fa-flag"></i></span><div class="tl-card"><small>5th October 2026</small><h4>Mentorship kicks off</h4><p>Online sessions every Monday, 8:00 – 9:30 PM, plus physical sessions in Lira, Kitgum and Kampala.</p></div></li>
-      <li class="tl-item reveal"><span class="tl-dot"><i class="fa-solid fa-briefcase"></i></span><div class="tl-card"><small>October – November 2026</small><h4>Digital Bridge Internship</h4><p>Participants work on real projects with companies, businesses and creators.</p></div></li>
-      <li class="tl-item reveal"><span class="tl-dot"><i class="fa-solid fa-seedling"></i></span><div class="tl-card"><small>One day · date to be announced</small><h4>Tree planting activity</h4><p>All teams come together to plant 1,000+ seedlings and promote environmental awareness.</p></div></li>
-      <li class="tl-item reveal featured"><span class="tl-dot"><i class="fa-solid fa-campground"></i></span><div class="tl-card"><small><?= e($c['dates']) ?></small><h4>Kakebe Tech Camp · Kitgum</h4><p>10 days of hands-on training, hackathons, networking and expert sessions — residential.</p></div></li>
-      <li class="tl-item reveal"><span class="tl-dot"><i class="fa-solid fa-trophy"></i></span><div class="tl-card"><small>Camp finale</small><h4>Demo Day &amp; certificates</h4><p>Participants present their market-ready innovations and celebrate their achievements.</p></div></li>
+      <li class="tl-item reveal"><span class="tl-dot">1</span><div class="tl-card"><small>5th October 2026</small><h4>Mentorship kicks off</h4><p>Online sessions every Monday, 8:00 – 9:30 PM, plus physical sessions in Lira, Kitgum and Kampala.</p></div></li>
+      <li class="tl-item reveal"><span class="tl-dot">2</span><div class="tl-card"><small>October – November 2026</small><h4>Digital Bridge Internship</h4><p>Participants work on real projects with companies, businesses and creators.</p></div></li>
+      <li class="tl-item reveal"><span class="tl-dot">3</span><div class="tl-card"><small>One day · date to be announced</small><h4>Tree planting activity</h4><p>All teams come together to plant 1,000+ seedlings and promote environmental awareness.</p></div></li>
+      <li class="tl-item reveal featured"><span class="tl-dot">4</span><div class="tl-card"><small><?= e($c['dates']) ?></small><h4>Kakebe Tech Camp · Kitgum</h4><p>10 days of hands-on training, hackathons, networking and expert sessions — residential.</p></div></li>
+      <li class="tl-item reveal"><span class="tl-dot">5</span><div class="tl-card"><small>Camp finale</small><h4>Demo Day &amp; certificates</h4><p>Participants present their market-ready innovations and celebrate their achievements.</p></div></li>
     </ol>
   </div>
 </section>
@@ -435,7 +410,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section team-sec" id="team">
   <div class="container">
     <div class="section-head center reveal">
-      <span class="chip"><i class="fa-solid fa-people-group"></i> The people behind the camp</span>
       <h2 class="title">Meet the <span class="hl">core team</span></h2>
       <p>A passionate team from Kakebe Technologies making Kakebe Tech Camp 2026 happen.</p>
     </div>
@@ -457,16 +431,15 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section why">
   <div class="container why-grid">
     <div class="why-content reveal">
-      <span class="chip"><i class="fa-solid fa-star"></i> Why join</span>
       <h2 class="title">Why you should be part of the <span class="hl">Kakebe Ecosystem</span></h2>
       <p>Whether you are a student, a creator or an aspiring entrepreneur, the ecosystem gives you the skills, confidence and network to build what matters for your community.</p>
       <div class="why-list">
-        <div class="why-item"><span><i class="fa-solid fa-user-tie"></i></span><div><b>Learn from experts</b><p>Weekly guidance and one-on-one mentorship.</p></div></div>
-        <div class="why-item"><span><i class="fa-solid fa-briefcase"></i></span><div><b>Real work experience</b><p>Build a portfolio with real organisations.</p></div></div>
-        <div class="why-item"><span><i class="fa-solid fa-rocket"></i></span><div><b>Build real products</b><p>Create market-ready innovations at camp.</p></div></div>
-        <div class="why-item"><span><i class="fa-solid fa-people-group"></i></span><div><b>A national network</b><p>Meet young innovators from across Uganda.</p></div></div>
-        <div class="why-item"><span><i class="fa-solid fa-certificate"></i></span><div><b>Certificate</b><p>Recognition for completing the camp.</p></div></div>
-        <div class="why-item"><span><i class="fa-solid fa-hand-holding-heart"></i></span><div><b>Inclusive by design</b><p>Girls, refugees &amp; PWDs strongly encouraged.</p></div></div>
+        <div class="why-item"><div><b>Learn from experts</b><p>Weekly guidance and one-on-one mentorship.</p></div></div>
+        <div class="why-item"><div><b>Real work experience</b><p>Build a portfolio with real organisations.</p></div></div>
+        <div class="why-item"><div><b>Build real products</b><p>Create market-ready innovations at camp.</p></div></div>
+        <div class="why-item"><div><b>A national network</b><p>Meet young innovators from across Uganda.</p></div></div>
+        <div class="why-item"><div><b>Certificate</b><p>Recognition for completing the camp.</p></div></div>
+        <div class="why-item"><div><b>Inclusive by design</b><p>Girls, refugees &amp; PWDs strongly encouraged.</p></div></div>
       </div>
     </div>
     <div class="why-media reveal">
@@ -481,7 +454,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section gallery" id="gallery">
   <div class="container">
     <div class="section-head center reveal">
-      <span class="chip"><i class="fa-regular fa-images"></i> Gallery</span>
       <h2 class="title">Moments from the <span class="hl">Kakebe community</span></h2>
       <p>A glimpse of the energy, learning and celebration you can expect.</p>
     </div>
@@ -489,7 +461,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <?php foreach ($gallery as $i => [$file, $caption, $cls]): ?>
       <button type="button" class="g-item reveal <?= e($cls) ?>" data-index="<?= $i ?>" data-full="assets/img/<?= e($file) ?>.jpg" data-caption="<?= e($caption) ?>" aria-label="Open photo: <?= e($caption) ?>">
         <img src="assets/img/<?= e($file) ?><?= str_contains($cls, 'g-tall') ? '' : '-sm' ?>.jpg" alt="<?= e($caption) ?>" loading="lazy">
-        <span class="g-cap"><i class="fa-solid fa-magnifying-glass-plus"></i> <?= e($caption) ?></span>
+        <span class="g-cap"><?= e($caption) ?></span>
       </button>
       <?php endforeach; ?>
     </div>
@@ -500,7 +472,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section register" id="register">
   <div class="container register-grid">
     <aside class="register-info reveal">
-      <span class="chip light"><i class="fa-solid fa-pen-to-square"></i> Registration</span>
       <h2>Secure your place at <span>Kakebe Tech Camp</span></h2>
       <p>Registration takes about 2 minutes and also enrols you free in the Mentorship Program and Digital Bridge Internship.</p>
       <ol class="steps">
@@ -510,13 +481,13 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <li><span>4</span><div><b>Get your ticket</b><small>Your camp ticket arrives by email, ready for check-in.</small></div></li>
       </ol>
       <div class="summary-card perks">
-        <h4><i class="fa-solid fa-gift"></i> What you get</h4>
+        <h4>What you get</h4>
         <ul>
-          <li><span><i class="fa-solid fa-campground"></i> 10 days of residential training in Kitgum</span></li>
-          <li><span><i class="fa-solid fa-utensils"></i> Accommodation, meals &amp; camp materials</span></li>
-          <li><span><i class="fa-solid fa-shirt"></i> Sports jersey &amp; a free camp shirt</span></li>
-          <li><span><i class="fa-solid fa-people-arrows"></i> Free mentorship &amp; internship (Oct – Nov)</span></li>
-          <li><span><i class="fa-solid fa-certificate"></i> Certificate &amp; Demo Day</span></li>
+          <li><span>10 days of residential training in Kitgum</span></li>
+          <li><span>Accommodation, meals &amp; camp materials</span></li>
+          <li><span>Sports jersey &amp; a free camp shirt</span></li>
+          <li><span>Free mentorship &amp; internship (Oct – Nov)</span></li>
+          <li><span>Certificate &amp; Demo Day</span></li>
         </ul>
       </div>
       <div class="help-box">
@@ -621,7 +592,32 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           <span><b>Enrol me free in the Mentorship Program &amp; Digital Bridge Internship</b> (October – November 2026, with experienced industry professionals).</span>
         </label>
 
-        <div class="form-section"><span>4</span> A little more about you</div>
+        <div class="form-section"><span>4</span> Camp fees</div>
+        <div class="funding-options">
+          <label class="fund-opt"><input type="radio" name="funding" value="self" checked><span><b>I'll cover my camp fees</b><small>Pay online now or later, in instalments if you like.</small></span></label>
+          <label class="fund-opt"><input type="radio" name="funding" value="sponsored"><span><b>I'm sponsored</b><small>Someone else (a person or organisation) is paying for me.</small></span></label>
+        </div>
+        <div class="sponsor-pick" id="sponsorPick" hidden>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="f_sponsor">Who is sponsoring you? <span class="req">*</span></label>
+              <select id="f_sponsor" name="sponsor_id">
+                <option value="">Select your sponsor…</option>
+                <?php foreach ($sponsorList as $sp): ?><option value="<?= (int) $sp['id'] ?>"><?= e(sponsor_label($sp)) ?></option><?php endforeach; ?>
+                <option value="other">My sponsor is not listed</option>
+              </select>
+              <span class="err" data-err="sponsor_id"></span>
+            </div>
+            <div class="field full" id="sponsorOtherWrap" hidden>
+              <label for="f_sponsor_other">Sponsor's name <span class="req">*</span></label>
+              <input id="f_sponsor_other" name="sponsor_other" type="text" maxlength="150" placeholder="Full name of the person or organisation">
+              <span class="err" data-err="sponsor_other"></span>
+            </div>
+          </div>
+          <p class="hint sponsor-note">Sponsored registrations are reviewed by our team. Once your sponsor is confirmed, your place is approved and your ticket is emailed to you — no payment needed from you.</p>
+        </div>
+
+        <div class="form-section"><span>5</span> A little more about you</div>
         <div class="form-grid">
           <div class="field">
             <label for="f_source">How did you know about the program? <span class="req">*</span></label>
@@ -671,19 +667,25 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <h3>You're registered, <span id="successName"></span>! 🎉</h3>
         <p>A confirmation has been sent to <b id="successEmail"></b>.</p>
         <div class="ref-box"><small>Your reference number</small><b id="successRef">—</b></div>
-        <div class="checkout-box">
-          <div class="cb-row"><span>Package total</span><b id="successTotal">—</b></div>
-          <div class="cb-row"><span>Book your slot with</span><b id="successDeposit">—</b></div>
+        <div class="self-pay" id="selfPayBlock">
+          <div class="checkout-box">
+            <div class="cb-row"><span>Camp package</span><b id="successTotal">—</b></div>
+            <div class="cb-row"><span>Secures your place</span><b id="successDeposit">—</b></div>
+          </div>
+          <p class="checkout-q">Would you like to complete it now?</p>
+          <div class="checkout-choices">
+            <a class="choice now" id="payNowBtn" href="#"><b>Yes, continue now</b><small>Mobile Money or card, in a few seconds</small></a>
+            <button type="button" class="choice later" id="payLaterBtn"><b>Later</b><small>Your registration is saved</small></button>
+          </div>
+          <div class="later-note" id="laterNote" hidden>
+            <p>No problem — your registration is saved. Whenever you're ready, click <b>My registration</b> at the top of this site, or use the link in your email.</p>
+          </div>
         </div>
-        <p class="checkout-q">How would you like to pay?</p>
-        <div class="checkout-choices">
-          <a class="choice now" id="payNowBtn" href="#"><i class="fa-solid fa-bolt"></i><b>Pay now</b><small>Mobile Money or card · book your slot today</small></a>
-          <button type="button" class="choice later" id="payLaterBtn"><i class="fa-regular fa-clock"></i><b>Pay later</b><small>We'll keep your registration — pay any time</small></button>
+        <div class="review-note" id="reviewNote" hidden>
+          <b>Your sponsorship is being reviewed</b>
+          <p>You told us <span id="successSponsor">your sponsor</span> is covering your camp fees. Our team will confirm this and email you once your place is approved — there is nothing to pay in the meantime.</p>
         </div>
-        <div class="later-note" id="laterNote" hidden>
-          <i class="fa-solid fa-circle-check"></i>
-          <p>No problem! Your registration is saved. When you're ready, click <b>My registration</b> at the top of this site and enter your email and phone number — or use the payment link in your email.</p>
-        </div>
+        <p class="portal-note">We've also emailed you a link to create a password for your participant dashboard.</p>
         <div class="success-actions">
           <a class="btn btn-ghost" id="shareWa" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Invite friends</a>
           <button type="button" class="btn btn-ghost" id="regAnother">Register someone else</button>
@@ -694,17 +696,16 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   </div>
 </section>
 
-<!-- ============ SPONSOR A CHILD ============ -->
+<!-- ============ SPONSOR AN INNOVATOR ============ -->
 <section class="section sponsor" id="sponsor">
   <div class="container sponsor-grid">
     <div class="sponsor-info reveal">
-      <span class="chip"><i class="fa-solid fa-heart"></i> Sponsor a child</span>
       <h2 class="title">Give a young innovator <span class="hl">a seat at camp</span></h2>
       <p class="lead">Many talented young people in Northern Uganda can't afford the camp. <?= e(format_ugx($f['sponsor_child'])) ?> covers one participant's full package — camp fee, accommodation, meals, training and sports jersey.</p>
       <ul class="sponsor-impact">
-        <li><span><i class="fa-solid fa-graduation-cap"></i></span><div><b>10 days of hands-on learning</b><p>AI, software, content, entrepreneurship, gaming, robotics.</p></div></li>
-        <li><span><i class="fa-solid fa-people-arrows"></i></span><div><b>Mentorship &amp; internship</b><p>Two months of guidance from industry professionals.</p></div></li>
-        <li><span><i class="fa-solid fa-file-invoice"></i></span><div><b>Instant PDF receipt</b><p>Transparent receipt emailed as soon as you give.</p></div></li>
+        <li><div><b>10 days of hands-on learning</b><p>AI, software, content, entrepreneurship, gaming, robotics.</p></div></li>
+        <li><div><b>Mentorship &amp; internship</b><p>Two months of guidance from industry professionals.</p></div></li>
+        <li><div><b>Instant PDF receipt</b><p>Transparent receipt emailed as soon as you give.</p></div></li>
       </ul>
       <figure class="sponsor-photo"><img src="assets/img/graduation-sm.jpg" alt="Tech Camp graduates celebrating" loading="lazy"></figure>
     </div>
@@ -715,12 +716,12 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
         <div class="pay-body">
           <h3>Support Kakebe Tech Camp</h3>
-          <p class="muted">Sponsor one or more children, or give any amount.</p>
+          <p class="muted">Sponsor one or more young innovators, or give any amount.</p>
           <div class="form-grid">
             <div class="field">
               <label for="s_children">I'd like to sponsor</label>
               <select id="s_children" name="children">
-                <?php foreach ([1, 2, 3, 5, 10] as $k): ?><option value="<?= $k ?>"><?= $k ?> child<?= $k > 1 ? 'ren' : '' ?> — <?= e(format_ugx($k * $f['sponsor_child'])) ?></option><?php endforeach; ?>
+                <?php foreach ([1, 2, 3, 5, 10] as $k): ?><option value="<?= $k ?>"><?= $k ?> innovator<?= $k > 1 ? 's' : '' ?> — <?= e(format_ugx($k * $f['sponsor_child'])) ?></option><?php endforeach; ?>
                 <option value="0">A custom amount</option>
               </select>
             </div>
@@ -745,7 +746,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to ioTec's secure card page.</p>
           <?php if ($sandbox): ?><p class="sandbox"><i class="fa-solid fa-flask"></i> <b>Test mode</b> — no real money. Use <code>0111777771</code> (success).</p><?php endif; ?>
           <div class="form-alert" hidden></div>
-          <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-heart"></i> Give <span class="js-amt"><?= e(format_ugx($f['sponsor_child'])) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
+          <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label">Give <span class="js-amt"><?= e(format_ugx($f['sponsor_child'])) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
           <p class="secure"><i class="fa-solid fa-shield-halved"></i> Secure payments by ioTec Pay</p>
         </div>
         <div class="pay-state" hidden></div>
@@ -758,7 +759,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section faq" id="faq">
   <div class="container faq-grid">
     <div class="faq-intro reveal">
-      <span class="chip"><i class="fa-regular fa-circle-question"></i> FAQ</span>
       <h2 class="title">Questions? We've got <span class="hl">answers</span></h2>
       <p>Everything you need to know about Kakebe Tech Camp 2026. Can't find your answer? Talk to our support line.</p>
       <div class="faq-cta">
@@ -766,7 +766,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <a href="<?= e(whatsapp_link()) ?>" target="_blank" rel="noopener" class="btn btn-ghost"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
       </div>
       <div class="facts-card">
-        <h4><i class="fa-solid fa-circle-info"></i> Quick facts</h4>
+        <h4>Quick facts</h4>
         <ul>
           <li><span>Dates</span><b><?= e($c['dates']) ?></b></li>
           <li><span>Venue</span><b>Kitgum · Residential</b></li>
@@ -792,7 +792,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <section class="section contact" id="contact">
   <div class="container">
     <div class="section-head center reveal">
-      <span class="chip"><i class="fa-solid fa-headset"></i> Contact</span>
       <h2 class="title">Talk to the <span class="hl">Kakebe team</span></h2>
       <p>Reach out for registration support, payments, sponsorships, partnerships or media enquiries.</p>
     </div>
@@ -811,7 +810,6 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         </article>
         <?php endforeach; ?>
         <div class="location-card reveal">
-          <i class="fa-solid fa-map-location-dot"></i>
           <div><b>Kakebe Tech Camp 2026</b><span>Kitgum District, Northern Uganda · <?= e($c['dates']) ?></span></div>
         </div>
       </div>
@@ -870,7 +868,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <li><a href="#techcamp">Tech Camp 2026</a></li>
         <li><a href="#schedule">Schedule</a></li>
         <li><a href="#team">Core team</a></li>
-        <li><a href="#sponsor">Sponsor a child</a></li>
+        <li><a href="#sponsor">Sponsor an innovator</a></li>
       </ul>
     </div>
     <div>
@@ -913,7 +911,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <h3 id="pmTitle"></h3>
       <p id="pmDesc"></p>
       <div class="pm-facts" id="pmFacts"></div>
-      <div class="pm-output"><i class="fa-solid fa-bullseye"></i><div><b>Output</b><p id="pmOutput"></p></div></div>
+      <div class="pm-output"><div><b>Output</b><p id="pmOutput"></p></div></div>
       <h4>What to expect</h4>
       <ul class="pm-expect" id="pmExpect"></ul>
       <a href="#register" class="btn btn-primary" id="pmApply">Register for Tech Camp <i class="fa-solid fa-arrow-right"></i></a>

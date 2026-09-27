@@ -397,3 +397,9 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
   .msg-body { padding-left: 18px; }
   .auth-card { padding: 30px 22px; }
 }
+
+/* Sponsorship approval */
+.approval-card { border-top: 4px solid var(--amber); background: #FFFCF5; }
+.approval-card .decline { margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.ph-actions form.inline { display: inline-flex; }
+.section-title { font-size: 19px; font-weight: 800; margin: 8px 0 18px; }

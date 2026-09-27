@@ -18,6 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $r = find_registration($id);
         if (!$r) continue;
         switch ($action) {
+            case 'approve':
+                if ($r['status'] === 'review') {
+                    $mailed += approve_sponsorship($r, true) ? 1 : 0;
+                    $done++;
+                }
+                break;
             case 'remind':
                 if (balance($r) > 0 && $r['status'] !== 'cancelled') {
                     [$s, $h] = tpl_balance_reminder($r);
@@ -37,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
         }
     }
-    $labels = ['remind' => 'reminded', 'waitlisted' => 'waitlisted', 'cancelled' => 'cancelled', 'auto' => 'restored', 'delete' => 'deleted'];
+    $labels = ['approve' => 'approved (sponsorship)', 'remind' => 'reminded', 'waitlisted' => 'waitlisted', 'cancelled' => 'cancelled', 'auto' => 'restored', 'delete' => 'deleted'];
     flash($done . ' participant' . ($done === 1 ? '' : 's') . ' ' . ($labels[$action] ?? 'updated') . ($mailed ? " · $mailed email" . ($mailed === 1 ? '' : 's') . ' sent' . mail_note() : '') . '.');
     redirect($back);
 }
@@ -52,7 +58,7 @@ $list = q("SELECT * FROM registrations $where ORDER BY id DESC LIMIT $perPage OF
 $qs = array_filter($f, fn($v) => $v !== '');
 $qsString = $qs ? '?' . http_build_query($qs) : '';
 $pageUrl = fn(int $p) => 'registrations.php?' . http_build_query($qs + ['page' => $p]);
-$tabs = ['' => 'All', 'pending' => 'Registered', 'booked' => 'Slot booked', 'confirmed' => 'Confirmed', 'waitlisted' => 'Waitlisted', 'cancelled' => 'Cancelled'];
+$tabs = ['' => 'All', 'review' => 'Awaiting approval', 'pending' => 'Registered', 'booked' => 'Slot booked', 'confirmed' => 'Confirmed', 'waitlisted' => 'Waitlisted', 'cancelled' => 'Cancelled'];
 
 admin_header('Participants', 'registrations', number_format($total) . ' matching · package value ' . format_ugx($sums['t']) . ' · paid ' . format_ugx($sums['p']));
 ?>
@@ -66,6 +72,7 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
   <?php if ($f['status']): ?><input type="hidden" name="status" value="<?= e($f['status']) ?>"><?php endif; ?>
   <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Name, email, phone, reference, district, referrer…"></div>
   <select name="payment"><option value="">Any payment</option><option value="balance" <?= $f['payment'] === 'balance' ? 'selected' : '' ?>>Has a balance</option><?php foreach (payment_statuses() as $k => $l): ?><option value="<?= $k ?>" <?= $f['payment'] === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
+  <select name="funding"><option value="">Self &amp; sponsored</option><option value="self" <?= $f['funding'] === 'self' ? 'selected' : '' ?>>Self-funded</option><option value="sponsored" <?= $f['funding'] === 'sponsored' ? 'selected' : '' ?>>Sponsored</option></select>
   <select name="park"><option value="">Aruu Falls: any</option><option value="yes" <?= $f['park'] === 'yes' ? 'selected' : '' ?>>Park visit: yes</option><option value="no" <?= $f['park'] === 'no' ? 'selected' : '' ?>>Park visit: no</option></select>
   <select name="interest"><option value="">Any track</option><?php foreach (interests() as $t): ?><option <?= $f['interest'] === $t ? 'selected' : '' ?>><?= e($t) ?></option><?php endforeach; ?></select>
   <select name="jersey"><option value="">Any size</option><?php foreach (jersey_sizes() as $s): ?><option <?= $f['jersey'] === $s ? 'selected' : '' ?>><?= $s ?></option><?php endforeach; ?></select>
@@ -84,6 +91,7 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
     <div class="bulk">
       <select name="bulk_action" id="bulkAction">
         <option value="">Bulk action…</option>
+        <option value="approve">Approve sponsorship</option>
         <option value="remind">Email balance reminder</option>
         <option value="waitlisted">Move to waitlist</option>
         <option value="cancelled">Cancel registration</option>
@@ -97,7 +105,7 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
   <?php if ($list): ?>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><th>Participant</th><th>Reference</th><th>Phone</th><th>District</th><th>Tracks</th><th>Size</th><th>Park</th><th>Paid / package</th><th>Balance</th><th>Status</th><th>Registered</th></tr></thead>
+      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><th>Participant</th><th>Reference</th><th>Phone</th><th>District</th><th>Tracks</th><th>Size</th><th>Park</th><th>Funding</th><th>Paid / package</th><th>Balance</th><th>Status</th><th>Registered</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($list as $r): ?>
         <tr class="row-link" data-href="view.php?id=<?= (int) $r['id'] ?>">
@@ -109,10 +117,12 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
           <td class="tracks-cell"><?php foreach (array_filter(array_map('trim', explode(',', (string) $r['interests']))) as $t): ?><span class="tag"><?= e($t) ?></span><?php endforeach; ?></td>
           <td><b><?= e($r['jersey_size'] ?: '—') ?></b></td>
           <td><?= $r['park_visit'] ? '<span class="badge st-booked"><i class="fa-solid fa-water"></i> Yes</span>' : '<span class="muted">—</span>' ?></td>
+          <td><?= funding_badge($r) ?><?php if (is_sponsored($r)): ?><small class="block muted"><?= e(mb_strimwidth((string) $r['sponsor_name'], 0, 26, '…')) ?></small><?php endif; ?></td>
           <td style="min-width:150px;"><span class="money"><b><?= number_format((int) $r['amount_paid']) ?></b> / <?= number_format((int) $r['total_amount']) ?></span><?= progress_bar($r) ?></td>
           <td><?= balance($r) ? '<b class="due">' . number_format(balance($r)) . '</b>' : '<b class="ok-text">0</b>' ?></td>
           <td><?= status_badge($r['status']) ?></td>
           <td class="nowrap muted" title="<?= e($r['created_at']) ?>"><?= e(date('j M, g:i a', strtotime($r['created_at']))) ?></td>
+          <td class="nowrap"><a class="btn btn-light btn-sm" href="view.php?id=<?= (int) $r['id'] ?>"><i class="fa-regular fa-eye"></i> View</a></td>
         </tr>
       <?php endforeach; ?>
       </tbody>

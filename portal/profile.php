@@ -3,7 +3,25 @@ require __DIR__ . '/_init.php';
 $r = require_participant();
 $errors = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$pwError = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'password') {
+    $current = (string) ($_POST['current'] ?? '');
+    $new = (string) ($_POST['new'] ?? '');
+    if (!csrf_valid($_POST['csrf'] ?? null)) {
+        $pwError = 'Your session expired. Please try again.';
+    } elseif ($r['password_hash'] && !password_verify($current, $r['password_hash'])) {
+        $pwError = 'Your current password is incorrect.';
+    } elseif (strlen($new) < 8) {
+        $pwError = 'Your new password must be at least 8 characters.';
+    } elseif ($new !== (string) ($_POST['new2'] ?? '')) {
+        $pwError = 'The two new passwords do not match.';
+    } else {
+        db()->prepare('UPDATE registrations SET password_hash = ?, updated_at = ? WHERE id = ?')->execute([password_hash($new, PASSWORD_DEFAULT), now(), $r['id']]);
+        session_regenerate_id(true);
+        portal_flash($r['password_hash'] ? 'Your password has been changed.' : 'Your password has been created. You can now log in from any device.');
+        redirect('./');
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_valid($_POST['csrf'] ?? null)) {
         $errors['form'] = 'Your session expired. Please try again.';
     } else {
@@ -112,6 +130,21 @@ app_header('Edit profile', '../', 'portal');
 
     <div class="field"><label>Why do you want to join?</label><textarea name="motivation" rows="3" maxlength="1000"><?= e($r['motivation']) ?></textarea></div>
     <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save changes</button>
+  </form>
+</section>
+
+<section class="app-card" id="password" style="max-width:860px;margin:0 auto 22px;">
+  <h3><?= $r['password_hash'] ? 'Change password' : 'Create a password' ?></h3>
+  <p class="muted"><?= $r['password_hash'] ? 'Choose a new password for your dashboard.' : 'Create a password so you can log in to your dashboard from any device.' ?></p>
+  <?php if ($pwError): ?><div class="form-alert"><?= e($pwError) ?></div><?php endif; ?>
+  <form method="post" class="stack">
+    <?= csrf_field() ?><input type="hidden" name="action" value="password">
+    <div class="row-2">
+      <?php if ($r['password_hash']): ?><div class="field"><label>Current password</label><input type="password" name="current" required autocomplete="current-password"></div><?php endif; ?>
+      <div class="field"><label>New password <small class="muted">(8+ characters)</small></label><input type="password" name="new" minlength="8" required autocomplete="new-password"></div>
+      <div class="field"><label>Confirm new password</label><input type="password" name="new2" minlength="8" required autocomplete="new-password"></div>
+    </div>
+    <div><button class="btn btn-navy" type="submit"><i class="fa-solid fa-key"></i> <?= $r['password_hash'] ? 'Update password' : 'Create password' ?></button></div>
   </form>
 </section>
 <script>
