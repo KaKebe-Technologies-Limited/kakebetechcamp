@@ -187,6 +187,7 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
   <div class="ph-actions">
     <a class="btn btn-light btn-sm" href="<?= e(tel_link($r['phone'])) ?>"><i class="fa-solid fa-phone"></i> Call</a>
     <a class="btn btn-light btn-sm" href="https://wa.me/<?= e($waNum) ?>?text=<?= rawurlencode('Hello ' . explode(' ', $r['full_name'])[0] . ', this is the Kakebe Tech Camp team regarding your registration ' . $r['reference'] . '.') ?>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+    <a class="btn btn-primary btn-sm" href="take-payment.php?id=<?= $id ?>"><i class="fa-solid fa-hand-holding-dollar"></i> Take a payment</a>
     <a class="btn btn-light btn-sm" href="<?= e(pay_url($r)) ?>" target="_blank"><i class="fa-solid fa-link"></i> Pay page</a>
     <a class="btn btn-light btn-sm" href="../ticket.php?id=<?= $id ?>" target="_blank"><i class="fa-solid fa-ticket"></i> Ticket</a>
     <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="impersonate"><button class="btn btn-navy btn-sm" type="submit" title="Open this participant's dashboard exactly as they see it"><i class="fa-regular fa-eye"></i> View their dashboard</button></form>

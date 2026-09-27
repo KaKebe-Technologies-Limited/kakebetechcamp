@@ -128,10 +128,11 @@ function tpl_applicant_received(array $r): array
     } else {
         $inner .= '<p style="margin-top:20px;"><strong>Your camp package</strong></p>' . kt_items($r)
             . kt_detail([
-                '📌 Securing your place' => 'You can complete your package now or in instalments — half secures your place and the rest can follow before camp.',
-                '📱 How to pay' => 'Mobile Money (MTN/Airtel) or Visa/Mastercard, online in a few seconds.',
+                '🗓️ When to pay' => 'Whenever you are ready before camp — pay in full or in instalments. Paying ' . fees()['deposit_pct'] . '% (' . format_ugx(deposit_amount($r)) . ') secures your place.',
+                '📱 How to pay' => 'Click the button below and pay instantly with Mobile Money (MTN/Airtel) or Visa/Mastercard. Keep this email — the same link works any time.',
+                '🧾 Receipts' => 'A PDF receipt showing what you have paid and any balance is emailed after every payment.',
             ])
-            . kt_btn('View my registration', pay_url($r));
+            . kt_btn('Pay now or view my registration', pay_url($r));
     }
 
     $inner .= ($r['mentorship'] ? kt_detail(['🎁 Bonus' => 'You are automatically enrolled — free — in the Kakebe Mentorship Program and Digital Bridge Internship (' . camp()['mentorship'] . ') with experienced industry professionals. Online sessions run every Monday, 8:00 – 9:30 PM.'], 'green') : '')
@@ -260,12 +261,14 @@ function tpl_admin_donation_pledge(array $d): array
     return ['🤝 New sponsorship pledge — ' . $d['donor_name'], kt_email('Sponsorship Pledge', $inner)];
 }
 
-function tpl_verify_code(string $code): array
+function tpl_registration_link(string $link): array
 {
-    $inner = '<p><strong>Hello,</strong></p><p>Use this code to confirm your email address and continue your Kakebe Tech Camp 2026 registration:</p>'
-        . "<div class='ref'><small>YOUR VERIFICATION CODE</small><b style='letter-spacing:8px;'>" . e($code) . '</b></div>'
-        . '<p>The code expires in 15 minutes. If you did not start a registration, you can safely ignore this email.</p>';
-    return ['✉️ Confirm your email — code ' . $code, kt_email('Email Verification', $inner, 'Your verification code is ' . $code)];
+    $inner = '<p><strong>Hello,</strong></p>'
+        . '<p>Thank you for your interest in <strong>Kakebe Tech Camp 2026</strong> (' . e(camp()['dates']) . ', Kitgum). Click the button below to confirm this email address and continue your registration.</p>'
+        . kt_btn('Continue my registration', $link)
+        . '<p style="font-size:13px;color:#6B7390;">This link is valid for 24 hours. If the button does not work, copy this address into your browser:<br><a href="' . e($link) . '">' . e($link) . '</a></p>'
+        . '<p style="font-size:13px;color:#6B7390;">If you did not start a registration, you can safely ignore this email.</p>';
+    return ['Continue your Kakebe Tech Camp 2026 registration', kt_email('Registration Link', $inner, 'Confirm your email to continue registering')];
 }
 
 function tpl_login_code(array $r, string $code): array

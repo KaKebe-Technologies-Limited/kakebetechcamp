@@ -433,3 +433,20 @@
   .funding-options { grid-template-columns: 1fr; }
 }
 .about-v2 + .tracks { margin-top: 28px; }
+
+/* Registration step 1 — email link */
+.email-gate .form-head p { font-size: 15px; line-height: 1.65; color: var(--body); margin-bottom: 22px; }
+.email-gate #gateBtn { margin-top: 6px; }
+.gate-sent { text-align: center; padding: 10px 0; }
+.gate-sent .success-icon { background: var(--red-50); color: var(--red); box-shadow: 0 0 0 10px #FFF7F7; }
+.gate-sent h3 { font-size: 24px; margin-bottom: 8px; }
+.gate-sent p { max-width: 460px; margin: 0 auto 12px; }
+.gate-foot { margin: 22px 0 0; text-align: center; }
+#emailField input[readonly] { background: #F4FBF7; border-color: #8FD6AE; color: var(--ink); font-weight: 600; flex: 1; }
+.email-row a.btn-verify { text-decoration: none; }
+
+/* Payment information in the form */
+.pay-info { padding: 16px 18px; border-radius: 16px; background: #EEF3FF; border: 1px solid #C9D8FF; margin: 0 0 14px; }
+.pay-info b { display: block; color: var(--navy); margin-bottom: 4px; }
+.pay-info p { margin: 0; font-size: 14px; line-height: 1.6; }
+.gate-foot a, .email-gate .form-head a { color: var(--red); font-weight: 700; }

@@ -261,11 +261,11 @@ function email_problem(string $email): ?string
     return null;
 }
 
-/** True when this browser session has confirmed ownership of $email with a code (valid for 3 hours). */
+/** True when this browser session has confirmed ownership of $email via the emailed link (valid for 24 hours). */
 function email_verified_in_session(string $email): bool
 {
     $at = $_SESSION['verified_emails'][strtolower(trim($email))] ?? 0;
-    return $at && time() - (int) $at < 3 * 3600;
+    return $at && time() - (int) $at < 24 * 3600;
 }
 
 /* ------------------------------------------------------------------

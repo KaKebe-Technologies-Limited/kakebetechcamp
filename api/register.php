@@ -46,7 +46,7 @@ $email = strtolower($clean('email', 190));
 if ($problem = email_problem($email)) {
     $errors['email'] = $problem;
 } elseif (!email_verified_in_session($email)) {
-    $errors['email'] = 'Please verify your email address with the code we send you.';
+    $errors['email'] = 'Please confirm your email first using the registration link we emailed you.';
 }
 $phone = $clean('phone', 40);
 $digits = preg_replace('/\D/', '', $phone);
@@ -162,6 +162,7 @@ try {
 
 $r = find_registration($id);
 $_SESSION['participant_id'] = $id; // lets them open the portal straight away on this device
+unset($_SESSION['reg_email'], $_SESSION['verified_emails'][$email]); // registering someone else starts again at step 1
 
 respond_and_continue([
     'ok'        => true,

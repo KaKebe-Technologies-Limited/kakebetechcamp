@@ -91,7 +91,6 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
     $bal = balance($r);
     $min = min_payment($r);
     $needDeposit = (int) $r['amount_paid'] < deposit_amount($r);
-    $sandbox = iotec()['sandbox'];
     ob_start(); ?>
     <form class="pay-form js-pay-form" action="<?= $base ?>api/pay.php" data-status="<?= $base ?>api/payment-status.php" novalidate>
       <?= csrf_field() ?>
@@ -103,7 +102,7 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
         <label class="lbl">How much would you like to pay?</label>
         <div class="chips">
           <?php if ($needDeposit && $min < $bal): ?>
-          <button type="button" class="chip-amt active" data-amount="<?= $min ?>"><b><?= e(format_ugx($min)) ?></b><small>Book my slot (<?= fees()['deposit_pct'] ?>%)</small></button>
+          <button type="button" class="chip-amt active" data-amount="<?= $min ?>"><b><?= e(format_ugx($min)) ?></b><small>Secure my place (<?= fees()['deposit_pct'] ?>%)</small></button>
           <?php endif; ?>
           <button type="button" class="chip-amt <?= (!$needDeposit || $min >= $bal) ? 'active' : '' ?>" data-amount="<?= $bal ?>"><b><?= e(format_ugx($bal)) ?></b><small>Pay full balance</small></button>
         </div>
@@ -121,14 +120,11 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
         </div>
         <div class="field js-mm">
           <label for="pay_phone">Mobile Money number</label>
-          <input id="pay_phone" name="pay_phone" type="tel" value="<?= e($sandbox ? '0111777771' : $r['phone']) ?>" placeholder="e.g. 0772 123 456">
+          <input id="pay_phone" name="pay_phone" type="tel" value="<?= e($r['phone']) ?>" placeholder="e.g. 0772 123 456">
           <span class="hint">You'll get a prompt on this phone — enter your PIN to approve.</span>
           <span class="err" data-err="pay_phone"></span>
         </div>
         <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to ioTec's secure card page, then returned here.</p>
-        <?php if ($sandbox): ?>
-        <p class="sandbox"><i class="fa-solid fa-flask"></i> <b>Test mode</b> — no real money. Use <code>0111777771</code> (success) or <code>0111777991</code> (fails).</p>
-        <?php endif; ?>
         <div class="form-alert" hidden></div>
         <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-lock"></i> Pay <span class="js-amt"><?= e(format_ugx(($needDeposit && $min < $bal) ? $min : $bal)) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
       </div>

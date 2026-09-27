@@ -323,6 +323,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '')
         ],
         'Finance' => [
             'finance'  => ['finance.php', 'fa-chart-pie', 'Finance overview', 0],
+            'take'     => ['take-payment.php', 'fa-hand-holding-dollar', 'Take a payment', 0],
             'payments' => ['payments.php', 'fa-money-bill-transfer', 'Payments', $pendingPay],
             'sponsors' => ['sponsors.php', 'fa-hand-holding-heart', 'Sponsorships', 0],
         ],

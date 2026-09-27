@@ -290,103 +290,6 @@
       photoName.textContent = file.name;
     });
 
-    /* Email verification (6-digit code) */
-    const emailInput = $('#f_email');
-    const emailField = $('#emailField');
-    const sendBtn = $('#sendCode');
-    const codeRow = $('#codeRow');
-    const codeInput = $('#f_code');
-    const checkBtn = $('#checkCode');
-    const resendBtn = $('#resendCode');
-    const emailHint = $('#emailHint');
-    const verifiedTag = $('#emailVerified');
-    const csrf = $('input[name="csrf"]', form).value;
-    const defaultHint = emailHint.textContent;
-    let verifiedEmail = '';
-    let cooldown;
-    const isVerified = () => !!verifiedEmail && verifiedEmail === emailInput.value.trim().toLowerCase();
-    const setEmailErr = (msg) => {
-      $('[data-err="email"]', form).textContent = msg || '';
-      emailField.classList.toggle('invalid', !!msg);
-    };
-    const refreshVerifyUI = () => {
-      const ok = isVerified();
-      verifiedTag.hidden = !ok;
-      emailField.classList.toggle('verified', ok);
-      if (ok) { codeRow.hidden = true; emailHint.textContent = 'Thank you — your email address is confirmed.'; }
-      sendBtn.hidden = ok || !codeRow.hidden;
-    };
-    const resetVerify = () => {
-      verifiedEmail = '';
-      codeRow.hidden = true;
-      clearInterval(cooldown);
-      emailHint.textContent = defaultHint;
-      refreshVerifyUI();
-    };
-    emailInput.addEventListener('input', () => { if (verifiedEmail || !codeRow.hidden) resetVerify(); });
-    const startCooldown = () => {
-      let s = 45;
-      resendBtn.disabled = true;
-      resendBtn.textContent = `Resend in ${s}s`;
-      clearInterval(cooldown);
-      cooldown = setInterval(() => {
-        s -= 1;
-        if (s <= 0) { clearInterval(cooldown); resendBtn.disabled = false; resendBtn.textContent = 'Resend code'; }
-        else resendBtn.textContent = `Resend in ${s}s`;
-      }, 1000);
-    };
-    const requestCode = async () => {
-      setEmailErr('');
-      const email = emailInput.value.trim();
-      if (!emailRe.test(email)) { setEmailErr('Please enter a valid email address first.'); emailInput.focus(); return; }
-      sendBtn.classList.add('loading');
-      try {
-        const fd = new FormData();
-        fd.append('csrf', csrf);
-        fd.append('email', email);
-        const json = await postForm('api/email-code.php', fd);
-        if (json.ok && json.verified) { verifiedEmail = email.toLowerCase(); refreshVerifyUI(); return; }
-        if (!json.ok) { setEmailErr(json.message); return; }
-        codeRow.hidden = false;
-        emailHint.textContent = json.message;
-        codeInput.value = '';
-        refreshVerifyUI();
-        startCooldown();
-        codeInput.focus();
-      } catch (err) {
-        setEmailErr(err.message);
-      } finally {
-        sendBtn.classList.remove('loading');
-      }
-    };
-    const confirmCode = async () => {
-      const code = codeInput.value.replace(/\D/g, '');
-      if (code.length !== 6) { setEmailErr('Enter the 6-digit code from your email.'); codeInput.focus(); return; }
-      checkBtn.classList.add('loading');
-      try {
-        const fd = new FormData();
-        fd.append('csrf', csrf);
-        fd.append('email', emailInput.value.trim());
-        fd.append('code', code);
-        const json = await postForm('api/email-verify.php', fd);
-        if (json.ok) { verifiedEmail = emailInput.value.trim().toLowerCase(); setEmailErr(''); refreshVerifyUI(); toast('✅ Email verified — thank you!'); }
-        else setEmailErr(json.message);
-      } catch (err) {
-        setEmailErr(err.message);
-      } finally {
-        checkBtn.classList.remove('loading');
-      }
-    };
-    sendBtn.addEventListener('click', requestCode);
-    resendBtn.addEventListener('click', requestCode);
-    checkBtn.addEventListener('click', confirmCode);
-    codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmCode(); } });
-    codeInput.addEventListener('input', () => {
-      codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6);
-      if (codeInput.value.length === 6) confirmCode();
-    });
-    emailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!isVerified()) requestCode(); } });
-
     const validate = () => {
       const f = new FormData(form);
       const val = (k) => String(f.get(k) || '').trim();
@@ -396,7 +299,6 @@
       if (!age) errors.age = 'Please enter your age.';
       else if (age < 14 || age > 30) errors.age = 'Tech Camp is open to ages 14 – 30.';
       if (!emailRe.test(val('email'))) errors.email = 'Please enter a valid email address.';
-      else if (!isVerified()) errors.email = 'Please confirm your email — click "Send code" and enter the code we email you.';
       const digits = val('phone').replace(/\D/g, '');
       if (digits.length < 9 || digits.length > 15) errors.phone = 'Please enter a valid phone number.';
       if (val('district').length < 2) errors.district = 'Please enter your district of origin.';
@@ -458,21 +360,67 @@
 
     $('#payLaterBtn').addEventListener('click', () => {
       $('#laterNote').hidden = false;
-      toast('👍 Registration saved — pay any time from "Pay / My account".');
+      toast('👍 Registration saved — the payment details are in your email.');
     });
-    $('#regAnother').addEventListener('click', () => {
-      form.reset();
-      resetVerify();
-      syncFunding();
-      $('#f_country').value = 'Uganda';
-      preview.innerHTML = '<i class="fa-regular fa-image"></i>';
-      photoName.textContent = 'Click to upload a photo';
-      otherWrap.classList.add('is-hidden');
-      syncTracks();
-      updateTotals();
-      success.hidden = true;
-      form.hidden = false;
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ---------- Registration step 1: email link ---------- */
+  const gateForm = $('#gateForm');
+  if (gateForm) {
+    const gateBtn = $('#gateBtn');
+    const gateAlert = $('#gateAlert');
+    const gateSent = $('#gateSent');
+    const gateEmail = $('#g_email');
+    const resend = $('#gateResend');
+    let cooldown;
+    const startCooldown = () => {
+      let sec = 45;
+      resend.disabled = true;
+      resend.textContent = `resend in ${sec}s`;
+      clearInterval(cooldown);
+      cooldown = setInterval(() => {
+        sec -= 1;
+        if (sec <= 0) { clearInterval(cooldown); resend.disabled = false; resend.textContent = 'resend the link'; }
+        else resend.textContent = `resend in ${sec}s`;
+      }, 1000);
+    };
+    const sendLink = async () => {
+      clearErrors(gateForm);
+      setAlert(gateAlert, '');
+      const email = gateEmail.value.trim();
+      if (!emailRe.test(email)) { showErrors(gateForm, { email: 'Please enter a valid email address.' }); return false; }
+      gateBtn.classList.add('loading');
+      try {
+        const json = await postForm('api/email-link.php', new FormData(gateForm));
+        if (!json.ok) {
+          if (json.errors) showErrors(gateForm, json.errors);
+          else setAlert(gateAlert, json.message || 'Something went wrong. Please try again.');
+          return false;
+        }
+        $('#gateEmailShow').textContent = json.email || email;
+        gateForm.hidden = true;
+        gateSent.hidden = false;
+        startCooldown();
+        return true;
+      } catch (err) {
+        setAlert(gateAlert, err.message || 'Network error — please try again.');
+        return false;
+      } finally {
+        gateBtn.classList.remove('loading');
+      }
+    };
+    gateForm.addEventListener('submit', (e) => { e.preventDefault(); sendLink(); });
+    resend.addEventListener('click', async () => {
+      gateForm.hidden = false;
+      const ok = await sendLink();
+      if (ok) toast('✉️ We sent you a new link.');
+      else { gateSent.hidden = true; }
+    });
+    $('#gateChange').addEventListener('click', () => {
+      gateSent.hidden = true;
+      gateForm.hidden = false;
+      gateEmail.value = '';
+      gateEmail.focus();
     });
   }
 

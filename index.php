@@ -10,10 +10,44 @@ $website  = setting('org_website');
 $socials  = social_links();
 $team     = team_members();
 $base     = $f['camp'] + $f['jersey'];
-$sandbox  = iotec()['sandbox'];
 $_SESSION['form_rendered_at'] = time();
 $me       = current_participant();
 $sponsorList = active_sponsors();
+
+// Registration step 1: the applicant opens the link we emailed them → their email is confirmed for this browser.
+$self = strtok($_SERVER['REQUEST_URI'], '?');
+if (isset($_GET['restart'])) {
+    unset($_SESSION['reg_email']);
+    redirect($self . '#register');
+}
+if (isset($_GET['verify'])) {
+    $tok = (string) $_GET['verify'];
+    $row = null;
+    if (preg_match('/^[a-f0-9]{64}$/', $tok)) {
+        $st = db()->prepare('SELECT * FROM email_verifications WHERE code_hash = ? AND expires_at > ? ORDER BY id DESC LIMIT 1');
+        $st->execute([hash('sha256', $tok), now()]);
+        $row = $st->fetch() ?: null;
+    }
+    if (!$row) {
+        $_SESSION['reg_notice'] = ['error', 'That registration link has expired or is not valid. Enter your email below to get a new one.'];
+    } else {
+        $dup = db()->prepare("SELECT COUNT(*) FROM registrations WHERE email = ? AND status <> 'cancelled'");
+        $dup->execute([$row['email']]);
+        if ((int) $dup->fetchColumn() > 0) {
+            $_SESSION['reg_notice'] = ['error', 'This email is already registered. Use "My registration" at the top of the page to view it.'];
+        } else {
+            db()->prepare('UPDATE email_verifications SET verified_at = COALESCE(verified_at, ?) WHERE id = ?')->execute([now(), $row['id']]);
+            $_SESSION['verified_emails'][$row['email']] = time();
+            $_SESSION['reg_email'] = $row['email'];
+            $_SESSION['reg_notice'] = ['ok', 'Thank you — your email is confirmed. Please complete your registration below.'];
+        }
+    }
+    redirect($self . '#register');
+}
+$regEmail = (string) ($_SESSION['reg_email'] ?? '');
+$regVerified = $regEmail !== '' && email_verified_in_session($regEmail);
+$regNotice = $_SESSION['reg_notice'] ?? null;
+unset($_SESSION['reg_notice']);
 
 $img = fn(string $name) => 'assets/img/' . $name;
 
@@ -475,9 +509,9 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <h2>Secure your place at <span>Kakebe Tech Camp</span></h2>
       <p>Registration takes about 2 minutes and also enrols you free in the Mentorship Program and Digital Bridge Internship.</p>
       <ol class="steps">
-        <li><span>1</span><div><b>Fill in your details</b><small>Tell us about yourself and pick your learning tracks.</small></div></li>
-        <li><span>2</span><div><b>Confirm your email</b><small>Enter the 6-digit code we send to your inbox.</small></div></li>
-        <li><span>3</span><div><b>Secure your place</b><small>Complete your camp package now or later — instalments welcome.</small></div></li>
+        <li><span>1</span><div><b>Enter your email</b><small>We send you a secure link — this confirms your email is genuine.</small></div></li>
+        <li><span>2</span><div><b>Complete your details</b><small>Open the link, then tell us about yourself and pick your tracks.</small></div></li>
+        <li><span>3</span><div><b>Pay now or later</b><small>No payment is needed to register. We email you the payment details — pay later or instantly online.</small></div></li>
         <li><span>4</span><div><b>Get your ticket</b><small>Your camp ticket arrives by email, ready for check-in.</small></div></li>
       </ol>
       <div class="summary-card perks">
@@ -503,14 +537,41 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           <h3>Registration is currently closed</h3>
           <p>Already registered? <a href="pay.php">Pay or view your registration</a>. For help call <a href="<?= e(tel_link($phone)) ?>"><?= e($phone) ?></a>.</p>
         </div>
+      <?php elseif (!$regVerified): ?>
+      <div class="email-gate" id="emailGate">
+        <div class="form-head">
+          <h3>Start your registration</h3>
+          <p>Enter your email address and we'll send you a secure link to continue. This confirms your email is genuine — it's where your confirmation, payment details and camp ticket will be sent.</p>
+        </div>
+        <?php if ($regNotice): ?><div class="form-alert <?= $regNotice[0] === 'ok' ? 'ok' : '' ?>"><?= e($regNotice[1]) ?></div><?php endif; ?>
+        <form id="gateForm" novalidate>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+          <div class="field">
+            <label for="g_email">Your email address <span class="req">*</span></label>
+            <input id="g_email" name="email" type="email" maxlength="190" autocomplete="email" placeholder="you@example.com" required>
+            <span class="err" data-err="email"></span>
+          </div>
+          <div class="form-alert" id="gateAlert" role="alert" hidden></div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="gateBtn"><span class="btn-label">Send me the registration link <i class="fa-solid fa-arrow-right"></i></span><span class="btn-loading"><span class="spinner"></span> Sending…</span></button>
+        </form>
+        <div class="gate-sent" id="gateSent" hidden>
+          <div class="success-icon"><i class="fa-regular fa-envelope"></i></div>
+          <h3>Check your inbox</h3>
+          <p>We've sent a registration link to <b id="gateEmailShow"></b>. Open the email and click <b>Continue my registration</b> to fill in the rest of your details. The link is valid for 24 hours.</p>
+          <p class="muted small">Can't find it? Check your spam or promotions folder, <button type="button" class="link-btn" id="gateResend">resend the link</button> or <button type="button" class="link-btn" id="gateChange">use a different email</button>.</p>
+        </div>
+        <p class="gate-foot muted small">Already registered? <a href="pay.php">View your registration</a></p>
+      </div>
       <?php else: ?>
       <form id="regForm" class="reg-form" novalidate enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
         <div class="form-head">
           <h3>Tech Camp registration</h3>
-          <p>Fields marked <span class="req">*</span> are required. Already registered? <a href="pay.php">View your registration</a>.</p>
+          <p>Fields marked <span class="req">*</span> are required.</p>
         </div>
+        <?php if ($regNotice): ?><div class="form-alert <?= $regNotice[0] === 'ok' ? 'ok' : '' ?>"><?= e($regNotice[1]) ?></div><?php endif; ?>
 
         <div class="form-section"><span>1</span> Your details</div>
         <div class="form-grid">
@@ -529,17 +590,11 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
             <div class="input-icon"><i class="fa-solid fa-venus-mars"></i><select id="f_gender" name="gender"><option value="">Select…</option><?php foreach (genders() as $g): ?><option><?= e($g) ?></option><?php endforeach; ?></select></div>
           </div>
           <div class="field full" id="emailField">
-            <label for="f_email">Email address <span class="req">*</span> <span class="verified-tag" id="emailVerified" hidden><i class="fa-solid fa-circle-check"></i> Verified</span></label>
+            <label for="f_email">Email address <span class="verified-tag"><i class="fa-solid fa-circle-check"></i> Confirmed</span></label>
             <div class="email-row">
-              <div class="input-icon"><i class="fa-regular fa-envelope"></i><input id="f_email" name="email" type="email" maxlength="190" autocomplete="email" placeholder="you@example.com" required></div>
-              <button type="button" class="btn-verify" id="sendCode"><span class="btn-label">Send code</span><span class="btn-loading"><span class="spinner"></span></span></button>
+              <input id="f_email" name="email" type="email" value="<?= e($regEmail) ?>" readonly>
+              <a class="btn-verify navy" href="?restart=1#register">Change</a>
             </div>
-            <div class="code-row" id="codeRow" hidden>
-              <input id="f_code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" aria-label="Verification code">
-              <button type="button" class="btn-verify navy" id="checkCode"><span class="btn-label">Confirm</span><span class="btn-loading"><span class="spinner"></span></span></button>
-              <button type="button" class="link-btn" id="resendCode">Resend code</button>
-            </div>
-            <span class="hint" id="emailHint">We'll email you a 6-digit code to confirm this address is yours.</span>
             <span class="err" data-err="email"></span>
           </div>
           <div class="field">
@@ -594,8 +649,12 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 
         <div class="form-section"><span>4</span> Camp fees</div>
         <div class="funding-options">
-          <label class="fund-opt"><input type="radio" name="funding" value="self" checked><span><b>I'll cover my camp fees</b><small>Pay online now or later, in instalments if you like.</small></span></label>
+          <label class="fund-opt"><input type="radio" name="funding" value="self" checked><span><b>I'll cover my camp fees</b><small>Pay later or instantly online — instalments welcome.</small></span></label>
           <label class="fund-opt"><input type="radio" name="funding" value="sponsored"><span><b>I'm sponsored</b><small>Someone else (a person or organisation) is paying for me.</small></span></label>
+        </div>
+        <div class="pay-info" id="payInfo">
+          <b>No payment is needed to register</b>
+          <p>After you submit, we'll email you your payment details. You can pay later at your convenience before camp (half secures your place, and instalments are welcome) — or pay instantly online with Mobile Money or card right after registering.</p>
         </div>
         <div class="sponsor-pick" id="sponsorPick" hidden>
           <div class="form-grid">
@@ -688,7 +747,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <p class="portal-note">We've also emailed you a link to create a password for your participant dashboard.</p>
         <div class="success-actions">
           <a class="btn btn-ghost" id="shareWa" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Invite friends</a>
-          <button type="button" class="btn btn-ghost" id="regAnother">Register someone else</button>
+          <a class="btn btn-ghost" id="regAnother" href="?restart=1#register">Register someone else</a>
         </div>
       </div>
       <?php endif; ?>
@@ -742,9 +801,8 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
             <label class="method"><input type="radio" name="method" value="mobile_money" checked><span><i class="fa-solid fa-mobile-screen-button"></i><b>Mobile Money</b><small>MTN · Airtel</small></span></label>
             <label class="method"><input type="radio" name="method" value="card"><span><i class="fa-regular fa-credit-card"></i><b>Card</b><small>Visa · Mastercard</small></span></label>
           </div>
-          <div class="field js-mm"><label for="s_payphone">Mobile Money number</label><input id="s_payphone" name="pay_phone" type="tel" value="<?= $sandbox ? '0111777771' : '' ?>" placeholder="e.g. 0772 123 456"><span class="err" data-err="pay_phone"></span></div>
+          <div class="field js-mm"><label for="s_payphone">Mobile Money number</label><input id="s_payphone" name="pay_phone" type="tel" value="" placeholder="e.g. 0772 123 456"><span class="err" data-err="pay_phone"></span></div>
           <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to ioTec's secure card page.</p>
-          <?php if ($sandbox): ?><p class="sandbox"><i class="fa-solid fa-flask"></i> <b>Test mode</b> — no real money. Use <code>0111777771</code> (success).</p><?php endif; ?>
           <div class="form-alert" hidden></div>
           <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label">Give <span class="js-amt"><?= e(format_ugx($f['sponsor_child'])) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
           <p class="secure"><i class="fa-solid fa-shield-halved"></i> Secure payments by ioTec Pay</p>
