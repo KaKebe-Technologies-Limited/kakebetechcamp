@@ -1,0 +1,16 @@
+# Local configuration (contains DB credentials and the app secret)
+includes/config.php
+
+# Uploaded photos and logs
+storage/uploads/
+storage/logs/
+
+# Camera RAW originals are not used by the site
+imgs/*.ARW
+
+# Secrets
+.env
+
+# Public team photo uploads
+uploads/team/*
+!uploads/team/.htaccess
