@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 function db(): PDO
 {
@@ -81,6 +81,11 @@ function migrate(PDO $pdo): void
     if ($version >= 1 && $version < 6) {
         // v6: camp fees are paid in full — part-paid registrations go back to "Registered" until the balance is cleared.
         $pdo->exec("UPDATE registrations SET status = 'pending' WHERE status = 'booked'");
+    }
+    if ($version >= 1 && $version < 7) {
+        // v7: Derrick is copied on registration alerts too (he was already on payment alerts).
+        $pdo->exec("UPDATE settings SET svalue = CONCAT(svalue, ', derricklamarh@gmail.com')
+                    WHERE skey = 'notify_registration_cc' AND svalue <> '' AND svalue NOT LIKE '%derricklamarh@gmail.com%'");
     }
 
     $defaults = default_settings();
@@ -358,7 +363,7 @@ function default_settings(): array
         'sponsor_child_amount'   => '120000',
         'camp_capacity'          => '300',
         'notify_emails'          => env('MAIL_NOTIFY', 'info@kakebetechcamp.com'),
-        'notify_registration_cc' => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com',
+        'notify_registration_cc' => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',
         'notify_payment_cc'      => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',
         'ga_measurement_id'      => 'G-H4TEE2S6RG',
         'wa_welcome_message'     => 'Hello {first_name} 👋
