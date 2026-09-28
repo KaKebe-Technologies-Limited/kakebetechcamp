@@ -32,7 +32,9 @@ function env(string $key, string $default = ''): string
 function is_local_host(): bool
 {
     $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
-    return $host === '' ? false : (str_contains($host, 'localhost') || str_starts_with($host, '127.0.0.1') || str_ends_with(explode(':', $host)[0], '.test'));
+    // The Host header can be spoofed, so a local address must also come from this machine.
+    $fromThisMachine = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+    return $host !== '' && $fromThisMachine && (str_contains($host, 'localhost') || str_starts_with($host, '127.0.0.1') || str_ends_with(explode(':', $host)[0], '.test'));
 }
 
 /**
