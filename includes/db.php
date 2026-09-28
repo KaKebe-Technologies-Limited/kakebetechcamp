@@ -361,6 +361,19 @@ function default_settings(): array
         'notify_registration_cc' => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com',
         'notify_payment_cc'      => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',
         'ga_measurement_id'      => 'G-H4TEE2S6RG',
+        'wa_welcome_message'     => 'Hello {first_name} 👋
+
+My name is Moses Komakech, and I am the Head of Comms for Kakebe Tech Camp 2026.
+
+Thank you so much for registering for the Tech Camp! 🎉 Your reference number is *{reference}*. We are truly excited to walk this journey with you — ten days of learning, building and innovating together in Kitgum, {camp_dates}.
+
+If you have any questions at any time, please reach out to us on this WhatsApp line — we are always happy to help.
+
+Do you know someone who would love this too? Please recommend them — they can register here: {register_link}
+
+Welcome to the Kakebe family! 🚀
+Moses Komakech
+Head of Comms, Kakebe Tech Camp',
         'ga_property_id'         => '',
         'ga_service_account'     => '',
         'applicant_confirmation' => '1',

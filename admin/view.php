@@ -166,10 +166,7 @@ $payments = q('SELECT p.*, a.name AS admin_name FROM payments p LEFT JOIN admins
 $bal = balance($r);
 $pct = paid_percent($r);
 $chosen = array_map('trim', explode(',', (string) $r['interests']));
-$waNum = preg_replace('/\D/', '', $r['phone']);
-if (str_starts_with($waNum, '0')) {
-    $waNum = '256' . substr($waNum, 1);
-}
+$waNum = intl_digits((string) $r['phone']);
 
 admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered ' . date('j M Y, g:i a', strtotime($r['created_at'])));
 ?>

@@ -38,6 +38,7 @@ function kt_email(string $subtitle, string $inner, string $preheader = ''): stri
   .label { font-weight: bold; color: #0F2557; }
   .btn { display: inline-block; padding: 13px 28px; background: #E11D2A; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: 700; }
   .btn.navy { background: #0F2557; }
+  .btn.whatsapp { background: #128C7E; }
   .ref { background: #FFF2F2; border: 2px dashed #F4A6A0; border-radius: 12px; padding: 14px; text-align: center; margin: 18px 0; }
   .ref small { display: block; font-size: 11px; letter-spacing: .14em; color: #B5121B; font-weight: 800; }
   .ref b { display: block; font-size: 26px; color: #0F2557; letter-spacing: 1px; margin-top: 4px; }
@@ -81,14 +82,15 @@ function kt_btn(string $label, string $url, string $class = ''): string
     return "<p style='text-align:center;margin:24px 0;'><a href='" . e($url) . "' class='btn $class'>" . e($label) . '</a></p>';
 }
 
-function kt_detail(array $rows, string $class = ''): string
+/** Label/value rows. Values are escaped, except the labels listed in $htmlKeys (already-safe HTML). */
+function kt_detail(array $rows, string $class = '', array $htmlKeys = []): string
 {
     $html = "<div class='detail $class'>";
     foreach ($rows as $label => $value) {
         if ($value === null || $value === '') {
             continue;
         }
-        $html .= "<p><span class='label'>" . e($label) . ':</span> ' . nl2br(e((string) $value)) . '</p>';
+        $html .= "<p><span class='label'>" . e($label) . ':</span> ' . (in_array($label, $htmlKeys, true) ? (string) $value : nl2br(e((string) $value))) . '</p>';
     }
     return $html . '</div>';
 }
@@ -179,7 +181,7 @@ function tpl_admin_registration(array $r): array
             '🆔 Reference' => $r['reference'],
             '👤 Name' => $r['full_name'] . ' (' . $r['age'] . ($r['gender'] ? ', ' . $r['gender'] : '') . ')',
             '📧 Email' => $r['email'],
-            '📞 Phone' => $r['phone'],
+            '📞 Phone' => "<a href='" . e(participant_whatsapp_link($r)) . "' style='color:#128C7E;font-weight:700;'>" . e($r['phone']) . "</a> <span style='color:#6B7390;'>(WhatsApp)</span> · <a href='" . e(tel_link($r['phone'])) . "' style='color:#0F2557;'>Call</a>",
             '📍 District' => $r['district'] . ', ' . $r['country'],
             '🤝 Funding' => is_sponsored($r) ? 'Sponsored by ' . ($r['sponsor_name'] ?: '—') . ' — NEEDS APPROVAL' : 'Self-funded',
             '🎯 Tracks' => $r['interests'],
@@ -188,7 +190,9 @@ function tpl_admin_registration(array $r): array
             '📣 Heard via' => $r['source'] . ($r['source_other'] ? ' — ' . $r['source_other'] : ''),
             '🤝 Referred by' => $r['referred_by'],
             '💬 Motivation' => $r['motivation'],
-        ])
+        ], '', ['📞 Phone'])
+        . kt_btn('💬 Welcome ' . explode(' ', trim($r['full_name']))[0] . ' on WhatsApp', participant_whatsapp_link($r), 'whatsapp')
+        . "<p style='text-align:center;font-size:13px;color:#6B7390;margin-top:-12px;'>Opens WhatsApp with a welcome message from Moses already typed — just press send. If the number isn't on WhatsApp, use Call instead.</p>"
         . kt_detail(['💰 Package total' => format_ugx($r['total_amount']), '🕒 Submitted' => date('D, j M Y · g:i A', strtotime($r['created_at']))], 'navy')
         . kt_btn('Open in control panel', base_url('admin/view.php?id=' . $r['id']), 'navy');
     return ['🆕 New registration — ' . $r['full_name'] . ' (' . $r['reference'] . ')', kt_email('New Registration', $inner)];

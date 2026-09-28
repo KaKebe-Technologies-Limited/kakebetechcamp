@@ -444,6 +444,38 @@ function whatsapp_link(string $text = ''): string
     return 'https://wa.me/' . $num . ($text !== '' ? '?text=' . rawurlencode($text) : '');
 }
 
+/** Phone number as international digits for wa.me links (Ugandan 07… becomes 2567…). */
+function intl_digits(string $phone): string
+{
+    $d = preg_replace('/\D+/', '', $phone);
+    if (str_starts_with($d, '00')) {
+        return substr($d, 2);
+    }
+    if (str_starts_with($d, '0')) {
+        return '256' . substr($d, 1);
+    }
+    return strlen($d) === 9 ? '256' . $d : $d;
+}
+
+/** The team's WhatsApp welcome for a new participant (Admin → Settings → Email). */
+function whatsapp_welcome_message(array $r): string
+{
+    $tpl = trim((string) setting('wa_welcome_message')) ?: (string) default_settings()['wa_welcome_message'];
+    return strtr($tpl, [
+        '{first_name}'    => explode(' ', trim($r['full_name']))[0],
+        '{full_name}'     => trim($r['full_name']),
+        '{reference}'     => $r['reference'],
+        '{camp_dates}'    => camp()['dates'],
+        '{register_link}' => base_url('#register'),
+    ]);
+}
+
+/** Opens WhatsApp with the participant, the welcome message already typed (the sender just presses send). */
+function participant_whatsapp_link(array $r): string
+{
+    return 'https://wa.me/' . intl_digits((string) $r['phone']) . '?text=' . rawurlencode(whatsapp_welcome_message($r));
+}
+
 function tel_link(string $phone): string
 {
     $digits = preg_replace('/[^\d+]/', '', $phone);
