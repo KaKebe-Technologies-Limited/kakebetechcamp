@@ -55,12 +55,9 @@ if (strlen($digits) < 9 || strlen($digits) > 15 || preg_match('/[^\d\s+\-()]/', 
 }
 $district = $clean('district', 100);
 if (mb_strlen($district) < 2) {
-    $errors['district'] = 'Please enter your district of origin.';
+    $errors['district'] = 'Please enter your district.';
 }
-$country = $clean('country', 100);
-if (mb_strlen($country) < 2) {
-    $errors['country'] = 'Please enter your country.';
-}
+$country = $clean('country', 100) ?: 'Uganda';
 
 $interests = array_values(array_unique(array_intersect((array) ($_POST['interests'] ?? []), interests())));
 if (!$interests) {
@@ -74,10 +71,11 @@ if (!in_array($jersey, jersey_sizes(), true)) {
     $errors['jersey_size'] = 'Please choose your jersey size.';
 }
 $park = !empty($_POST['park_visit']);
-$mentorship = !empty($_POST['mentorship']);
+$mentorship = !isset($_POST['mentorship']) || !empty($_POST['mentorship']); // everyone is enrolled free unless they opt out in their profile
 
-// Funding: self-funded, or sponsored by someone else (needs admin approval)
-$funding = ($_POST['funding'] ?? 'self') === 'sponsored' ? 'sponsored' : 'self';
+// Payment choice: pay now, pay later, or sponsored by someone else (needs admin approval)
+$payWhen = in_array($_POST['pay_when'] ?? '', ['now', 'later', 'sponsored'], true) ? $_POST['pay_when'] : 'later';
+$funding = ($payWhen === 'sponsored' || ($_POST['funding'] ?? '') === 'sponsored') ? 'sponsored' : 'self';
 $sponsorId = null;
 $sponsorName = null;
 if ($funding === 'sponsored') {
@@ -96,18 +94,10 @@ if ($funding === 'sponsored') {
 }
 
 $source = $clean('source', 40);
-if (!in_array($source, sources(), true)) {
-    $errors['source'] = 'Please tell us how you heard about the program.';
-}
+$source = in_array($source, sources(), true) ? $source : '';
 $sourceOther = $source === 'Other' ? $clean('source_other', 150) : '';
-if ($source === 'Other' && mb_strlen($sourceOther) < 2) {
-    $errors['source_other'] = 'Please specify where you heard about us.';
-}
 $referredBy = $clean('referred_by', 150);
 $motivation = mb_substr(trim((string) ($_POST['motivation'] ?? '')), 0, 1000);
-if (empty($_POST['consent'])) {
-    $errors['consent'] = 'Please confirm to continue.';
-}
 
 [$photoExt, $photoErr] = check_image_upload('photo');
 if ($photoErr) {
@@ -178,8 +168,8 @@ respond_and_continue([
     'email'     => $email,
     'items'     => array_map(fn($i) => ['label' => $i[0], 'amount' => $i[1], 'tag' => $i[2]], order_items($r)),
     'total'     => (int) $r['total_amount'],
-    'deposit'   => deposit_amount($r),
     'pay_url'   => pay_url($r),
+    'pay_now'   => $funding === 'self' && $payWhen === 'now',
     'sponsored' => $funding === 'sponsored',
     'sponsor'   => $sponsorName,
     'message'   => 'Thank you, ' . explode(' ', $fullName)[0] . '! Your registration has been received.',

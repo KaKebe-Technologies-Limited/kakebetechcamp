@@ -198,7 +198,7 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
   <div><small>Package</small><b><?= e(format_ugx($r['total_amount'])) ?></b></div>
   <div><small>Paid</small><b class="ok-text"><?= e(format_ugx($r['amount_paid'])) ?></b></div>
   <div><small>Balance</small><b class="<?= $bal ? 'due' : 'ok-text' ?>"><?= e(format_ugx($bal)) ?></b></div>
-  <div class="grow"><small><?= $pct ?>% paid · <?= fees()['deposit_pct'] ?>% books a slot</small><div class="big-progress"><i style="width: <?= $pct ?>%"></i><span style="left: <?= fees()['deposit_pct'] ?>%"></span></div></div>
+  <div class="grow"><small><?= $pct ?>% paid · full payment issues the ticket</small><div class="big-progress"><i style="width: <?= $pct ?>%"></i></div></div>
 </div>
 
 <div class="view-grid">
@@ -344,7 +344,7 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
 
     <div class="card">
       <div class="card-head"><h3><i class="fa-solid fa-list-check"></i> Status</h3></div>
-      <p class="small muted">Status updates automatically from payments (Registered → Slot booked at <?= fees()['deposit_pct'] ?>% → Confirmed when fully paid). Override it here if needed.</p>
+      <p class="small muted">Status updates automatically from payments (Registered → Confirmed once fully paid). Override it here if needed.</p>
       <form method="post" class="stack">
         <?= csrf_field() ?><input type="hidden" name="action" value="status">
         <select name="status">

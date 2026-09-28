@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 function db(): PDO
 {
@@ -76,6 +76,11 @@ function migrate(PDO $pdo): void
                 $pdo->exec("ALTER TABLE registrations ADD COLUMN `$col` $def");
             }
         }
+    }
+
+    if ($version >= 1 && $version < 6) {
+        // v6: camp fees are paid in full — part-paid registrations go back to "Registered" until the balance is cleared.
+        $pdo->exec("UPDATE registrations SET status = 'pending' WHERE status = 'booked'");
     }
 
     $defaults = default_settings();
@@ -350,7 +355,6 @@ function default_settings(): array
         'jersey_fee'             => '20000',
         'park_fee'               => '20000',
         'park_name'              => 'Aruu Falls',
-        'min_deposit_percent'    => '50',
         'sponsor_child_amount'   => '120000',
         'camp_capacity'          => '300',
         'notify_emails'          => env('MAIL_NOTIFY', 'info@kakebetechcamp.com'),

@@ -458,3 +458,37 @@
 .google-msg.error { color: #B42318; }
 .or-sep { display: flex; align-items: center; gap: 12px; margin: 16px 0 18px; color: #7A829E; font-size: 13px; font-weight: 600; }
 .or-sep::before, .or-sep::after { content: ''; flex: 1; height: 1px; background: #E7EAF3; }
+
+/* ---------- Simple registration: signed-in card, 3 payment choices, one-line package ---------- */
+.reg-who { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 20px; border-radius: 18px; background: var(--soft); }
+.reg-who img, .reg-who .who-ini { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; object-fit: cover; }
+.reg-who .who-ini { display: grid; place-items: center; background: var(--navy); color: #fff; font-weight: 800; }
+.reg-who div { flex: 1; min-width: 0; line-height: 1.4; }
+.reg-who b { display: block; color: var(--ink); font-size: 17px; }
+.reg-who small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.reg-who .verified-tag { margin-left: 4px; }
+.who-change { font-size: 13px; font-weight: 700; color: var(--red); text-decoration: none; }
+.reg-form > .field { margin-top: 18px; }
+.field .lbl-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.field .lbl-row small { font-weight: 600; color: var(--muted); font-size: 12.5px; }
+.funding-options.three { grid-template-columns: repeat(3, 1fr); margin-bottom: 0; }
+.funding-options.three .fund-opt span { padding: 14px 16px; }
+.sponsor-pick { margin-top: 14px; }
+.sponsor-pick .field { margin-bottom: 12px; }
+.pkg-line { margin: 18px 0; padding: 16px 18px; border-radius: 16px; border: 2px solid var(--line); background: #FAFBFE; }
+.pkg-sum { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pkg-sum span { line-height: 1.4; }
+.pkg-sum b { display: block; color: var(--ink); }
+.pkg-sum small { color: var(--muted); font-size: 12.5px; }
+.pkg-sum strong { font-size: 20px; color: var(--navy); white-space: nowrap; }
+.park-check { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 14px; cursor: pointer; }
+.park-check input { width: 18px; height: 18px; accent-color: var(--red); margin: 0; }
+.park-check em { font-style: normal; font-weight: 700; color: var(--ink); }
+.pkg-note { margin: 10px 0 0; font-size: 13px; color: var(--green); font-weight: 600; }
+.fine-print { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.55; }
+#laterNote { max-width: 440px; margin: 0 auto 18px; }
+@media (max-width: 720px) { .funding-options.three { grid-template-columns: 1fr; } }
+.reg-form .form-alert { margin: 0 0 16px; }
+#regForm { scroll-margin-top: 16px; }
+/* On phones, show the form first once the email is confirmed (e.g. straight after "Continue with Google") */
+@media (max-width: 992px) { .register-grid:has(#regForm) .register-card { order: -1; } }

@@ -7,6 +7,14 @@
   const body = document.body;
   const money = (n) => 'UGX ' + Number(n || 0).toLocaleString('en-US');
 
+  /* After "Continue with Google" or the email link we land on #regForm — jump there once images have laid out. */
+  if (/^#(regForm|register)$/.test(location.hash)) {
+    window.addEventListener('load', () => {
+      const target = document.querySelector(location.hash);
+      if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+  }
+
   /* ---------- Header, mobile menu, active links ---------- */
   const header = $('#header');
   const toTop = $('#toTop');
@@ -231,13 +239,10 @@
   if (form) {
     clearFieldOnEdit(form);
     const summary = $('#orderSummary');
-    const fees = { camp: +summary.dataset.camp, jersey: +summary.dataset.jersey, park: +summary.dataset.park, pct: +summary.dataset.pct };
+    const fees = { camp: +summary.dataset.camp, jersey: +summary.dataset.jersey, park: +summary.dataset.park };
     const park = $('#f_park');
-    const updateTotals = () => {
-      const total = fees.camp + fees.jersey + (park.checked ? fees.park : 0);
-      $$('.js-total').forEach((el) => { el.textContent = money(total); });
-      $$('.js-deposit').forEach((el) => { el.textContent = money(Math.ceil(total * fees.pct / 100)); });
-    };
+    const total = () => fees.camp + fees.jersey + (park.checked ? fees.park : 0);
+    const updateTotals = () => { $$('.js-total').forEach((el) => { el.textContent = money(total()); }); };
     park.addEventListener('change', updateTotals);
     updateTotals();
 
@@ -246,49 +251,29 @@
     const syncTracks = () => {
       const n = trackInputs.filter((i) => i.checked).length;
       trackInputs.forEach((i) => { i.disabled = !i.checked && n >= 2; });
-      trackHint.textContent = n >= 2 ? '2 of 2 selected — untick one to change' : `${n} of 2 selected`;
+      trackHint.textContent = n ? `${n} of 2 chosen` : 'choose up to 2';
     };
     trackInputs.forEach((i) => i.addEventListener('change', syncTracks));
     syncTracks();
 
-    /* Funding: self or sponsored */
+    /* Payment: now, later or sponsored */
     const sponsorPick = $('#sponsorPick');
     const sponsorSelect = $('#f_sponsor');
     const sponsorOtherWrap = $('#sponsorOtherWrap');
-    const isSponsoredChoice = () => (form.querySelector('input[name="funding"]:checked') || {}).value === 'sponsored';
-    const syncFunding = () => {
-      sponsorPick.hidden = !isSponsoredChoice();
-      sponsorOtherWrap.hidden = !(isSponsoredChoice() && sponsorSelect.value === 'other');
+    const submitText = $('#regSubmitText');
+    const payWhen = () => (form.querySelector('input[name="pay_when"]:checked') || {}).value || 'now';
+    const syncPay = () => {
+      const w = payWhen();
+      sponsorPick.hidden = w !== 'sponsored';
+      sponsorOtherWrap.hidden = !(w === 'sponsored' && sponsorSelect.value === 'other');
+      $('#pkgNote').hidden = w === 'sponsored';
+      submitText.innerHTML = w === 'now'
+        ? `Register &amp; pay <span class="js-total">${money(total())}</span>`
+        : (w === 'later' ? 'Complete registration' : 'Submit for approval');
     };
-    $$('input[name="funding"]', form).forEach((r) => r.addEventListener('change', syncFunding));
-    sponsorSelect.addEventListener('change', syncFunding);
-    syncFunding();
-
-    const source = $('#f_source');
-    const otherWrap = $('#sourceOtherWrap');
-    source.addEventListener('change', () => {
-      const other = source.value === 'Other';
-      otherWrap.classList.toggle('is-hidden', !other);
-      $('#f_source_other').required = other;
-    });
-
-    const photo = $('#f_photo');
-    const preview = $('#photoPreview');
-    const photoName = $('#photoName');
-    photo.addEventListener('change', () => {
-      const file = photo.files[0];
-      preview.innerHTML = '<i class="fa-regular fa-image"></i>';
-      photoName.textContent = 'Click to upload a photo';
-      if (!file) return;
-      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { showErrors(form, { photo: 'Please choose a JPG, PNG or WEBP image.' }); photo.value = ''; return; }
-      if (file.size > 3 * 1024 * 1024) { showErrors(form, { photo: 'Photo is too large — maximum size is 3 MB.' }); photo.value = ''; return; }
-      const img = document.createElement('img');
-      img.alt = 'Selected photo preview';
-      img.src = URL.createObjectURL(file);
-      preview.innerHTML = '';
-      preview.appendChild(img);
-      photoName.textContent = file.name;
-    });
+    $$('input[name="pay_when"]', form).forEach((r) => r.addEventListener('change', syncPay));
+    sponsorSelect.addEventListener('change', syncPay);
+    syncPay();
 
     const validate = () => {
       const f = new FormData(form);
@@ -298,21 +283,15 @@
       const age = parseInt(val('age'), 10);
       if (!age) errors.age = 'Please enter your age.';
       else if (age < 14 || age > 30) errors.age = 'Tech Camp is open to ages 14 – 30.';
-      if (!emailRe.test(val('email'))) errors.email = 'Please enter a valid email address.';
       const digits = val('phone').replace(/\D/g, '');
       if (digits.length < 9 || digits.length > 15) errors.phone = 'Please enter a valid phone number.';
-      if (val('district').length < 2) errors.district = 'Please enter your district of origin.';
-      if (val('country').length < 2) errors.country = 'Please enter your country.';
-      const tracks = f.getAll('interests[]').length;
-      if (!tracks) errors.interests = 'Choose at least one learning track.';
+      if (val('district').length < 2) errors.district = 'Please enter your district.';
       if (!val('jersey_size')) errors.jersey_size = 'Please choose your jersey size.';
-      if (isSponsoredChoice()) {
+      if (!f.getAll('interests[]').length) errors.interests = 'Choose at least one track.';
+      if (payWhen() === 'sponsored') {
         if (!val('sponsor_id')) errors.sponsor_id = 'Please choose who is sponsoring you.';
         else if (val('sponsor_id') === 'other' && val('sponsor_other').length < 2) errors.sponsor_other = 'Please enter your sponsor\'s name.';
       }
-      if (!val('source')) errors.source = 'Please tell us how you heard about the program.';
-      if (val('source') === 'Other' && val('source_other').length < 2) errors.source_other = 'Please specify where you heard about us.';
-      if (!f.get('consent')) errors.consent = 'Please confirm to continue.';
       return errors;
     };
 
@@ -326,23 +305,25 @@
       const errors = validate();
       if (Object.keys(errors).length) { showErrors(form, errors); setAlert(alertEl, 'Please correct the highlighted fields.'); return; }
       submit.classList.add('loading');
+      let leaving = false;
       try {
         const fd = new FormData(form);
         fd.delete('interests[]');
         $$('#trackPick input:checked').forEach((i) => fd.append('interests[]', i.value));
         const json = await postForm('api/register.php', fd);
         if (json.ok) {
+          const payUrl = (json.pay_url || 'pay.php') + '&new=1';
+          if (json.pay_now) { leaving = true; location.href = payUrl; return; }
           $('#successName').textContent = json.name || '';
-          $('#successEmail').textContent = json.email || '';
           $('#successRef').textContent = json.reference;
+          $$('.js-success-email').forEach((el) => { el.textContent = json.email || ''; });
           $('#successTotal').textContent = money(json.total);
-          $('#successDeposit').textContent = money(json.deposit);
-          $('#payNowBtn').href = (json.pay_url || 'pay.php') + '&new=1';
-          $('#laterNote').hidden = true;
-          $('#selfPayBlock').hidden = !!json.sponsored;
+          $('#payNowBtn').href = payUrl;
+          $('#payNowBtn').hidden = !!json.sponsored;
+          $('#laterNote').hidden = !!json.sponsored;
           $('#reviewNote').hidden = !json.sponsored;
           $('#successSponsor').textContent = json.sponsor || 'your sponsor';
-          const shareText = `I just registered for Kakebe Tech Camp 2026! 🚀 ${json.reference ? '' : ''}Join me — register here: ${location.origin + location.pathname}#register`;
+          const shareText = `I just registered for Kakebe Tech Camp 2026! 🚀 Join me — register here: ${location.origin + location.pathname}#register`;
           $('#shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(shareText);
           form.hidden = true;
           success.hidden = false;
@@ -354,13 +335,8 @@
       } catch (err) {
         setAlert(alertEl, err.message || 'Network error — please check your connection and try again.');
       } finally {
-        submit.classList.remove('loading');
+        if (!leaving) submit.classList.remove('loading');
       }
-    });
-
-    $('#payLaterBtn').addEventListener('click', () => {
-      $('#laterNote').hidden = false;
-      toast('👍 Registration saved — the payment details are in your email.');
     });
   }
 

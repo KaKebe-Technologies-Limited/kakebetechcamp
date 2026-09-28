@@ -5,7 +5,6 @@ $flash = portal_flash();
 $bal = balance($r);
 $photo = participant_photo_url($r);
 $pct = paid_percent($r);
-$dep = fees()['deposit_pct'];
 $confirmed = $r['status'] === 'confirmed';
 $review = $r['status'] === 'review';
 $tracks = array_values(array_filter(array_map('trim', explode(',', (string) $r['interests']))));
@@ -15,7 +14,7 @@ $receipts = $receipts->fetchAll();
 
 $steps = is_sponsored($r)
     ? [['Registered', date('j M', strtotime($r['created_at'])), true], ['Sponsor confirmed', $r['sponsor_name'] ?: 'Sponsor', $r['payment_status'] === 'sponsored'], ['Ticket ready', 'PDF ticket', $confirmed], ['Camp', '14 Dec 2026', date('Y-m-d') >= camp()['start_date']]]
-    : [['Registered', date('j M', strtotime($r['created_at'])), true], ['Place secured', $dep . '% paid', $pct >= $dep], ['Ticket ready', 'Fully paid', $confirmed], ['Camp', '14 Dec 2026', date('Y-m-d') >= camp()['start_date']]];
+    : [['Registered', date('j M', strtotime($r['created_at'])), true], ['Paid in full', format_ugx($r['total_amount']), $pct >= 100], ['Ticket ready', 'PDF ticket', $confirmed], ['Camp', '14 Dec 2026', date('Y-m-d') >= camp()['start_date']]];
 
 app_header('My dashboard', '../', 'portal');
 ?>
@@ -81,8 +80,8 @@ app_header('My dashboard', '../', 'portal');
           </div>
         </div>
       <?php elseif ($bal > 0 && $r['status'] !== 'waitlisted'): ?>
-        <h3>Secure your place</h3>
-        <p class="muted"><?= (int) $r['amount_paid'] < deposit_amount($r) ? 'Complete at least ' . e(format_ugx(min_payment($r))) . ' to secure your place, or the full balance.' : 'Your place is secured — clear the balance any time before camp.' ?></p>
+        <h3>Complete your payment</h3>
+        <p class="muted">Pay your package in full to confirm your place — your camp ticket is emailed straight away.</p>
         <?= pay_form($r, '../', false) ?>
       <?php else: ?>
         <div class="notice warn"><i class="fa-solid fa-hourglass-half"></i> You are on the waitlist. We will contact you as soon as a place opens up.</div>

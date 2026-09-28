@@ -20,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setting_set('jersey_fee', $num('jersey_fee'));
             setting_set('park_fee', $num('park_fee'));
             setting_set('park_name', $str('park_name', 60) ?: 'Aruu Falls');
-            setting_set('min_deposit_percent', (string) max(1, min(100, (int) $str('min_deposit_percent'))));
             setting_set('sponsor_child_amount', $num('sponsor_child_amount'));
             flash('Pricing saved. New registrations use these amounts; existing participants keep the package they registered with.');
             break;
@@ -119,7 +118,6 @@ admin_header('Settings', 'settings');
     <div class="row-3">
       <label>Camp fee (UGX) — required<input type="text" inputmode="numeric" name="camp_fee" value="<?= e($s['camp_fee']) ?>"></label>
       <label>Sports jersey vest (UGX) — required<input type="text" inputmode="numeric" name="jersey_fee" value="<?= e($s['jersey_fee']) ?>"></label>
-      <label>Deposit to book a slot (%)<input type="number" min="1" max="100" name="min_deposit_percent" value="<?= e($s['min_deposit_percent']) ?>"></label>
       <label>Optional excursion name<input type="text" name="park_name" value="<?= e($s['park_name']) ?>"></label>
       <label>Excursion fee (UGX)<input type="text" inputmode="numeric" name="park_fee" value="<?= e($s['park_fee']) ?>"></label>
       <label>Sponsor-an-innovator amount (UGX)<input type="text" inputmode="numeric" name="sponsor_child_amount" value="<?= e($s['sponsor_child_amount']) ?>"></label>

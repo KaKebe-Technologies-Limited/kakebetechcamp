@@ -128,9 +128,9 @@ function tpl_applicant_received(array $r): array
     } else {
         $inner .= '<p style="margin-top:20px;"><strong>Your camp package</strong></p>' . kt_items($r)
             . kt_detail([
-                '🗓️ When to pay' => 'Whenever you are ready before camp — pay in full or in instalments. Paying ' . fees()['deposit_pct'] . '% (' . format_ugx(deposit_amount($r)) . ') secures your place.',
-                '📱 How to pay' => 'Click the button below and pay instantly with Mobile Money (MTN/Airtel) or Visa/Mastercard. Keep this email — the same link works any time.',
-                '🧾 Receipts' => 'A PDF receipt showing what you have paid and any balance is emailed after every payment.',
+                '🗓️ When to pay' => 'Any time before camp. The package (' . format_ugx($r['total_amount']) . ') is paid in full in one payment — your camp ticket is emailed as soon as it is paid.',
+                '📱 How to pay' => 'Click the button below and pay with Mobile Money (MTN/Airtel) or Visa/Mastercard — or log in to your participant dashboard (with Google or your email) and pay from there.',
+                '🧾 Receipt' => 'A PDF receipt is emailed to you after your payment.',
             ])
             . kt_btn('Pay now or view my registration', pay_url($r));
     }
@@ -158,7 +158,7 @@ function tpl_sponsorship_declined(array $r, string $note = ''): array
     $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p>'
         . '<p>Thank you for registering for Kakebe Tech Camp 2026. Unfortunately we were not able to confirm the sponsorship you selected' . ($r['sponsor_name'] ? ' (' . e($r['sponsor_name']) . ')' : '') . '.</p>'
         . ($note !== '' ? kt_detail(['💬 Note from our team' => $note]) : '')
-        . '<p>Your registration is still saved. You can secure your place by completing the camp package yourself — instalments are welcome — or contact us if you believe this is a mistake.</p>'
+        . '<p>Your registration is still saved. You can still attend by paying the camp package yourself (' . e(format_ugx($r['total_amount'])) . '), or contact us if you believe this is a mistake.</p>'
         . kt_btn('View my registration', pay_url($r));
     return ['Update on your Kakebe Tech Camp sponsorship — ' . $r['reference'], kt_email('Sponsorship Update', $inner)];
 }
@@ -215,7 +215,7 @@ function tpl_payment_receipt(array $r, array $p): array
         . "<div class='bar'><i style='width:{$pct}%'></i></div><p style='font-size:12px;color:#6B7390;'>{$pct}% paid</p></div>"
         . ($full
             ? '<p>🎟️ Your place at camp is <strong>confirmed</strong>. Your camp ticket is ready — bring it (printed or on your phone) to check-in.</p>' . kt_btn('View my camp ticket', ticket_url($r))
-            : ($r['status'] === 'booked' ? '<p>🎉 Your <strong>slot is booked!</strong> Please clear the balance before camp starts on ' . e(camp()['dates']) . '.</p>' : '<p>Please complete at least ' . fees()['deposit_pct'] . '% of the package to book your slot.</p>') . kt_btn('Pay balance — ' . format_ugx($bal, $cur), pay_url($r)));
+            : '<p>Please pay the remaining balance to confirm your place and receive your camp ticket.</p>' . kt_btn('Pay balance — ' . format_ugx($bal, $cur), pay_url($r)));
     $subject = $full ? '✅ Paid in full — your Kakebe Tech Camp place is confirmed' : '✅ Payment received — ' . format_ugx($p['amount'], $cur) . ' · balance ' . format_ugx($bal, $cur);
     return [$subject, kt_email('Payment Receipt', $inner, 'Receipt ' . receipt_no($p))];
 }
@@ -283,7 +283,7 @@ function tpl_balance_reminder(array $r): array
 {
     $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p><p>This is a friendly reminder about your Kakebe Tech Camp 2026 package (' . e($r['reference']) . ').</p>'
         . kt_detail(['💰 Package total' => format_ugx($r['total_amount']), '✅ Paid so far' => format_ugx($r['amount_paid']), '⏳ Balance' => format_ugx(balance($r)), '📅 Camp' => camp()['dates']])
-        . ((int) $r['amount_paid'] < deposit_amount($r) ? '<p>Pay at least <strong>' . e(format_ugx(deposit_amount($r) - (int) $r['amount_paid'])) . '</strong> to book your slot — places are limited to 300.</p>' : '<p>Your slot is booked — please clear the balance before camp starts.</p>')
+        . '<p>Pay the full amount to confirm your place and receive your camp ticket — places are limited to 300.</p>'
         . kt_btn('Pay now', pay_url($r));
     return ['⏰ Reminder: your Kakebe Tech Camp balance is ' . format_ugx(balance($r)), kt_email('Payment Reminder', $inner)];
 }

@@ -9,7 +9,7 @@ $f = fees();
 $active     = (int) $one("SELECT COUNT(*) FROM registrations WHERE status <> 'cancelled'");
 $today      = (int) $one('SELECT COUNT(*) FROM registrations WHERE created_at >= ?', [date('Y-m-d 00:00:00')]);
 $week       = (int) $one('SELECT COUNT(*) FROM registrations WHERE created_at >= ?', [date('Y-m-d 00:00:00', strtotime('-6 days'))]);
-$booked     = (int) $one("SELECT COUNT(*) FROM registrations WHERE status IN ('booked','confirmed')");
+$booked     = (int) $one("SELECT COUNT(*) FROM registrations WHERE status = 'confirmed'");
 $fullyPaid  = (int) $one("SELECT COUNT(*) FROM registrations WHERE payment_status IN ('paid','waived') AND status <> 'cancelled'");
 $unpaid     = (int) $one("SELECT COUNT(*) FROM registrations WHERE payment_status = 'unpaid' AND status <> 'cancelled'");
 $collected  = (int) $one("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status = 'success' AND purpose = 'camp'");
@@ -73,7 +73,7 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
 
 <div class="kpis six">
   <a class="kpi" href="registrations.php?status=active"><span class="kpi-icon red"><i class="fa-solid fa-users"></i></span><div><small>Registered</small><b><?= number_format($active) ?></b><em>+<?= $week ?> in 7 days</em></div></a>
-  <a class="kpi" href="registrations.php?status=booked"><span class="kpi-icon blue"><i class="fa-solid fa-bookmark"></i></span><div><small>Slots booked</small><b><?= number_format($booked) ?></b><em><?= $capPct ?>% of <?= $capacity ?> seats</em></div></a>
+  <a class="kpi" href="registrations.php?status=confirmed"><span class="kpi-icon blue"><i class="fa-solid fa-ticket"></i></span><div><small>Seats confirmed</small><b><?= number_format($booked) ?></b><em><?= $capPct ?>% of <?= $capacity ?> seats</em></div></a>
   <a class="kpi" href="registrations.php?payment=paid"><span class="kpi-icon green"><i class="fa-solid fa-circle-check"></i></span><div><small>Fully paid</small><b><?= number_format($fullyPaid) ?></b><em><?= $unpaid ?> not paid yet</em></div></a>
   <a class="kpi" href="payments.php?status=success"><span class="kpi-icon green"><i class="fa-solid fa-sack-dollar"></i></span><div><small>Camp fees collected</small><b><?= e(format_ugx($collected)) ?></b><em>of <?= e(format_ugx($expected)) ?> expected</em></div></a>
   <a class="kpi" href="registrations.php?payment=balance"><span class="kpi-icon amber"><i class="fa-solid fa-scale-unbalanced"></i></span><div><small>Outstanding balances</small><b><?= e(format_ugx($outstanding)) ?></b><em>to be collected</em></div></a>

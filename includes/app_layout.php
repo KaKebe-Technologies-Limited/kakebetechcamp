@@ -80,8 +80,8 @@ function package_card(array $r): string
       </table>
       <div class="pkg-progress">
         <div class="pp-row"><span>Paid <b><?= e(format_ugx($r['amount_paid'])) ?></b></span><span>Balance <b class="<?= $bal ? 'due' : 'ok' ?>"><?= e(format_ugx($bal)) ?></b></span></div>
-        <div class="bar"><i style="width: <?= $pct ?>%"></i><span class="bar-mark" style="left: <?= fees()['deposit_pct'] ?>%" title="Booking deposit"></span></div>
-        <small><?= $pct ?>% paid · <?= fees()['deposit_pct'] ?>% books your slot</small>
+        <div class="bar"><i style="width: <?= $pct ?>%"></i></div>
+        <small><?= $bal ? 'Pay the full amount to get your camp ticket' : 'Fully paid — your ticket is ready' ?></small>
       </div>
     </div>
     <?php return (string) ob_get_clean();
@@ -91,8 +91,6 @@ function package_card(array $r): string
 function pay_form(array $r, string $base = '', bool $viaToken = true): string
 {
     $bal = balance($r);
-    $min = min_payment($r);
-    $needDeposit = (int) $r['amount_paid'] < deposit_amount($r);
     ob_start(); ?>
     <form class="pay-form js-pay-form" action="<?= $base ?>api/pay.php" data-status="<?= $base ?>api/payment-status.php" novalidate>
       <?= csrf_field() ?>
@@ -101,19 +99,12 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
         <input type="hidden" name="t" value="<?= e(sign('pay', $r['reference'])) ?>">
       <?php endif; ?>
       <div class="pay-body">
-        <label class="lbl">How much would you like to pay?</label>
-        <div class="chips">
-          <?php if ($needDeposit && $min < $bal): ?>
-          <button type="button" class="chip-amt active" data-amount="<?= $min ?>"><b><?= e(format_ugx($min)) ?></b><small>Secure my place (<?= fees()['deposit_pct'] ?>%)</small></button>
-          <?php endif; ?>
-          <button type="button" class="chip-amt <?= (!$needDeposit || $min >= $bal) ? 'active' : '' ?>" data-amount="<?= $bal ?>"><b><?= e(format_ugx($bal)) ?></b><small>Pay full balance</small></button>
+        <div class="pay-due">
+          <span>Amount to pay</span>
+          <b><?= e(format_ugx($bal)) ?></b>
+          <small><?= (int) $r['amount_paid'] > 0 ? 'Remaining balance' : 'Full camp package' ?> · your ticket is emailed once paid</small>
         </div>
-        <div class="field">
-          <label for="pay_amount">Amount (UGX)</label>
-          <input id="pay_amount" name="amount" type="text" inputmode="numeric" value="<?= number_format(($needDeposit && $min < $bal) ? $min : $bal) ?>" data-min="<?= $min ?>" data-max="<?= $bal ?>" autocomplete="off">
-          <span class="hint">Minimum now <?= e(format_ugx($min)) ?> · maximum <?= e(format_ugx($bal)) ?></span>
-          <span class="err" data-err="amount"></span>
-        </div>
+        <input type="hidden" name="amount" value="<?= $bal ?>">
 
         <label class="lbl">Payment method</label>
         <div class="methods">
@@ -128,7 +119,7 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
         </div>
         <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to ioTec's secure card page, then returned here.</p>
         <div class="form-alert" hidden></div>
-        <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-lock"></i> Pay <span class="js-amt"><?= e(format_ugx(($needDeposit && $min < $bal) ? $min : $bal)) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
+        <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-lock"></i> Pay <span class="js-amt"><?= e(format_ugx($bal)) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
       </div>
       <div class="pay-state" hidden></div>
     </form>

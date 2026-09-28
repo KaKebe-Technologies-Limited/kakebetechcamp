@@ -19,7 +19,7 @@ app_header($r ? 'My registration' : 'Find my registration');
   <section class="app-card narrow">
     <div class="card-icon"><i class="fa-solid fa-id-badge"></i></div>
     <h1>My registration</h1>
-    <p class="muted">Enter the email and phone number you registered with to view your registration, secure your place and download your ticket.</p>
+    <p class="muted">Enter the email and phone number you registered with to view your registration, pay and download your ticket.</p>
     <form class="stack js-lookup" action="api/lookup.php" novalidate>
       <?= csrf_field() ?>
       <div class="field"><label for="l_email">Email address</label><input id="l_email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div>
@@ -38,9 +38,9 @@ app_header($r ? 'My registration' : 'Find my registration');
         <div class="notice"><i class="fa-solid fa-hourglass-half"></i> Your sponsorship by <b><?= e($r['sponsor_name'] ?: 'your sponsor') ?></b> is being reviewed. We'll email you as soon as it is approved — there is nothing to pay.</div>
         <p class="muted">Meanwhile you can <a href="portal/">open your participant dashboard</a> to check your details and learning tracks.</p>
       <?php elseif (balance($r) > 0): ?>
-        <p class="muted">Complete your camp package to <?= (int) $r['amount_paid'] < deposit_amount($r) ? 'secure your place' : 'clear your balance' ?> — or come back any time using the link in your email or <b>My registration</b> on the website.</p>
+        <p class="muted">Pay your camp package in full to confirm your place — your camp ticket is emailed straight away.</p>
         <?= pay_form($r) ?>
-        <p class="later"><i class="fa-regular fa-clock"></i> <b>Prefer to pay later?</b> That's fine — your registration is saved. We've emailed you a payment link, and you can also find it by entering your email and phone on the <a href="pay.php">My registration</a> page.</p>
+        <p class="later"><i class="fa-regular fa-clock"></i> <b>Prefer to pay later?</b> That's fine — your registration is saved. Log in to <a href="portal/">your dashboard</a> any time (with Google or your email) or use the payment link we emailed you.</p>
       <?php else: ?>
         <div class="done-box">
           <span><i class="fa-solid fa-champagne-glasses"></i></span>

@@ -291,8 +291,6 @@ function recompute_registration(int $id): ?array
     if (!in_array($status, ['waitlisted', 'cancelled', 'review'], true)) {
         if (in_array($pay, ['paid', 'waived', 'sponsored'], true)) {
             $status = 'confirmed';
-        } elseif ($paid > 0 && $paid * 100 >= $total * fees()['deposit_pct']) {
-            $status = 'booked';
         } else {
             $status = 'pending';
         }
@@ -386,9 +384,8 @@ function begin_registration_payment(array $r, int $amount, string $method, strin
     if ($r['status'] === 'review') {
         return ['ok' => false, 'message' => 'Your sponsorship is being reviewed — no payment is needed right now. We will email you once it is confirmed.'];
     }
-    $min = min_payment($r);
-    if ($amount < $min || $amount > $bal) {
-        return ['ok' => false, 'errors' => ['amount' => 'Enter an amount between ' . format_ugx($min) . ' and ' . format_ugx($bal) . '.'], 'message' => 'Please check the amount.'];
+    if ($amount !== $bal) { // full payment only
+        return ['ok' => false, 'message' => 'The amount due is ' . format_ugx($bal) . '. Please refresh the page and try again.'];
     }
     if (!in_array($method, ['mobile_money', 'card'], true)) {
         $method = 'mobile_money';

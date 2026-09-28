@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'manua
     $method = in_array($_POST['method'] ?? '', ['cash', 'mobile_money', 'bank', 'other'], true) ? $_POST['method'] : 'cash';
     if ($r['status'] === 'review') {
         flash('This participant is awaiting sponsorship approval. Approve or decline the sponsorship first.', 'error');
-    } elseif ($amount < 500 || $amount > balance($r)) {
-        flash('Enter an amount between UGX 500 and ' . format_ugx(balance($r)) . '.', 'error');
+    } elseif ($amount !== balance($r)) {
+        flash('Payments are for the full balance only — ' . format_ugx(balance($r)) . '.', 'error');
     } else {
         $notify = !empty($_POST['notify']);
         $p = record_manual_payment($r, $amount, $method, mb_substr(trim((string) ($_POST['ref'] ?? '')), 0, 64), mb_substr(trim((string) ($_POST['notes'] ?? '')), 0, 200), (int) $admin['id'], $notify);
@@ -92,7 +92,7 @@ admin_header('Take a payment', 'take', 'Record or request a payment for a partic
   <div><small>Package</small><b><?= e(format_ugx($r['total_amount'])) ?></b></div>
   <div><small>Paid</small><b class="ok-text"><?= e(format_ugx($r['amount_paid'])) ?></b></div>
   <div><small>Balance</small><b class="<?= $bal ? 'due' : 'ok-text' ?>"><?= e(format_ugx($bal)) ?></b></div>
-  <div class="grow"><small><?= paid_percent($r) ?>% paid</small><div class="big-progress"><i style="width: <?= paid_percent($r) ?>%"></i><span style="left: <?= fees()['deposit_pct'] ?>%"></span></div></div>
+  <div class="grow"><small><?= paid_percent($r) ?>% paid</small><div class="big-progress"><i style="width: <?= paid_percent($r) ?>%"></i></div></div>
 </div>
 
 <?php if ($blocked): ?>
@@ -109,13 +109,8 @@ admin_header('Take a payment', 'take', 'Record or request a payment for a partic
       <input type="hidden" name="registration_id" value="<?= (int) $r['id'] ?>">
       <input type="hidden" name="method" value="mobile_money">
       <div class="pay-body stack">
-        <div class="chips">
-          <?php if ((int) $r['amount_paid'] < deposit_amount($r) && deposit_amount($r) - (int) $r['amount_paid'] < $bal): ?>
-          <button type="button" class="chip-amt" data-amount="<?= deposit_amount($r) - (int) $r['amount_paid'] ?>"><b><?= e(format_ugx(deposit_amount($r) - (int) $r['amount_paid'])) ?></b><small>Secure place (<?= fees()['deposit_pct'] ?>%)</small></button>
-          <?php endif; ?>
-          <button type="button" class="chip-amt active" data-amount="<?= $bal ?>"><b><?= e(format_ugx($bal)) ?></b><small>Full balance</small></button>
-        </div>
-        <label class="field">Amount (UGX)<input name="amount" type="text" inputmode="numeric" value="<?= number_format($bal) ?>" data-min="500" data-max="<?= $bal ?>"><span class="err" data-err="amount"></span></label>
+        <p class="pay-full">Amount: <b><?= e(format_ugx($bal)) ?></b> <span class="muted small">(full balance — no part payments)</span></p>
+        <input type="hidden" name="amount" value="<?= $bal ?>">
         <label class="field">Payer's Mobile Money number<input name="pay_phone" type="tel" value="<?= e($r['phone']) ?>" placeholder="e.g. 0772 123 456"><span class="err" data-err="pay_phone"></span></label>
         <div class="form-alert" hidden></div>
         <button class="btn btn-primary js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-paper-plane"></i> Send prompt for <span class="js-amt"><?= e(format_ugx($bal)) ?></span></span><span class="btn-loading"><span class="spinner"></span> Sending prompt…</span></button>
@@ -130,7 +125,7 @@ admin_header('Take a payment', 'take', 'Record or request a payment for a partic
     <form method="post" class="stack" data-confirm="Record this payment for <?= e($r['full_name']) ?>?">
       <?= csrf_field() ?><input type="hidden" name="action" value="manual"><input type="hidden" name="registration_id" value="<?= (int) $r['id'] ?>">
       <div class="row-2">
-        <label>Amount (UGX)<input type="text" inputmode="numeric" name="amount" value="<?= number_format($bal) ?>" required></label>
+        <label>Amount (UGX) — full balance<input type="text" name="amount_show" value="<?= number_format($bal) ?>" readonly><input type="hidden" name="amount" value="<?= $bal ?>"></label>
         <label>Method<select name="method"><?php foreach (['cash', 'mobile_money', 'bank', 'other'] as $m): ?><option value="<?= $m ?>"><?= e(payment_methods()[$m]) ?></option><?php endforeach; ?></select></label>
       </div>
       <label>Transaction / receipt reference<input type="text" name="ref" maxlength="64" placeholder="e.g. MoMo ID or bank slip number"></label>

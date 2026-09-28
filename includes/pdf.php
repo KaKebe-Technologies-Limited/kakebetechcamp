@@ -295,9 +295,9 @@ function receipt_pdf(array $p): string
         $pdf->fill($full ? [230, 247, 238] : [255, 244, 229]);
         $pdf->rect(36, $y - 60, 200, 46);
         $pdf->fill($full ? $green : [181, 71, 8]);
-        $pdf->text(52, $y - 40, $full ? 'PAID IN FULL' : (paid_percent($r) >= fees()['deposit_pct'] ? 'SLOT BOOKED' : 'PART PAYMENT'), 14, true);
+        $pdf->text(52, $y - 40, $full ? 'PAID IN FULL' : 'BALANCE DUE', 14, true);
         $pdf->fill($gray);
-        $pdf->text(52, $y - 24, $full ? 'Your place at camp is confirmed.' : paid_percent($r) . '% paid · clear balance before camp', 8.5);
+        $pdf->text(52, $y - 24, $full ? 'Your place at camp is confirmed.' : 'Pay the balance to receive your ticket', 8.5);
         $y += 18;
         $pdf->fill($ink);
         $pdf->text(36, $y, 'Camp details', 11, true);

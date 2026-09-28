@@ -242,7 +242,7 @@ function money_cell(int $amount, string $cur = 'UGX'): string
 function progress_bar(array $r): string
 {
     $pct = paid_percent($r);
-    $cls = $pct >= 100 ? 'full' : ($pct >= fees()['deposit_pct'] ? 'booked' : 'low');
+    $cls = $pct >= 100 ? 'full' : ($pct > 0 ? 'booked' : 'low');
     return '<div class="mini-progress ' . $cls . '" title="' . $pct . '% paid"><i style="width:' . $pct . '%"></i></div>';
 }
 

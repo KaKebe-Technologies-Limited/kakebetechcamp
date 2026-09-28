@@ -21,7 +21,7 @@ if (isset($_GET['restart'])) {
     redirect($self . '#register');
 }
 if (isset($_GET['continue'])) {
-    redirect($self . '#register');
+    redirect($self . '#regForm');
 }
 if (isset($_GET['verify'])) {
     $tok = (string) $_GET['verify'];
@@ -42,7 +42,7 @@ if (isset($_GET['verify'])) {
             db()->prepare('UPDATE email_verifications SET verified_at = COALESCE(verified_at, ?) WHERE id = ?')->execute([now(), $row['id']]);
             $_SESSION['verified_emails'][$row['email']] = time();
             $_SESSION['reg_email'] = $row['email'];
-            $_SESSION['reg_notice'] = ['ok', 'Thank you — your email is confirmed. Please complete your registration below.'];
+            redirect($self . '#regForm'); // straight to the short form
         }
     }
     redirect($self . '#register');
@@ -138,7 +138,7 @@ $gallery = [
 
 $faqs = [
     ['Who can apply?', 'Young people aged 14–30 who are passionate about technology, innovation, creativity, and entrepreneurship. We especially encourage girls, refugees, and persons with disabilities to apply.'],
-    ['What does it cost to attend?', 'The camp package is ' . format_ugx($base) . ' — the camp fee (' . format_ugx($f['camp']) . ') covering training, accommodation and meals, plus the sports jersey every participant receives (' . format_ugx($f['jersey']) . '). The camp shirt is free and the ' . $f['park_name'] . ' excursion is optional (' . format_ugx($f['park']) . '). You can pay in instalments: half secures your place and the rest can follow before camp.'],
+    ['What does it cost to attend?', 'The camp package is ' . format_ugx($base) . ' — the camp fee (' . format_ugx($f['camp']) . ') covering training, accommodation and meals, plus the sports jersey every participant receives (' . format_ugx($f['jersey']) . '). The camp shirt is free and the ' . $f['park_name'] . ' excursion is optional (' . format_ugx($f['park']) . '). Pay the full package in one payment — right after registering or later from your dashboard — and your camp ticket is emailed as soon as it is paid.'],
     ['I have registered. How do I check my registration?', 'Click "My registration" at the top of the website and enter the email and phone number you registered with, or log in to the participant portal. There you can view your details, complete any payment (Mobile Money or card) and download receipts and your ticket.'],
     ['What do I get with my registration?', 'Ten days of residential training in Kitgum (accommodation and meals included), camp materials, a free camp shirt, your sports jersey, hackathons, Demo Day, a certificate — plus free enrolment in the Mentorship Program and Digital Bridge Internship (October – November 2026).'],
     ['When will I get my camp ticket?', 'Once your package is fully paid, your camp ticket (with your photo and a QR code) is available in your email and portal. Upload a clear photo when registering or from your portal.'],
@@ -586,12 +586,12 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container register-grid">
     <aside class="register-info reveal">
       <h2>Secure your place at <span>Kakebe Tech Camp</span></h2>
-      <p>Registration takes about 2 minutes and also enrols you free in the Mentorship Program and Digital Bridge Internship.</p>
+      <p>It takes about a minute — and also enrols you free in the Mentorship Program and Digital Bridge Internship.</p>
       <ol class="steps">
-        <li><span>1</span><div><b>Confirm your email</b><small>Continue with Google, or enter your email and open the secure link we send you.</small></div></li>
-        <li><span>2</span><div><b>Complete your details</b><small>Open the link, then tell us about yourself and pick your tracks.</small></div></li>
-        <li><span>3</span><div><b>Pay now or later</b><small>No payment is needed to register. We email you the payment details — pay later or instantly online.</small></div></li>
-        <li><span>4</span><div><b>Get your ticket</b><small>Your camp ticket arrives by email, ready for check-in.</small></div></li>
+        <li><span>1</span><div><b>Continue with Google</b><small>Or enter your email and open the link we send you.</small></div></li>
+        <li><span>2</span><div><b>Add a few details</b><small>Age, phone, district and your tracks.</small></div></li>
+        <li><span>3</span><div><b>Pay now or later</b><small>Pay in full right away, or later from your dashboard.</small></div></li>
+        <li><span>4</span><div><b>Get your ticket</b><small>Emailed as soon as your package is paid.</small></div></li>
       </ol>
       <div class="summary-card perks">
         <h4>What you get</h4>
@@ -647,191 +647,119 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <p class="gate-foot muted small">Already registered? <a href="pay.php">View your registration</a></p>
       </div>
       <?php else: ?>
-      <form id="regForm" class="reg-form" novalidate enctype="multipart/form-data">
+      <?php $gName = mb_strlen(trim((string) ($gProfile['name'] ?? ''))) >= 3 ? trim($gProfile['name']) : ''; ?>
+      <form id="regForm" class="reg-form" novalidate>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="email" value="<?= e($regEmail) ?>">
         <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
-        <div class="form-head">
-          <h3>Tech Camp registration</h3>
-          <p>Fields marked <span class="req">*</span> are required.</p>
+
+        <div class="reg-who">
+          <?php if (!empty($gProfile['picture'])): ?><img src="<?= e($gProfile['picture']) ?>" alt="" referrerpolicy="no-referrer" width="46" height="46"><?php else: ?><span class="who-ini"><?= e(initials($gName ?: $regEmail)) ?></span><?php endif; ?>
+          <div><b><?= $gName ? 'Hi ' . e(explode(' ', $gName)[0]) . ', almost done!' : 'Almost done!' ?></b><small><?= e($regEmail) ?> <span class="verified-tag"><i class="fa-solid fa-circle-check"></i> <?= $gProfile ? 'Google' : 'Confirmed' ?></span></small></div>
+          <a href="?restart=1#register" class="who-change">Change</a>
         </div>
         <?php if ($regNotice): ?><div class="form-alert <?= $regNotice[0] === 'ok' ? 'ok' : '' ?>"><?= e($regNotice[1]) ?></div><?php endif; ?>
 
-        <div class="form-section"><span>1</span> Your details</div>
         <div class="form-grid">
+          <?php if ($gName): ?>
+          <input type="hidden" name="full_name" value="<?= e($gName) ?>">
+          <?php else: ?>
           <div class="field full">
-            <label for="f_name">Full name <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-regular fa-user"></i><input id="f_name" name="full_name" type="text" maxlength="150" autocomplete="name" placeholder="e.g. Akello Grace" value="<?= e($gProfile['name'] ?? '') ?>" required></div>
+            <label for="f_name">Full name</label>
+            <input id="f_name" name="full_name" type="text" maxlength="150" autocomplete="name" placeholder="e.g. Akello Grace" required>
             <span class="err" data-err="full_name"></span>
           </div>
+          <?php endif; ?>
           <div class="field">
-            <label for="f_age">Age <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-solid fa-cake-candles"></i><input id="f_age" name="age" type="number" inputmode="numeric" min="14" max="30" placeholder="14 – 30" required></div>
+            <label for="f_age">Age</label>
+            <input id="f_age" name="age" type="number" inputmode="numeric" min="14" max="30" placeholder="14 – 30" required>
             <span class="err" data-err="age"></span>
           </div>
           <div class="field">
-            <label for="f_gender">Gender</label>
-            <div class="input-icon"><i class="fa-solid fa-venus-mars"></i><select id="f_gender" name="gender"><option value="">Select…</option><?php foreach (genders() as $g): ?><option><?= e($g) ?></option><?php endforeach; ?></select></div>
-          </div>
-          <div class="field full" id="emailField">
-            <label for="f_email">Email address <span class="verified-tag"><i class="fa-solid fa-circle-check"></i> <?= $gProfile ? 'Confirmed with Google' : 'Confirmed' ?></span></label>
-            <div class="email-row">
-              <input id="f_email" name="email" type="email" value="<?= e($regEmail) ?>" readonly>
-              <a class="btn-verify navy" href="?restart=1#register">Change</a>
-            </div>
-            <span class="err" data-err="email"></span>
-          </div>
-          <div class="field">
-            <label for="f_phone">Phone number <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-solid fa-phone"></i><input id="f_phone" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="e.g. 0772 123 456" required></div>
+            <label for="f_phone">Phone number</label>
+            <input id="f_phone" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="e.g. 0772 123 456" required>
             <span class="err" data-err="phone"></span>
           </div>
           <div class="field">
-            <label for="f_district">District of origin <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-solid fa-map-pin"></i><input id="f_district" name="district" type="text" maxlength="100" list="districts" placeholder="e.g. Kitgum" required></div>
+            <label for="f_district">District</label>
+            <input id="f_district" name="district" type="text" maxlength="100" list="districts" placeholder="e.g. Kitgum" required>
             <datalist id="districts"><?php foreach (['Kitgum','Gulu','Lira','Pader','Agago','Lamwo','Amuru','Nwoya','Omoro','Oyam','Kole','Apac','Dokolo','Alebtong','Otuke','Amolatar','Kwania','Adjumani','Moyo','Yumbe','Koboko','Arua','Nebbi','Moroto','Kotido','Kampala','Wakiso','Mukono','Jinja','Mbarara'] as $dname): ?><option value="<?= $dname ?>"><?php endforeach; ?></datalist>
             <span class="err" data-err="district"></span>
           </div>
           <div class="field">
-            <label for="f_country">Country <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-solid fa-earth-africa"></i><input id="f_country" name="country" type="text" maxlength="100" list="countries" value="Uganda" required></div>
-            <datalist id="countries"><?php foreach (['Uganda','Kenya','South Sudan','Tanzania','Rwanda','DR Congo','Burundi','Ethiopia','Somalia','Sudan'] as $cn): ?><option value="<?= $cn ?>"><?php endforeach; ?></datalist>
-            <span class="err" data-err="country"></span>
+            <label for="f_jersey">Jersey size</label>
+            <select id="f_jersey" name="jersey_size" required><option value="">Select…</option><?php foreach (jersey_sizes() as $s): ?><option><?= $s ?></option><?php endforeach; ?></select>
+            <span class="err" data-err="jersey_size"></span>
           </div>
         </div>
 
-        <div class="form-section"><span>2</span> Learning tracks <small>Choose up to 2</small></div>
         <div class="field full">
+          <label class="lbl-row">Your tracks <small id="trackHint">choose up to 2</small></label>
           <div class="track-pick" id="trackPick">
             <?php foreach ($tracks as [$icon, $title]): ?>
             <label class="tpk"><input type="checkbox" name="interests[]" value="<?= e($title) ?>"><span><i class="fa-solid <?= $icon ?>"></i><b><?= e($title) ?></b><em class="fa-solid fa-circle-check"></em></span></label>
             <?php endforeach; ?>
           </div>
-          <span class="hint" id="trackHint">0 of 2 selected</span>
           <span class="err" data-err="interests"></span>
         </div>
 
-        <div class="form-section"><span>3</span> Camp package</div>
-        <div class="pkg-options" id="orderSummary" data-camp="<?= $f['camp'] ?>" data-jersey="<?= $f['jersey'] ?>" data-park="<?= $f['park'] ?>" data-pct="<?= $f['deposit_pct'] ?>">
-          <div class="pkg-opt locked"><i class="fa-solid fa-campground"></i><div><b>Camp fee</b><small>Training, accommodation &amp; meals · required</small></div><strong><?= e(format_ugx($f['camp'])) ?></strong></div>
-          <div class="pkg-opt locked"><i class="fa-solid fa-person-running"></i><div><b>Sports jersey vest</b><small>Required for all participants</small></div><strong><?= e(format_ugx($f['jersey'])) ?></strong></div>
-          <div class="pkg-opt locked free"><i class="fa-solid fa-shirt"></i><div><b>Camp shirt</b><small>Included for everyone</small></div><strong>FREE</strong></div>
-          <label class="pkg-opt toggle"><input type="checkbox" name="park_visit" value="1" id="f_park"><i class="fa-solid fa-water"></i><div><b><?= e($f['park_name']) ?> park visit</b><small>Optional excursion — tick to add</small></div><strong>+<?= e(format_ugx($f['park'])) ?></strong></label>
-        </div>
-        <div class="form-grid">
-          <div class="field">
-            <label for="f_jersey">Jersey / shirt size <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-solid fa-shirt"></i><select id="f_jersey" name="jersey_size" required><option value="">Select size…</option><?php foreach (jersey_sizes() as $s): ?><option><?= $s ?></option><?php endforeach; ?></select></div>
-            <span class="err" data-err="jersey_size"></span>
+        <div class="field full">
+          <label>Payment</label>
+          <div class="funding-options three" id="payChoice">
+            <label class="fund-opt"><input type="radio" name="pay_when" value="now" checked><span><b>Pay now</b><small>Mobile Money or card, right after this step</small></span></label>
+            <label class="fund-opt"><input type="radio" name="pay_when" value="later"><span><b>Pay later</b><small>We email you the details — pay from your dashboard</small></span></label>
+            <label class="fund-opt"><input type="radio" name="pay_when" value="sponsored"><span><b>I'm sponsored</b><small>Someone else is paying for me</small></span></label>
           </div>
-          <div class="field pkg-total-field"><label>Package total</label><div class="pkg-total"><b class="js-total"><?= e(format_ugx($base)) ?></b><small>Instalments welcome</small></div></div>
         </div>
-        <label class="check mentor-check">
-          <input type="checkbox" name="mentorship" value="1" checked>
-          <span><b>Enrol me free in the Mentorship Program &amp; Digital Bridge Internship</b> (October – November 2026, with experienced industry professionals).</span>
-        </label>
 
-        <div class="form-section"><span>4</span> Camp fees</div>
-        <div class="funding-options">
-          <label class="fund-opt"><input type="radio" name="funding" value="self" checked><span><b>I'll cover my camp fees</b><small>Pay later or instantly online — instalments welcome.</small></span></label>
-          <label class="fund-opt"><input type="radio" name="funding" value="sponsored"><span><b>I'm sponsored</b><small>Someone else (a person or organisation) is paying for me.</small></span></label>
-        </div>
-        <div class="pay-info" id="payInfo">
-          <b>No payment is needed to register</b>
-          <p>After you submit, we'll email you your payment details. You can pay later at your convenience before camp (half secures your place, and instalments are welcome) — or pay instantly online with Mobile Money or card right after registering.</p>
-        </div>
         <div class="sponsor-pick" id="sponsorPick" hidden>
-          <div class="form-grid">
-            <div class="field full">
-              <label for="f_sponsor">Who is sponsoring you? <span class="req">*</span></label>
-              <select id="f_sponsor" name="sponsor_id">
-                <option value="">Select your sponsor…</option>
-                <?php foreach ($sponsorList as $sp): ?><option value="<?= (int) $sp['id'] ?>"><?= e(sponsor_label($sp)) ?></option><?php endforeach; ?>
-                <option value="other">My sponsor is not listed</option>
-              </select>
-              <span class="err" data-err="sponsor_id"></span>
-            </div>
-            <div class="field full" id="sponsorOtherWrap" hidden>
-              <label for="f_sponsor_other">Sponsor's name <span class="req">*</span></label>
-              <input id="f_sponsor_other" name="sponsor_other" type="text" maxlength="150" placeholder="Full name of the person or organisation">
-              <span class="err" data-err="sponsor_other"></span>
-            </div>
+          <div class="field full">
+            <label for="f_sponsor">Who is sponsoring you?</label>
+            <select id="f_sponsor" name="sponsor_id">
+              <option value="">Select your sponsor…</option>
+              <?php foreach ($sponsorList as $sp): ?><option value="<?= (int) $sp['id'] ?>"><?= e(sponsor_label($sp)) ?></option><?php endforeach; ?>
+              <option value="other">My sponsor is not listed</option>
+            </select>
+            <span class="err" data-err="sponsor_id"></span>
           </div>
-          <p class="hint sponsor-note">Sponsored registrations are reviewed by our team. Once your sponsor is confirmed, your place is approved and your ticket is emailed to you — no payment needed from you.</p>
+          <div class="field full" id="sponsorOtherWrap" hidden>
+            <label for="f_sponsor_other">Sponsor's name</label>
+            <input id="f_sponsor_other" name="sponsor_other" type="text" maxlength="150" placeholder="Full name of the person or organisation">
+            <span class="err" data-err="sponsor_other"></span>
+          </div>
+          <p class="hint sponsor-note">We confirm your sponsor first. Once approved, your ticket is emailed to you — nothing to pay.</p>
         </div>
 
-        <div class="form-section"><span>5</span> A little more about you</div>
-        <div class="form-grid">
-          <div class="field">
-            <label for="f_source">How did you know about the program? <span class="req">*</span></label>
-            <div class="input-icon"><i class="fa-solid fa-bullhorn"></i><select id="f_source" name="source" required><option value="">Select…</option><?php foreach (sources() as $s): ?><option><?= e($s) ?></option><?php endforeach; ?></select></div>
-            <span class="err" data-err="source"></span>
-          </div>
-          <div class="field">
-            <label for="f_ref">Who referred you? <span class="opt">(optional)</span></label>
-            <div class="input-icon"><i class="fa-solid fa-user-plus"></i><input id="f_ref" name="referred_by" type="text" maxlength="150" placeholder="Name of the person who invited you"></div>
-          </div>
-          <div class="field full is-hidden" id="sourceOtherWrap">
-            <label for="f_source_other">Please specify <span class="req">*</span></label>
-            <input id="f_source_other" name="source_other" type="text" maxlength="150" placeholder="Where did you hear about us?">
-            <span class="err" data-err="source_other"></span>
-          </div>
-          <div class="field full">
-            <label for="f_motivation">Why do you want to join? <span class="opt">(optional)</span></label>
-            <textarea id="f_motivation" name="motivation" rows="3" maxlength="1000" placeholder="Tell us briefly what you hope to learn or build…"></textarea>
-          </div>
-          <div class="field full">
-            <label>Passport photo <span class="opt">(optional — used on your camp ticket)</span></label>
-            <label class="upload" for="f_photo">
-              <input id="f_photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
-              <span class="upload-preview" id="photoPreview"><i class="fa-regular fa-image"></i></span>
-              <span class="upload-text"><b id="photoName">Click to upload a photo</b><small><?= $gProfile && !empty($gProfile['picture']) ? 'Optional — we will use your Google profile photo if you skip this' : 'JPG, PNG or WEBP · max 3 MB' ?></small></span>
-            </label>
-            <span class="err" data-err="photo"></span>
-          </div>
-          <div class="field full">
-            <label class="check">
-              <input type="checkbox" name="consent" value="1" required>
-              <span>I confirm that the information provided is accurate and I agree to be contacted by Kakebe about this program. <span class="req">*</span></span>
-            </label>
-            <span class="err" data-err="consent"></span>
-          </div>
+        <div class="pkg-line" id="orderSummary" data-camp="<?= $f['camp'] ?>" data-jersey="<?= $f['jersey'] ?>" data-park="<?= $f['park'] ?>">
+          <div class="pkg-sum"><span><b>Camp package</b><small>Camp fee, meals &amp; stay + jersey · shirt free</small></span><strong class="js-total"><?= e(format_ugx($base)) ?></strong></div>
+          <label class="park-check"><input type="checkbox" name="park_visit" value="1" id="f_park"> Add the <?= e($f['park_name']) ?> excursion <em>+<?= e(format_ugx($f['park'])) ?></em></label>
+          <p class="pkg-note" id="pkgNote">Paid in full in one payment — your camp ticket is emailed as soon as it's paid.</p>
         </div>
 
         <div class="form-alert" id="formAlert" role="alert" hidden></div>
         <button type="submit" class="btn btn-primary btn-lg btn-block" id="regSubmit">
-          <span class="btn-label">Register &amp; continue <i class="fa-solid fa-arrow-right"></i></span>
-          <span class="btn-loading"><span class="spinner"></span> Submitting…</span>
+          <span class="btn-label"><span id="regSubmitText">Register &amp; pay <span class="js-total"><?= e(format_ugx($base)) ?></span></span> <i class="fa-solid fa-arrow-right"></i></span>
+          <span class="btn-loading"><span class="spinner"></span> Saving…</span>
         </button>
+        <p class="fine-print">By registering you confirm your details are correct and agree to be contacted about the camp. You're also enrolled free in the Mentorship Program &amp; Digital Bridge Internship (<?= e($c['mentorship']) ?>).</p>
       </form>
 
       <div class="form-success" id="regSuccess" hidden>
         <div class="success-icon"><i class="fa-solid fa-check"></i></div>
         <h3>You're registered, <span id="successName"></span>! 🎉</h3>
-        <p>A confirmation has been sent to <b id="successEmail"></b>.</p>
         <div class="ref-box"><small>Your reference number</small><b id="successRef">—</b></div>
-        <div class="self-pay" id="selfPayBlock">
-          <div class="checkout-box">
-            <div class="cb-row"><span>Camp package</span><b id="successTotal">—</b></div>
-            <div class="cb-row"><span>Secures your place</span><b id="successDeposit">—</b></div>
-          </div>
-          <p class="checkout-q">Would you like to complete it now?</p>
-          <div class="checkout-choices">
-            <a class="choice now" id="payNowBtn" href="#"><b>Yes, continue now</b><small>Mobile Money or card, in a few seconds</small></a>
-            <button type="button" class="choice later" id="payLaterBtn"><b>Later</b><small>Your registration is saved</small></button>
-          </div>
-          <div class="later-note" id="laterNote" hidden>
-            <p>No problem — your registration is saved. Whenever you're ready, click <b>My registration</b> at the top of this site, or use the link in your email.</p>
-          </div>
-        </div>
+        <p id="laterNote">We've emailed your registration and payment details to <b class="js-success-email"></b>. Pay <b id="successTotal"></b> any time before camp — your ticket is sent as soon as it's paid.</p>
         <div class="review-note" id="reviewNote" hidden>
           <b>Your sponsorship is being reviewed</b>
-          <p>You told us <span id="successSponsor">your sponsor</span> is covering your camp fees. Our team will confirm this and email you once your place is approved — there is nothing to pay in the meantime.</p>
+          <p>You told us <span id="successSponsor">your sponsor</span> is covering your camp fees. We'll confirm this and email you once your place is approved — nothing to pay in the meantime.</p>
         </div>
-        <p class="portal-note">We've also emailed you a link to create a password for your participant dashboard.</p>
         <div class="success-actions">
+          <a class="btn btn-primary" id="payNowBtn" href="#">Pay now</a>
+          <a class="btn btn-ghost" href="portal/">Open my dashboard</a>
           <a class="btn btn-ghost" id="shareWa" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Invite friends</a>
-          <a class="btn btn-ghost" id="regAnother" href="?restart=1#register">Register someone else</a>
         </div>
+        <p class="portal-note">Come back any time: <b>Portal login</b> at the top of this site, with Google or your email.</p>
+        <p class="portal-note"><a id="regAnother" href="?restart=1#register">Register someone else</a></p>
       </div>
       <?php endif; ?>
     </div>

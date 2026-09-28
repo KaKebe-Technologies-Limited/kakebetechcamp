@@ -30,8 +30,8 @@ $phone = trim((string) ($_POST['pay_phone'] ?? ''));
 if ($bal <= 0) {
     json_response(['ok' => false, 'message' => 'This participant has nothing left to pay.'], 422);
 }
-if ($amount < 500 || $amount > $bal) {
-    json_response(['ok' => false, 'errors' => ['amount' => 'Enter an amount between UGX 500 and ' . format_ugx($bal) . '.'], 'message' => 'Please check the amount.'], 422);
+if ($amount !== $bal) { // full payment only
+    json_response(['ok' => false, 'message' => 'Payments are for the full balance only (' . format_ugx($bal) . '). Please refresh the page.'], 422);
 }
 if (!valid_msisdn($phone)) {
     json_response(['ok' => false, 'errors' => ['pay_phone' => 'Enter a valid MTN or Airtel number, e.g. 0772 123 456.'], 'message' => 'Please check the phone number.'], 422);

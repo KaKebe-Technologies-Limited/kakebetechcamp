@@ -58,7 +58,7 @@ $list = q("SELECT * FROM registrations $where ORDER BY id DESC LIMIT $perPage OF
 $qs = array_filter($f, fn($v) => $v !== '');
 $qsString = $qs ? '?' . http_build_query($qs) : '';
 $pageUrl = fn(int $p) => 'registrations.php?' . http_build_query($qs + ['page' => $p]);
-$tabs = ['' => 'All', 'review' => 'Awaiting approval', 'pending' => 'Registered', 'booked' => 'Slot booked', 'confirmed' => 'Confirmed', 'waitlisted' => 'Waitlisted', 'cancelled' => 'Cancelled'];
+$tabs = ['' => 'All', 'review' => 'Awaiting approval', 'pending' => 'Registered', 'confirmed' => 'Confirmed', 'waitlisted' => 'Waitlisted', 'cancelled' => 'Cancelled'];
 
 admin_header('Participants', 'registrations', number_format($total) . ' matching · package value ' . format_ugx($sums['t']) . ' · paid ' . format_ugx($sums['p']));
 ?>

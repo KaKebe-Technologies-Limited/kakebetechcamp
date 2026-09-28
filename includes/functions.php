@@ -294,7 +294,6 @@ function fees(): array
         'jersey'        => (int) setting('jersey_fee', 20000),
         'park'          => (int) setting('park_fee', 20000),
         'park_name'     => (string) setting('park_name', 'Aruu Falls'),
-        'deposit_pct'   => max(1, min(100, (int) setting('min_deposit_percent', 50))),
         'sponsor_child' => (int) setting('sponsor_child_amount', 120000),
     ];
 }
@@ -327,19 +326,10 @@ function balance(array $r): int
     return max(0, (int) $r['total_amount'] - (int) $r['amount_paid']);
 }
 
-function deposit_amount(array $r): int
-{
-    return (int) ceil((int) $r['total_amount'] * fees()['deposit_pct'] / 100);
-}
-
-/** Minimum a participant may pay now: the booking deposit first, then any amount (min 1,000) up to the balance. */
+/** Camp fees are paid in full in one payment (no part payments) — the amount due is always the whole balance. */
 function min_payment(array $r): int
 {
-    $bal = balance($r);
-    if ((int) $r['amount_paid'] < deposit_amount($r)) {
-        return min($bal, deposit_amount($r) - (int) $r['amount_paid']);
-    }
-    return min($bal, 1000);
+    return balance($r);
 }
 
 function paid_percent(array $r): int
@@ -380,7 +370,7 @@ function statuses(): array
     return [
         'review'     => 'Awaiting approval',
         'pending'    => 'Registered',
-        'booked'     => 'Slot booked',
+        'booked'     => 'Part paid',
         'confirmed'  => 'Confirmed',
         'waitlisted' => 'Waitlisted',
         'cancelled'  => 'Cancelled',
