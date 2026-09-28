@@ -316,6 +316,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '')
     $groups = [
         'Overview' => [
             'dashboard' => ['index.php', 'fa-gauge-high', 'Dashboard', 0],
+            'analytics' => ['analytics.php', 'fa-chart-line', 'Website analytics', 0],
         ],
         'Participants' => [
             'registrations' => ['registrations.php', 'fa-users', 'Participants', $pending],

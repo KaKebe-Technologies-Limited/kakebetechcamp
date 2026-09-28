@@ -93,4 +93,45 @@
     fd.set('id', d.dataset.id);
     fetch('messages.php', { method: 'POST', body: fd, credentials: 'same-origin' }).then(() => d.classList.remove('unread'));
   }));
+  // Analytics line chart: crosshair + tooltip (mouse, touch and arrow keys)
+  $$(".ga-chart").forEach((chart) => {
+    const svg = $("svg", chart);
+    const tip = $(".ga-tip", chart);
+    const cross = $(".ga-cross", svg);
+    const dot = $(".ga-hover", svg);
+    const pts = JSON.parse(chart.dataset.points || "[]");
+    const g = JSON.parse(chart.dataset.geo || "{}");
+    const unit = chart.dataset.unit || "";
+    if (!pts.length) return;
+    let current = pts.length - 1;
+    const show = (i) => {
+      current = Math.max(0, Math.min(pts.length - 1, i));
+      const x = g.L + (pts.length > 1 ? current / (pts.length - 1) * g.pw : g.pw / 2);
+      const y = g.T + g.ph - pts[current].v / g.ymax * g.ph;
+      cross.setAttribute("x1", x); cross.setAttribute("x2", x); cross.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", x); dot.setAttribute("cy", y); dot.setAttribute("visibility", "visible");
+      const value = document.createElement("b");
+      value.textContent = pts[current].v.toLocaleString("en-US") + " " + unit;
+      const day = document.createElement("small");
+      day.textContent = pts[current].d;
+      tip.replaceChildren(value, day);
+      tip.hidden = false;
+      const w = svg.getBoundingClientRect().width;
+      const half = tip.offsetWidth / 2;
+      tip.style.left = Math.max(half, Math.min(w - half, x / g.W * w)) + "px";
+    };
+    const hide = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); tip.hidden = true; };
+    const indexAt = (e) => {
+      const r = svg.getBoundingClientRect();
+      return Math.round(((e.clientX - r.left) / r.width * g.W - g.L) / g.pw * (pts.length - 1));
+    };
+    svg.addEventListener("pointermove", (e) => show(indexAt(e)));
+    svg.addEventListener("pointerdown", (e) => show(indexAt(e)));
+    svg.addEventListener("pointerleave", hide);
+    svg.addEventListener("focus", () => show(current));
+    svg.addEventListener("blur", hide);
+    svg.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); show(current + (e.key === "ArrowLeft" ? -1 : 1)); }
+    });
+  });
 })();

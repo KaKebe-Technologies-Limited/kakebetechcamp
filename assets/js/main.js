@@ -312,6 +312,7 @@
         $$('#trackPick input:checked').forEach((i) => fd.append('interests[]', i.value));
         const json = await postForm('api/register.php', fd);
         if (json.ok) {
+          window.ktTrack && window.ktTrack('sign_up', { method: form.dataset.method || 'email', pay_choice: payWhen() });
           const payUrl = (json.pay_url || 'pay.php') + '&new=1';
           if (json.pay_now) { leaving = true; location.href = payUrl; return; }
           $('#successName').textContent = json.name || '';
@@ -419,7 +420,7 @@
       cBtn.classList.add('loading');
       try {
         const json = await postForm('api/contact.php', f);
-        if (json.ok) { cForm.reset(); setAlert(cAlert, json.message, true); toast('✅ Message sent — thank you!'); }
+        if (json.ok) { cForm.reset(); setAlert(cAlert, json.message, true); toast('✅ Message sent — thank you!'); window.ktTrack && window.ktTrack('generate_lead', { form: 'contact' }); }
         else { if (json.errors) showErrors(cForm, json.errors); setAlert(cAlert, json.message || 'Please check the form and try again.'); }
       } catch (err) {
         setAlert(cAlert, err.message || 'Network error — please try again.');

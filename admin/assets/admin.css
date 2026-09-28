@@ -439,3 +439,37 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 
 .pay-full { margin: 0; font-size: 15px; }
 .pay-full b { font-size: 18px; color: var(--navy); }
+
+/* ---------- Website analytics (Google Analytics) ---------- */
+.ga-filters { padding: 0 0 20px; }
+.inline-form { display: inline; margin: 0; }
+.delta { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; }
+.delta i { font-size: 11px; }
+.delta.up { color: var(--green); }
+.delta.down { color: var(--red); }
+.delta.flat { color: var(--muted); }
+.ga-chart { position: relative; }
+.ga-chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; outline: none; }
+.ga-chart svg:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 6px; }
+.ga-grid { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
+.ga-tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.ga-area { fill: #E11D2A; fill-opacity: .1; }
+.ga-line { fill: none; stroke: #E11D2A; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.ga-dot, .ga-hover { fill: #E11D2A; stroke: #fff; stroke-width: 2; }
+.ga-end { fill: var(--ink); font-size: 12px; font-weight: 800; }
+.ga-cross { stroke: var(--muted); stroke-width: 1; shape-rendering: crispEdges; }
+.ga-hit { fill: transparent; cursor: crosshair; }
+.ga-tip { position: absolute; top: 0; transform: translateX(-50%); pointer-events: none; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; box-shadow: 0 8px 20px rgba(16, 25, 53, .12); white-space: nowrap; line-height: 1.3; }
+.ga-tip b { display: block; color: var(--ink); font-size: 14px; }
+.ga-tip small { color: var(--muted); font-size: 12px; }
+.ga-table { margin-top: 14px; }
+.ga-table summary, .ga-settings summary { cursor: pointer; font-weight: 700; color: var(--body); font-size: 14px; }
+.ga-table .table-wrap { margin-top: 10px; max-height: 320px; overflow-y: auto; }
+.setup-steps { margin: 0 0 20px; padding-left: 20px; display: grid; gap: 10px; line-height: 1.55; }
+.ga-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 34px; padding: 18px 26px; color: inherit; }
+.ga-strip:hover { color: inherit; border-color: #C9D3EA; }
+.ga-strip-title { font-weight: 800; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
+.ga-strip-title i { color: var(--red); }
+.ga-strip span small { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ga-strip span b { font-size: 22px; color: var(--ink); }
+.ga-strip .link { margin-left: auto; }

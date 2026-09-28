@@ -227,6 +227,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+<?= ga_tag() ?>
   <title><?= e($pageTitle) ?></title>
   <meta name="description" content="<?= e($pageDesc) ?>">
   <meta name="robots" content="<?= $robots ?>">
@@ -648,7 +649,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       </div>
       <?php else: ?>
       <?php $gName = mb_strlen(trim((string) ($gProfile['name'] ?? ''))) >= 3 ? trim($gProfile['name']) : ''; ?>
-      <form id="regForm" class="reg-form" novalidate>
+      <form id="regForm" class="reg-form" novalidate data-method="<?= $gProfile ? 'google' : 'email' ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="email" value="<?= e($regEmail) ?>">
         <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>

@@ -80,6 +80,17 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
   <a class="kpi" href="sponsors.php"><span class="kpi-icon purple"><i class="fa-solid fa-hand-holding-heart"></i></span><div><small>Sponsorships</small><b><?= e(format_ugx($sponsorAmt)) ?></b><em>donations received</em></div></a>
 </div>
 
+<?php if (ga_connected() && ($ga = ga_summary(7))): $gaNow = ga_realtime_users(); ?>
+<a class="card ga-strip" href="analytics.php?days=7">
+  <span class="ga-strip-title"><i class="fa-solid fa-chart-line"></i> Website — last 7 days</span>
+  <span><small>Visitors</small><b><?= number_format($ga['current']['activeUsers']) ?></b></span>
+  <span><small>Page views</small><b><?= number_format($ga['current']['screenPageViews']) ?></b></span>
+  <span><small>New visitors</small><b><?= number_format($ga['current']['newUsers']) ?></b></span>
+  <span><small>On the site now</small><b><?= $gaNow === null ? '—' : number_format($gaNow) ?></b></span>
+  <span class="link">Website analytics →</span>
+</a>
+<?php endif; ?>
+
 <div class="grid-3-1">
   <div class="card">
     <div class="card-head"><h3><i class="fa-solid fa-chart-column"></i> Registrations — last 30 days</h3><span class="muted"><?= array_sum($regSeries) ?> total</span></div>

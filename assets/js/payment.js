@@ -83,6 +83,11 @@
         <div class="btn-row">${p.receipt ? `<a class="btn btn-primary" href="${esc(p.receipt)}" target="_blank"><i class="fa-solid fa-file-pdf"></i> Download receipt</a>` : ''}
         <button type="button" class="btn btn-ghost js-done">${isDonation ? 'Close' : 'Done'}</button></div></div>`;
     };
+    const item = { item_name: isDonation ? 'Sponsor an innovator' : 'Camp package' };
+    const paid = (p) => {
+      window.ktTrack && window.ktTrack('purchase', { transaction_id: p.receipt_no, value: p.amount, currency: p.currency, items: [item] });
+      return successHtml(p);
+    };
     const failedHtml = (msg) => `<div class="ps bad"><span class="ps-icon"><i class="fa-solid fa-xmark"></i></span>
         <h3>Payment not completed</h3><p class="muted">${esc(msg || 'The payment was declined or cancelled. No money was taken.')}</p>
         <div class="btn-row"><button type="button" class="btn btn-primary js-retry">Try again</button></div></div>`;
@@ -113,7 +118,7 @@
           const json = await res.json();
           if (!json.ok) continue;
           const p = json.payment;
-          if (p.status === 'success') { polling = false; showState(successHtml(p)); return; }
+          if (p.status === 'success') { polling = false; showState(paid(p)); return; }
           if (p.status === 'failed') { polling = false; showState(failedHtml(p.message)); return; }
           const note = $('.js-wait-note', state);
           if (note && tries > 8) note.textContent = 'Still waiting… if you did not get a prompt, cancel and try again.';
@@ -131,6 +136,7 @@
         if (min && max && (n < min || n > max)) { showErrors(form, { amount: `Enter an amount between ${money(min)} and ${money(max)}.` }); return; }
       }
       btn.classList.add('loading');
+      if (amount) window.ktTrack && window.ktTrack('begin_checkout', { value: digits(amount.value), currency: 'UGX', items: [item] });
       try {
         const fd = new FormData(form);
         if (amount) fd.set('amount', String(digits(amount.value)));
@@ -142,7 +148,7 @@
         }
         if (json.redirect) { location.href = json.redirect; return; }
         const p = json.payment;
-        if (p.status === 'success') { showState(successHtml(p)); return; }
+        if (p.status === 'success') { showState(paid(p)); return; }
         if (p.status === 'failed') { showState(failedHtml(p.message)); return; }
         showState(waitingHtml(p));
         poll(p.id, json.token);

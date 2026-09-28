@@ -15,6 +15,7 @@ function app_header(string $title, string $base = '', string $active = ''): void
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
+<?= ga_tag() ?>
   <title><?= e($title) ?> · Kakebe Tech Camp 2026</title>
   <link rel="icon" href="<?= $base ?>favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="<?= $base ?>assets/img/favicon.png">

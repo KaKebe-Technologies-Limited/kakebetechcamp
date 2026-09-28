@@ -72,6 +72,7 @@ require ROOT . '/includes/pdf.php';
 require ROOT . '/includes/emails.php';
 require ROOT . '/includes/payments.php';
 require ROOT . '/includes/google.php';
+require ROOT . '/includes/analytics.php';
 
 // Fail with a clear message (not a blank error page) if the live database can't be reached.
 if (PHP_SAPI !== 'cli') {
