@@ -21,7 +21,8 @@ $pendingPay = (int) $one("SELECT COUNT(*) FROM payments WHERE status = 'pending'
 $unread     = (int) $one('SELECT COUNT(*) FROM messages WHERE is_read = 0');
 $testMoney  = (int) $one("SELECT COUNT(*) FROM payments WHERE status = 'success' AND currency <> 'UGX'");
 $capacity   = max(1, (int) setting('camp_capacity', 300));
-$capPct     = min(100, round($booked / $capacity * 100));
+$seatsTaken = seats_taken();
+$capPct     = min(100, round($seatsTaken / $capacity * 100));
 
 $regSeries = days_series('SELECT DATE(created_at) d, COUNT(*) v FROM registrations WHERE created_at >= ? GROUP BY DATE(created_at)');
 $paySeries = days_series("SELECT DATE(completed_at) d, SUM(amount) v FROM payments WHERE status = 'success' AND completed_at >= ? GROUP BY DATE(completed_at)");
@@ -98,8 +99,10 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
   </div>
   <div class="card capacity-card">
     <div class="card-head"><h3><i class="fa-solid fa-campground"></i> Camp capacity</h3></div>
-    <div class="ring" style="--p: <?= $capPct ?>"><div><b><?= $capPct ?>%</b><small><?= $booked ?> / <?= $capacity ?></small></div></div>
+    <div class="ring" style="--p: <?= $capPct ?>"><div><b><?= $capPct ?>%</b><small><?= $seatsTaken ?> / <?= $capacity ?> seats taken</small></div></div>
     <ul class="mini-stats">
+      <li><span><i class="fa-solid fa-chair"></i> Seats left</span><b><?= max(0, $capacity - $seatsTaken) ?></b></li>
+      <li><span><i class="fa-solid fa-ticket"></i> Confirmed (fully paid)</span><b><?= $booked ?></b></li>
       <li><span><i class="fa-solid fa-water"></i> <?= e($f['park_name']) ?> sign-ups</span><b><?= $parkCount ?></b></li>
       <li><span><i class="fa-solid fa-envelope"></i> Unread messages</span><b><?= $unread ?></b></li>
       <li><span><i class="fa-solid fa-hourglass-half"></i> Pending payments</span><b><?= $pendingPay ?></b></li>

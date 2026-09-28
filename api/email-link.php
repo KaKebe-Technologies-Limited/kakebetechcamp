@@ -17,6 +17,9 @@ if (!empty($_POST['website'])) {
 if (setting('registration_open', '1') !== '1') {
     json_response(['ok' => false, 'message' => 'Registration is currently closed.'], 403);
 }
+if (seats_left() <= 0) {
+    json_response(['ok' => false, 'message' => 'Sorry — all ' . seat_capacity() . ' seats are taken, so registration is full.'], 409);
+}
 
 $email = strtolower(trim((string) ($_POST['email'] ?? '')));
 if ($problem = email_problem($email)) {

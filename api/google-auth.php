@@ -47,6 +47,9 @@ if ($r) {
 if (setting('registration_open', '1') !== '1') {
     json_response(['ok' => false, 'message' => 'We could not find a registration for ' . $email . ', and registration is currently closed.'], 403);
 }
+if (seats_left() <= 0) {
+    json_response(['ok' => false, 'message' => 'Sorry — all ' . seat_capacity() . ' seats are taken, so registration is full.'], 409);
+}
 
 // Not registered yet: Google has confirmed the email, so continue straight to the registration form.
 $name = trim((string) ($claims['name'] ?? trim(($claims['given_name'] ?? '') . ' ' . ($claims['family_name'] ?? ''))));

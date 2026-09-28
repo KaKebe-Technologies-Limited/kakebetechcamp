@@ -234,6 +234,29 @@
     form.addEventListener('change', handler);
   };
 
+  /* ---------- Seats left: refreshed every minute, and straight after a registration ---------- */
+  const renderSeats = (left, capacity) => {
+    const almost = left > 0 && left <= Math.max(10, Math.ceil(capacity * 0.1));
+    $$('.js-seats-left').forEach((el) => { el.textContent = Number(left).toLocaleString('en-US'); });
+    $$('.js-seats-bar').forEach((bar) => {
+      bar.style.width = Math.min(100, Math.round((capacity - left) / capacity * 100)) + '%';
+      bar.parentElement.setAttribute('aria-valuenow', String(capacity - left));
+    });
+    $$('.seats-meter').forEach((m) => m.classList.toggle('urgent', almost || left <= 0));
+    $$('.js-seats-note').forEach((el) => { el.textContent = left <= 0 ? 'Registration is now full' : (almost ? 'Almost full — register now' : `Strictly ${capacity} participants`); });
+  };
+  if ($('.js-seats-left')) {
+    const refreshSeats = async () => {
+      if (document.hidden) return;
+      try {
+        const json = await (await fetch('api/seats.php', { credentials: 'same-origin' })).json();
+        if (json.ok) renderSeats(json.left, json.capacity);
+      } catch (_) { /* offline — keep the last number */ }
+    };
+    setInterval(refreshSeats, 60000);
+    document.addEventListener('visibilitychange', refreshSeats);
+  }
+
   /* ---------- Registration ---------- */
   const form = $('#regForm');
   if (form) {
@@ -313,6 +336,7 @@
         const json = await postForm('api/register.php', fd);
         if (json.ok) {
           window.ktTrack && window.ktTrack('sign_up', { method: form.dataset.method || 'email', pay_choice: payWhen() });
+          if (typeof json.seats_left === 'number') renderSeats(json.seats_left, json.capacity);
           const payUrl = (json.pay_url || 'pay.php') + '&new=1';
           if (json.pay_now) { leaving = true; location.href = payUrl; return; }
           $('#successName').textContent = json.name || '';

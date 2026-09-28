@@ -492,3 +492,14 @@
 #regForm { scroll-margin-top: 16px; }
 /* On phones, show the form first once the email is confirmed (e.g. straight after "Continue with Google") */
 @media (max-width: 992px) { .register-grid:has(#regForm) .register-card { order: -1; } }
+
+/* ---------- Seats left (strict capacity) ---------- */
+.seats-meter { margin: 0 0 22px; padding: 14px 16px; border-radius: 16px; background: #FFF7F7; border: 1px solid #F8D5D5; }
+.sm-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.sm-top b { color: var(--ink); font-size: 15.5px; }
+.sm-top b span { font-size: 22px; font-weight: 800; }
+.sm-top small { color: var(--muted); font-size: 12.5px; font-weight: 700; }
+.seats-meter.urgent .sm-top small { color: var(--red); }
+.sm-bar { height: 8px; border-radius: 999px; background: #FDE0E0; overflow: hidden; }
+.sm-bar i { display: block; height: 100%; min-width: 4px; border-radius: 999px; background: var(--red); transition: width .6s ease; }
+.fee-badge .fb-sub { display: block; font-size: 11px; font-weight: 800; letter-spacing: .12em; line-height: 1.1; }

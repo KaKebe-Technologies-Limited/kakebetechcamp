@@ -119,6 +119,13 @@ if ($dup->fetchColumn()) {
     ], 409);
 }
 
+// Strictly seat_capacity() participants — the seat check and the insert run under one lock.
+$pdo->query("SELECT GET_LOCK('ktc_seats', 10)");
+if (seats_left() <= 0) {
+    $pdo->query("SELECT RELEASE_LOCK('ktc_seats')");
+    json_response(['ok' => false, 'full' => true, 'message' => 'Sorry — all ' . seat_capacity() . ' seats have just been taken, so registration is now full.'], 409);
+}
+
 $photoFile = $photoExt ? store_upload('photo', $photoExt, STORAGE . '/uploads/photos') : null;
 $amounts = new_order_amounts($park);
 
@@ -143,12 +150,15 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    $pdo->query("SELECT RELEASE_LOCK('ktc_seats')");
     if ($photoFile) {
         @unlink(STORAGE . '/uploads/photos/' . $photoFile);
     }
     error_log('Registration failed: ' . $e->getMessage());
     json_response(['ok' => false, 'message' => 'Sorry, we could not save your registration right now. Please try again in a moment.'], 500);
 }
+
+$pdo->query("SELECT RELEASE_LOCK('ktc_seats')");
 
 // Registered with "Continue with Google": remember the Google account, and use the Google photo if none was uploaded.
 if ($g = google_profile_for($email)) {
@@ -170,6 +180,8 @@ respond_and_continue([
     'total'     => (int) $r['total_amount'],
     'pay_url'   => pay_url($r),
     'pay_now'   => $funding === 'self' && $payWhen === 'now',
+    'seats_left' => seats_left(),
+    'capacity'  => seat_capacity(),
     'sponsored' => $funding === 'sponsored',
     'sponsor'   => $sponsorName,
     'message'   => 'Thank you, ' . explode(' ', $fullName)[0] . '! Your registration has been received.',

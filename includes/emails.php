@@ -283,7 +283,7 @@ function tpl_balance_reminder(array $r): array
 {
     $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p><p>This is a friendly reminder about your Kakebe Tech Camp 2026 package (' . e($r['reference']) . ').</p>'
         . kt_detail(['💰 Package total' => format_ugx($r['total_amount']), '✅ Paid so far' => format_ugx($r['amount_paid']), '⏳ Balance' => format_ugx(balance($r)), '📅 Camp' => camp()['dates']])
-        . '<p>Pay the full amount to confirm your place and receive your camp ticket — places are limited to 300.</p>'
+        . '<p>Pay the full amount to confirm your place and receive your camp ticket — places are limited to ' . seat_capacity() . '.</p>'
         . kt_btn('Pay now', pay_url($r));
     return ['⏰ Reminder: your Kakebe Tech Camp balance is ' . format_ugx(balance($r)), kt_email('Payment Reminder', $inner)];
 }

@@ -2,6 +2,11 @@
 require __DIR__ . '/includes/bootstrap.php';
 
 $regOpen  = setting('registration_open', '1') === '1';
+$seatCap  = seat_capacity();
+$seatsLeft = seats_left();
+$regFull  = $seatsLeft <= 0;
+$seatPct  = (int) round(($seatCap - $seatsLeft) / $seatCap * 100);
+$almostFull = !$regFull && $seatsLeft <= max(10, (int) ceil($seatCap * 0.1));
 $f        = fees();
 $c        = camp();
 $phone    = setting('contact_phone', '0779 712 990');
@@ -203,9 +208,10 @@ $jsonLd = ['@context' => 'https://schema.org', '@graph' => [
             '@type' => 'Offer', 'name' => 'Camp package (camp fee + sports jersey)',
             'price' => (string) $base, 'priceCurrency' => 'UGX',
             'url' => $siteUrl . '#register',
-            'availability' => $regOpen ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+            'availability' => $regOpen && !$regFull ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
         ],
-        'maximumAttendeeCapacity' => 300,
+        'maximumAttendeeCapacity' => $seatCap,
+        'remainingAttendeeCapacity' => $seatsLeft,
         'typicalAgeRange' => '14-30',
         'audience' => ['@type' => 'PeopleAudience', 'suggestedMinAge' => 14, 'suggestedMaxAge' => 30],
         'educationalLevel' => 'Beginner',
@@ -354,7 +360,8 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <div class="hero-ring"></div>
       <figure class="hero-photo main"><img src="assets/img/robotics.jpg" srcset="assets/img/robotics-sm.jpg 720w, assets/img/robotics.jpg 1600w" sizes="(max-width: 900px) 70vw, 420px" alt="Young people assembling a robot during a hands-on Kakebe Tech Camp robotics session" width="1600" height="1200" fetchpriority="high"></figure>
       <figure class="hero-photo small"><img src="assets/img/smiles-sm.jpg" alt="Smiling young women at a Kakebe event in Northern Uganda" width="720" height="480" decoding="async"></figure>
-      <div class="fee-badge"><span>Only</span><b>300<small>SEATS</small></b><em>Kitgum 2026</em></div>
+      <?php if ($regFull): ?><div class="fee-badge"><span>All</span><b><?= $seatCap ?><small>SEATS TAKEN</small></b><em>Registration full</em></div>
+      <?php else: ?><div class="fee-badge"><span>Only</span><b class="js-seats-left"><?= $seatsLeft ?></b><small class="fb-sub">SEATS LEFT</small><em>of <?= $seatCap ?> · Kitgum</em></div><?php endif; ?>
       <div class="float-card fc-1"><div><b>10 Days</b><small>14 – 23 December</small></div></div>
       <div class="float-card fc-2"><div><b>Ages 14 – 30</b><small>300 young innovators</small></div></div>
     </div>
@@ -611,11 +618,23 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
     </aside>
 
     <div class="register-card reveal">
+      <?php if ($regOpen && !$regFull): ?>
+      <div class="seats-meter<?= $almostFull ? ' urgent' : '' ?>">
+        <div class="sm-top"><b><span class="js-seats-left"><?= number_format($seatsLeft) ?></span> of <?= number_format($seatCap) ?> seats left</b><small class="js-seats-note"><?= $almostFull ? 'Almost full — register now' : 'Strictly ' . $seatCap . ' participants' ?></small></div>
+        <div class="sm-bar" role="meter" aria-label="Seats taken" aria-valuemin="0" aria-valuemax="<?= $seatCap ?>" aria-valuenow="<?= $seatCap - $seatsLeft ?>"><i class="js-seats-bar" style="width: <?= $seatPct ?>%"></i></div>
+      </div>
+      <?php endif; ?>
       <?php if (!$regOpen): ?>
         <div class="form-closed">
           <span><i class="fa-solid fa-lock"></i></span>
           <h3>Registration is currently closed</h3>
           <p>Already registered? <a href="pay.php">Pay or view your registration</a>. For help call <a href="<?= e(tel_link($phone)) ?>"><?= e($phone) ?></a>.</p>
+        </div>
+      <?php elseif ($regFull): ?>
+        <div class="form-closed">
+          <span><i class="fa-solid fa-users"></i></span>
+          <h3>All <?= $seatCap ?> seats are taken</h3>
+          <p>Kakebe Tech Camp 2026 is full — thank you for the amazing response! Already registered? <a href="pay.php">View your registration</a>. If a seat opens up we'll announce it; you can also message us on <a href="<?= e(whatsapp_link('Hello, is there any seat left at Kakebe Tech Camp 2026?')) ?>" target="_blank" rel="noopener">WhatsApp</a>.</p>
         </div>
       <?php elseif (!$regVerified): ?>
       <div class="email-gate" id="emailGate">
@@ -683,8 +702,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           </div>
           <div class="field">
             <label for="f_district">District</label>
-            <input id="f_district" name="district" type="text" maxlength="100" list="districts" placeholder="e.g. Kitgum" required>
-            <datalist id="districts"><?php foreach (['Kitgum','Gulu','Lira','Pader','Agago','Lamwo','Amuru','Nwoya','Omoro','Oyam','Kole','Apac','Dokolo','Alebtong','Otuke','Amolatar','Kwania','Adjumani','Moyo','Yumbe','Koboko','Arua','Nebbi','Moroto','Kotido','Kampala','Wakiso','Mukono','Jinja','Mbarara'] as $dname): ?><option value="<?= $dname ?>"><?php endforeach; ?></datalist>
+            <input id="f_district" name="district" type="text" maxlength="100" autocomplete="off" placeholder="Type your district" required>
             <span class="err" data-err="district"></span>
           </div>
           <div class="field">
@@ -909,7 +927,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container">
     <div class="cta-banner reveal">
       <div class="cta-text">
-        <p class="script light">Only 300 seats available</p>
+        <p class="script light"><?= $regFull ? 'All ' . $seatCap . ' seats are taken' : 'Only <span class="js-seats-left">' . $seatsLeft . '</span> of ' . $seatCap . ' seats left' ?></p>
         <h2>Ready to learn, build &amp; innovate this December?</h2>
         <p>Join young innovators from across Uganda in Kitgum, <?= e($c['dates']) ?>.</p>
         <div class="cta-actions">
@@ -1001,7 +1019,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <script id="programData" type="application/json"><?= json_encode($details, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 <script src="assets/js/main.js?v=<?= filemtime(__DIR__ . '/assets/js/main.js') ?>"></script>
 <script src="assets/js/payment.js?v=<?= filemtime(__DIR__ . '/assets/js/payment.js') ?>"></script>
-<?php if (google_enabled() && $regOpen && !$regVerified): ?>
+<?php if (google_enabled() && $regOpen && !$regFull && !$regVerified): ?>
 <script src="assets/js/google.js?v=<?= filemtime(__DIR__ . '/assets/js/google.js') ?>"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <?php endif; ?>

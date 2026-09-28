@@ -287,6 +287,22 @@ function camp(): array
     ];
 }
 
+/** Strictly camp_capacity participants: every registration that is not cancelled (or waitlisted) takes a seat. */
+function seat_capacity(): int
+{
+    return max(1, (int) setting('camp_capacity', 300));
+}
+
+function seats_taken(): int
+{
+    return (int) db()->query("SELECT COUNT(*) FROM registrations WHERE status NOT IN ('cancelled','waitlisted')")->fetchColumn();
+}
+
+function seats_left(): int
+{
+    return max(0, seat_capacity() - seats_taken());
+}
+
 function fees(): array
 {
     return [

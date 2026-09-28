@@ -93,7 +93,7 @@ admin_header('Settings', 'settings');
     <form method="post" class="stack">
       <?= csrf_field() ?><input type="hidden" name="section" value="general">
       <label class="switch"><input type="checkbox" name="registration_open" value="1" <?= $s['registration_open'] === '1' ? 'checked' : '' ?>><span class="slider"></span> Registration is open on the website</label>
-      <label>Camp capacity (seats)<input type="number" min="1" name="camp_capacity" value="<?= e($s['camp_capacity']) ?>"></label>
+      <label>Camp capacity (seats) — registration closes when this many have registered<input type="number" min="1" name="camp_capacity" value="<?= e($s['camp_capacity']) ?>"></label>
       <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>
     </form>
   </section>
