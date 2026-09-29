@@ -121,6 +121,10 @@ function tpl_applicant_received(array $r): array
             '🎯 Learning tracks' => $r['interests'] ?: '—',
             '👕 Jersey size' => $r['jersey_size'] ?: '—',
         ], 'navy');
+    if ($group = whatsapp_group_link()) {
+        $inner .= '<p style="margin-top:20px;"><strong>💬 Join the Tech Camp WhatsApp group</strong><br>Get camp updates and announcements, and meet your fellow innovators. Tap the button to join.</p>'
+            . kt_btn('Join the WhatsApp group', $group, 'whatsapp');
+    }
 
     if (is_sponsored($r)) {
         $inner .= kt_detail([

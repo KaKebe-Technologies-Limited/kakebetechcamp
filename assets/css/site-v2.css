@@ -518,3 +518,12 @@
 .flyer-ask b { display: block; color: var(--ink); margin-bottom: 4px; }
 .flyer-ask p { margin: 0 0 12px; font-size: 14px; }
 .flyer-ask-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* WhatsApp group invite on the registration success screen */
+.wa-group { display: flex; align-items: center; gap: 14px; max-width: 460px; margin: 0 auto 18px; padding: 14px 18px; border-radius: 16px; background: #E9FBEF; border: 1px solid #BFEFCF; color: var(--ink); text-align: left; text-decoration: none; transition: transform .2s, box-shadow .2s; }
+.wa-group:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(18, 140, 126, .18); color: var(--ink); }
+.wa-group > .fa-whatsapp { font-size: 30px; color: #128C7E; }
+.wa-group span { flex: 1; line-height: 1.35; }
+.wa-group b { display: block; font-size: 15.5px; }
+.wa-group small { color: var(--muted); font-size: 13px; }
+.wa-group > .fa-arrow-right { color: #128C7E; }

@@ -386,6 +386,8 @@
     });
   }
 
+  const waGroup = $('#waGroup');
+  if (waGroup) waGroup.addEventListener('click', () => window.ktTrack && window.ktTrack('join_group', { method: 'whatsapp' }));
   const flyerNo = $('#flyerNo');
   if (flyerNo) flyerNo.addEventListener('click', () => { $('#flyerAsk').hidden = true; });
 

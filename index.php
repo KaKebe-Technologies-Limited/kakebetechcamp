@@ -768,6 +768,13 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <div class="success-icon"><i class="fa-solid fa-check"></i></div>
         <h3>You're registered, <span id="successName"></span>! 🎉</h3>
         <div class="ref-box"><small>Your reference number</small><b id="successRef">—</b></div>
+        <?php if ($waGroup = whatsapp_group_link()): ?>
+        <a class="wa-group" id="waGroup" href="<?= e($waGroup) ?>" target="_blank" rel="noopener">
+          <i class="fa-brands fa-whatsapp"></i>
+          <span><b>Join the Tech Camp WhatsApp group</b><small>Updates, announcements and your fellow innovators — tap to join</small></span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+        <?php endif; ?>
         <p id="laterNote">We've emailed your registration and payment details to <b class="js-success-email"></b>. Pay <b id="successTotal"></b> any time before camp — your ticket is sent as soon as it's paid.</p>
         <div class="review-note" id="reviewNote" hidden>
           <b>Your sponsorship is being reviewed</b>

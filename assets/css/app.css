@@ -261,3 +261,8 @@ b.ok, .ok-text { color: var(--green); }
 @media (max-width: 900px) { .flyer-grid { grid-template-columns: 1fr; } }
 .flyer-card h3 { margin-bottom: 6px; }
 .flyer-card p { margin: 0 0 14px; }
+.wa-group-card { display: flex; align-items: center; gap: 14px; background: #E9FBEF; border-color: #BFEFCF; color: var(--ink); text-decoration: none; }
+.wa-group-card:hover { color: var(--ink); box-shadow: 0 10px 24px rgba(18, 140, 126, .18); }
+.wa-group-card .fa-whatsapp { font-size: 30px; color: #128C7E; }
+.wa-group-card b { display: block; }
+.wa-group-card small { color: var(--muted); }

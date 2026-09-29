@@ -444,6 +444,13 @@ function whatsapp_link(string $text = ''): string
     return 'https://wa.me/' . $num . ($text !== '' ? '?text=' . rawurlencode($text) : '');
 }
 
+/** Participants' WhatsApp group invite (Admin → Settings → Contacts & social), or '' when not set. */
+function whatsapp_group_link(): string
+{
+    $url = trim((string) setting('whatsapp_group_link'));
+    return preg_match('~^https://~i', $url) ? $url : '';
+}
+
 /** Phone number as international digits for wa.me links (Ugandan 07… becomes 2567…). */
 function intl_digits(string $phone): string
 {

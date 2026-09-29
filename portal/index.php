@@ -90,6 +90,9 @@ app_header('My dashboard', '../', 'portal');
   </section>
 
   <aside class="app-side">
+    <?php if ($waGroup = whatsapp_group_link()): ?>
+    <a class="app-card wa-group-card" href="<?= e($waGroup) ?>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i><span><b>Join the Tech Camp WhatsApp group</b><small>Updates and announcements — tap to join</small></span></a>
+    <?php endif; ?>
     <div class="app-card flyer-card">
       <h3>📸 “I will be there” flyer</h3>
       <p class="small muted">Upload your best photo and get a flyer with your name to share with friends.</p>

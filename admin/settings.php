@@ -64,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'contact':
             setting_set('contact_phone', $str('contact_phone', 40));
             setting_set('contact_whatsapp', preg_replace('/\D/', '', $str('contact_whatsapp', 20)));
+            $group = $str('whatsapp_group_link', 300);
+            setting_set('whatsapp_group_link', preg_match('~^https://~i', $group) ? $group : '');
             $ce = $str('contact_email', 190);
             setting_set('contact_email', filter_var($ce, FILTER_VALIDATE_EMAIL) ? $ce : '');
             foreach (['org_website', 'social_tiktok', 'social_x', 'social_linkedin', 'social_facebook', 'social_instagram', 'social_youtube'] as $k) {
@@ -165,6 +167,7 @@ admin_header('Settings', 'settings');
     <div class="row-3">
       <label>Support phone<input type="text" name="contact_phone" value="<?= e($s['contact_phone']) ?>"></label>
       <label>WhatsApp (digits, e.g. 256779712990)<input type="text" name="contact_whatsapp" value="<?= e($s['contact_whatsapp']) ?>"></label>
+      <label><i class="fa-brands fa-whatsapp"></i> Participants' WhatsApp group (invite link — shown after registering)<input type="url" name="whatsapp_group_link" value="<?= e($s['whatsapp_group_link']) ?>" placeholder="https://chat.whatsapp.com/…"></label>
       <label>Public email<input type="email" name="contact_email" value="<?= e($s['contact_email']) ?>"></label>
       <label>Organisation website<input type="url" name="org_website" value="<?= e($s['org_website']) ?>"></label>
       <label><i class="fa-brands fa-tiktok"></i> TikTok<input type="url" name="social_tiktok" value="<?= e($s['social_tiktok']) ?>"></label>
