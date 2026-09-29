@@ -640,7 +640,8 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <div class="email-gate" id="emailGate">
         <div class="form-head">
           <h3>Start your registration</h3>
-          <p><?= google_enabled() ? 'Continue with Google for the quickest start, or enter your email address and we will send you a secure link.' : 'Enter your email address and we will send you a secure link to continue.' ?> Either way we confirm your email is genuine — it's where your confirmation, payment details and camp ticket will be sent.</p>
+          <ol class="mini-steps" aria-label="How to register"><li><b>1</b> <?= google_enabled() ? 'Continue with Google' : 'Confirm your email' ?></li><li><b>2</b> Add your details</li><li><b>3</b> Pay now or later</li></ol>
+          <p><?= google_enabled() ? 'Tap <b>Continue with Google</b> — we\'ll bring you straight back here to add your age, phone, district and tracks. It takes about a minute.' : 'Enter your email and we\'ll send you a secure link — open it to add your age, phone, district and tracks.' ?></p>
         </div>
         <?php if ($regNotice): ?><div class="form-alert <?= $regNotice[0] === 'ok' ? 'ok' : '' ?>"><?= e($regNotice[1]) ?></div><?php endif; ?>
         <?php if (google_enabled()): ?>

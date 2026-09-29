@@ -7,11 +7,21 @@
   const body = document.body;
   const money = (n) => 'UGX ' + Number(n || 0).toLocaleString('en-US');
 
+  /* Registration: on phones the steps sit above the form, so "Register" buttons go straight to the form card. */
+  const regTarget = () => (window.matchMedia('(max-width: 992px)').matches && $('.register-card')) || $('#register');
+  const nudgeGoogle = () => {
+    const g = $('.email-gate .google-block');
+    if (!g) return;
+    g.classList.remove('nudge');
+    setTimeout(() => g.classList.add('nudge'), 450);
+    setTimeout(() => g.classList.remove('nudge'), 3200);
+  };
   /* After "Continue with Google" or the email link we land on #regForm — jump there once images have laid out. */
   if (/^#(regForm|register)$/.test(location.hash)) {
     window.addEventListener('load', () => {
-      const target = document.querySelector(location.hash);
+      const target = location.hash === '#register' ? regTarget() : document.querySelector(location.hash);
       if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+      if (location.hash === '#register') nudgeGoogle();
     });
   }
 
@@ -38,6 +48,16 @@
   document.addEventListener('click', (e) => {
     if (body.classList.contains('nav-open') && !e.target.closest('#mobileMenu') && !e.target.closest('#navToggle')) setNav(false);
   });
+
+  $$('a[href="#register"]').forEach((a) => a.addEventListener('click', (e) => {
+    const target = regTarget();
+    if (!target) return;
+    e.preventDefault();
+    setNav(false);
+    history.replaceState(null, '', '#register');
+    requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    nudgeGoogle();
+  }));
 
   const navLinks = $$('a[data-nav]');
   const sectionIds = [...new Set(navLinks.map((a) => a.getAttribute('href')))];
