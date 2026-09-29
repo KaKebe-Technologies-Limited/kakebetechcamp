@@ -240,3 +240,24 @@ b.ok, .ok-text { color: var(--green); }
 .pay-due span { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
 .pay-due b { font-size: 26px; line-height: 1.2; }
 .pay-due small { font-size: 12.5px; opacity: .8; }
+
+/* ---------- "I will be there" flyer ---------- */
+.flyer-grid { grid-template-columns: 1.1fr 1fr; }
+.flyer-preview { padding: 18px; }
+.flyer-preview canvas { display: block; width: 100%; height: auto; border-radius: 16px; background: #F2F4F9; cursor: pointer; }
+.has-photo .flyer-preview canvas { cursor: grab; touch-action: none; }
+.has-photo .flyer-preview canvas:active { cursor: grabbing; }
+.flyer-hint { margin: 12px 0 0; }
+.flyer-step { display: flex; gap: 14px; padding: 16px 0; border-top: 1px solid var(--line); }
+.flyer-step > span { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: var(--red); color: #fff; font-weight: 800; font-size: 14px; }
+.flyer-step > div { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.flyer-step b { color: var(--ink); }
+.flyer-step .field { margin: 0; }
+.flyer-upload { gap: 8px; }
+.flyer-zoom { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+.flyer-zoom input { flex: 1; accent-color: var(--red); }
+.flyer-actions { display: grid; gap: 10px; margin-top: 6px; }
+.flyer-actions .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+@media (max-width: 900px) { .flyer-grid { grid-template-columns: 1fr; } }
+.flyer-card h3 { margin-bottom: 6px; }
+.flyer-card p { margin: 0 0 14px; }

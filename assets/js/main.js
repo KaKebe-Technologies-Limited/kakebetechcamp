@@ -366,6 +366,7 @@
           $('#payNowBtn').href = payUrl;
           $('#payNowBtn').hidden = !!json.sponsored;
           $('#laterNote').hidden = !!json.sponsored;
+          window.ktTrack && window.ktTrack('flyer_offer_shown');
           $('#reviewNote').hidden = !json.sponsored;
           $('#successSponsor').textContent = json.sponsor || 'your sponsor';
           const shareText = `I just registered for Kakebe Tech Camp 2026! 🚀 Join me — register here: ${location.origin + location.pathname}#register`;
@@ -384,6 +385,9 @@
       }
     });
   }
+
+  const flyerNo = $('#flyerNo');
+  if (flyerNo) flyerNo.addEventListener('click', () => { $('#flyerAsk').hidden = true; });
 
   /* ---------- Registration step 1: email link ---------- */
   const gateForm = $('#gateForm');

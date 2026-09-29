@@ -48,7 +48,7 @@ function app_header(string $title, string $base = '', string $active = ''): void
     <?php
 }
 
-function app_footer(string $base = ''): void
+function app_footer(string $base = '', array $scripts = []): void
 {
     ?>
 </main>
@@ -57,6 +57,8 @@ function app_footer(string $base = ''): void
   <p class="muted">© <?= date('Y') ?> Kakebe Technologies Limited · Payments secured by ioTec Pay</p>
 </footer>
 <script src="<?= $base ?>assets/js/payment.js?v=<?= filemtime(ROOT . '/assets/js/payment.js') ?>"></script>
+<?php foreach ($scripts as $src): ?><script src="<?= $base . e($src) ?>?v=<?= filemtime(ROOT . '/' . $src) ?>"></script>
+<?php endforeach; ?>
 </body>
 </html>
     <?php

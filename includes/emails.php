@@ -140,7 +140,9 @@ function tpl_applicant_received(array $r): array
     $inner .= ($r['mentorship'] ? kt_detail(['🎁 Bonus' => 'You are automatically enrolled — free — in the Kakebe Mentorship Program and Digital Bridge Internship (' . camp()['mentorship'] . ') with experienced industry professionals. Online sessions run every Monday, 8:00 – 9:30 PM.'], 'green') : '')
         . '<p><strong>Your participant dashboard</strong><br>Create a password to log in any time, update your profile and photo, see your tracks and download your ticket.</p>'
         . kt_btn('Create my password', $setup, 'navy')
-        . '<p style="font-size:13px;color:#6B7390;">This link is valid for 7 days. You can always request a new one from the login page.</p>';
+        . '<p style="font-size:13px;color:#6B7390;">This link is valid for 7 days. You can always request a new one from the login page.</p>'
+        . '<p><strong>Tell your friends you will be there 📸</strong><br>Upload your best photo and get a personalised “I will be there” flyer to share on WhatsApp and social media.</p>'
+        . kt_btn('Make my “I will be there” flyer', base_url('flyer.php'));
     return ['🎉 Registration received — ' . $r['reference'], kt_email('Registration Received', $inner, 'Your reference number is ' . $r['reference'])];
 }
 

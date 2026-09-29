@@ -51,6 +51,11 @@ app_header($r ? 'My registration' : 'Find my registration');
       <?php endif; ?>
     </section>
     <aside class="app-side">
+      <div class="app-card flyer-card">
+        <h3>📸 “I will be there” flyer</h3>
+        <p class="small muted">Upload your best photo and get a flyer with your name to share with friends.</p>
+        <a class="btn btn-ghost btn-block" href="flyer.php"><i class="fa-solid fa-image"></i> Make my flyer</a>
+      </div>
       <div class="app-card">
         <h3><i class="fa-solid fa-receipt"></i> Your camp package</h3>
         <?= package_card($r) ?>

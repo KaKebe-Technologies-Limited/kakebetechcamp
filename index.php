@@ -773,6 +773,11 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           <b>Your sponsorship is being reviewed</b>
           <p>You told us <span id="successSponsor">your sponsor</span> is covering your camp fees. We'll confirm this and email you once your place is approved — nothing to pay in the meantime.</p>
         </div>
+        <div class="flyer-ask" id="flyerAsk">
+          <b>📸 Would you like an “I will be there” flyer?</b>
+          <p>Upload your best photo and we'll design a flyer with your name — ready to share on WhatsApp and social media.</p>
+          <div class="flyer-ask-actions"><a class="btn btn-primary btn-sm" href="flyer.php">Yes, make my flyer</a><button type="button" class="btn btn-ghost btn-sm" id="flyerNo">No thanks</button></div>
+        </div>
         <div class="success-actions">
           <a class="btn btn-primary" id="payNowBtn" href="#">Pay now</a>
           <a class="btn btn-ghost" href="portal/">Open my dashboard</a>
