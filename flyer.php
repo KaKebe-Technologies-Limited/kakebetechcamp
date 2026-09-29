@@ -6,7 +6,12 @@
 require __DIR__ . '/includes/bootstrap.php';
 require __DIR__ . '/includes/app_layout.php';
 
+// The participant: from a personal flyer link (emails, payment page) or the logged-in session
 $p = current_participant();
+$ref = (string) ($_GET['ref'] ?? '');
+if ($ref !== '' && sign_valid('flyer', $ref, $_GET['t'] ?? null)) {
+    $p = find_registration_by_ref($ref) ?: $p;
+}
 
 app_header('My “I will be there” flyer');
 ?>
@@ -45,8 +50,10 @@ app_header('My “I will be there” flyer');
       <div class="flyer-step">
         <span>3</span>
         <div>
-          <b>Your name</b>
-          <div class="field"><input id="flyerName" type="text" maxlength="40" autocomplete="name" placeholder="e.g. Akello Grace" value="<?= e($p['full_name'] ?? '') ?>"></div>
+          <b>Your name &amp; code number</b>
+          <div class="field"><input id="flyerName" type="text" maxlength="40" autocomplete="name" placeholder="e.g. Akello Grace" value="<?= e($p['full_name'] ?? '') ?>" aria-label="Your name"></div>
+          <div class="field"><input id="flyerCode" type="text" maxlength="12" autocomplete="off" placeholder="Code number, e.g. KTC26-0123" value="<?= e($p['reference'] ?? '') ?>"<?= $p ? ' readonly' : '' ?> aria-label="Your code number"></div>
+          <small class="muted"><?= $p ? 'Your code number is printed under your name.' : 'Your code number is in your registration email (e.g. KTC26-0123).' ?></small>
         </div>
       </div>
 

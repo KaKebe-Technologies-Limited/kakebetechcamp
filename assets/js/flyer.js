@@ -9,6 +9,7 @@
   const canvas = $('#flyerCanvas');
   const ctx = canvas.getContext('2d');
   const nameInput = $('#flyerName');
+  const codeInput = $('#flyerCode');
   const zoomInput = $('#flyerZoom');
   const fileInput = $('#flyerPhoto');
   const errorEl = $('#flyerError');
@@ -127,9 +128,16 @@
     ctx.fillStyle = RED;
     ctx.fillRect(cx - 45, 957, 90, 3);
 
+    // Under the name: the camper's code number (or "I will be there" until one is entered)
+    const code = codeInput ? codeInput.value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '') : '';
     ctx.fillStyle = '#fff';
-    ctx.font = `600 19px ${FONT}`;
-    spacedText('I WILL BE THERE', cx, 1000, 9);
+    if (code) {
+      ctx.font = `700 24px ${FONT}`;
+      spacedText(code, cx, 1002, 5);
+    } else {
+      ctx.font = `600 19px ${FONT}`;
+      spacedText('I WILL BE THERE', cx, 1000, 9);
+    }
   };
   const redraw = () => { if (!queued) { queued = true; requestAnimationFrame(draw); } };
 
@@ -162,6 +170,7 @@
 
   zoomInput.addEventListener('input', () => { zoom = parseFloat(zoomInput.value) || 1; redraw(); });
   nameInput.addEventListener('input', redraw);
+  if (codeInput) codeInput.addEventListener('input', redraw);
 
   // Drag to move, pinch or scroll to zoom
   const pointers = new Map();
@@ -246,7 +255,7 @@
   // ---------- Start ----------
   base.onload = redraw;
   base.src = root.dataset.base;
-  (document.fonts && document.fonts.load ? Promise.all([document.fonts.load(`800 46px ${FONT}`), document.fonts.load(`600 19px ${FONT}`)]) : Promise.resolve())
+  (document.fonts && document.fonts.load ? Promise.all([document.fonts.load(`800 46px ${FONT}`), document.fonts.load(`700 24px ${FONT}`), document.fonts.load(`600 19px ${FONT}`)]) : Promise.resolve())
     .catch(() => {})
     .then(redraw);
 })();

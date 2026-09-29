@@ -199,6 +199,12 @@ function pay_url(array $r): string
     return base_url('pay.php?ref=' . rawurlencode($r['reference']) . '&t=' . sign('pay', $r['reference']));
 }
 
+/** Flyer maker with the participant's name and code number already filled in (works without logging in). */
+function flyer_url(array $r): string
+{
+    return base_url('flyer.php?ref=' . rawurlencode($r['reference']) . '&t=' . sign('flyer', $r['reference']));
+}
+
 function receipt_url(array $p): string
 {
     return base_url('receipt.php?id=' . (int) $p['id'] . '&t=' . sign('receipt', (string) $p['id']));
