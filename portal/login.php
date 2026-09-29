@@ -101,7 +101,7 @@ app_header('Participant login', '../', 'login');
 
   <?php if ($mode === 'password'): ?>
   <?php if (google_enabled()): ?>
-  <?= google_button('login', '../api/google-auth.php', 'signin_with') ?>
+  <?= google_button('login', '../api/google-auth.php', 'signin_with', true) ?>
   <div class="or-sep"><span>or log in with your email</span></div>
   <?php endif; ?>
   <form method="post" class="stack">

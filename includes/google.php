@@ -118,15 +118,16 @@ function google_profile_for(string $email): ?array
 }
 
 /** The "Continue with Google" button (Google renders it inside the placeholder). */
-function google_button(string $intent, string $endpoint, string $text = 'continue_with'): string
+/** $big: the main call to action — the button fills the available width (Google's max is 400px) and is scaled up slightly. */
+function google_button(string $intent, string $endpoint, string $text = 'continue_with', bool $big = false): string
 {
     if (!google_enabled()) {
         return '';
     }
     $cfg = json_encode(['endpoint' => $endpoint, 'intent' => $intent, 'csrf' => csrf_token()], JSON_UNESCAPED_SLASHES);
-    return '<div class="google-block">'
+    return '<div class="google-block' . ($big ? ' big' : '') . '">'
         . '<div id="g_id_onload" data-client_id="' . e(google_client_id()) . '" data-callback="ktGoogleCredential" data-auto_prompt="false" data-context="' . ($intent === 'login' ? 'signin' : 'signup') . '" data-ux_mode="popup" data-itp_support="true"></div>'
-        . '<div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline" data-text="' . e($text) . '" data-size="large" data-logo_alignment="center" data-width="320"></div>'
+        . '<div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="' . ($big ? 'filled_blue' : 'outline') . '" data-text="' . e($text) . '" data-size="large" data-logo_alignment="center" data-width="320"></div>'
         . '<p class="google-msg" id="googleMsg" hidden></p>'
         . '</div>'
         . '<script>window.KT_GOOGLE = ' . $cfg . ';</script>';

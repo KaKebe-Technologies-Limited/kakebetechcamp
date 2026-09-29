@@ -527,3 +527,13 @@
 .wa-group b { display: block; font-size: 15.5px; }
 .wa-group small { color: var(--muted); font-size: 13px; }
 .wa-group > .fa-arrow-right { color: #128C7E; }
+
+/* Big "Continue with Google" — the main way to register / log in */
+.google-block.big { margin: 8px 0 12px; min-height: 52px; }
+.google-block.big .g_id_signin { transform: scale(1.12); transform-origin: center top; margin-bottom: 6px; }
+/* Email is the second option: one line, small Continue button */
+.gate-email .field { margin-bottom: 0; }
+.gate-row { display: flex; gap: 10px; align-items: stretch; }
+.gate-row input { flex: 1; min-width: 0; }
+.gate-row .btn { flex-shrink: 0; padding: 0 22px; border-radius: 12px; font-size: 15px; }
+.gate-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); }

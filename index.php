@@ -645,24 +645,27 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         </div>
         <?php if ($regNotice): ?><div class="form-alert <?= $regNotice[0] === 'ok' ? 'ok' : '' ?>"><?= e($regNotice[1]) ?></div><?php endif; ?>
         <?php if (google_enabled()): ?>
-        <?= google_button('register', 'api/google-auth.php', 'continue_with') ?>
-        <div class="or-sep"><span>or register with your email</span></div>
+        <?= google_button('register', 'api/google-auth.php', 'continue_with', true) ?>
+        <div class="or-sep"><span>or use your email address</span></div>
         <?php endif; ?>
-        <form id="gateForm" novalidate>
+        <form id="gateForm" class="gate-email<?= google_enabled() ? ' secondary' : '' ?>" novalidate>
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
           <div class="field">
-            <label for="g_email">Your email address <span class="req">*</span></label>
-            <input id="g_email" name="email" type="email" maxlength="190" autocomplete="email" placeholder="you@example.com" required>
+            <label for="g_email" class="sr-only">Your email address</label>
+            <div class="gate-row">
+              <input id="g_email" name="email" type="email" maxlength="190" autocomplete="email" placeholder="Your email address" required>
+              <button type="submit" class="btn <?= google_enabled() ? 'btn-ghost' : 'btn-primary' ?>" id="gateBtn"><span class="btn-label">Continue</span><span class="btn-loading"><span class="spinner"></span></span></button>
+            </div>
             <span class="err" data-err="email"></span>
           </div>
+          <p class="gate-note">We'll email you a link to create your account.</p>
           <div class="form-alert" id="gateAlert" role="alert" hidden></div>
-          <button type="submit" class="btn btn-primary btn-lg btn-block" id="gateBtn"><span class="btn-label">Send me the registration link <i class="fa-solid fa-arrow-right"></i></span><span class="btn-loading"><span class="spinner"></span> Sending…</span></button>
         </form>
         <div class="gate-sent" id="gateSent" hidden>
           <div class="success-icon"><i class="fa-regular fa-envelope"></i></div>
           <h3>Check your inbox</h3>
-          <p>We've sent a registration link to <b id="gateEmailShow"></b>. Open the email and click <b>Continue my registration</b> to fill in the rest of your details. The link is valid for 24 hours.</p>
+          <p>We've sent a link to create your account to <b id="gateEmailShow"></b>. Open the email and tap <b>Continue my registration</b> to add your details. The link works for 24 hours.</p>
           <p class="muted small">Can't find it? Check your spam or promotions folder, <button type="button" class="link-btn" id="gateResend">resend the link</button> or <button type="button" class="link-btn" id="gateChange">use a different email</button>.</p>
         </div>
         <p class="gate-foot muted small">Already registered? <a href="pay.php">View your registration</a></p>

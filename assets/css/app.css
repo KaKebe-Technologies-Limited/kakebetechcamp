@@ -266,3 +266,7 @@ b.ok, .ok-text { color: var(--green); }
 .wa-group-card .fa-whatsapp { font-size: 30px; color: #128C7E; }
 .wa-group-card b { display: block; }
 .wa-group-card small { color: var(--muted); }
+
+/* Big "Continue with Google" — the main way to register / log in */
+.google-block.big { margin: 8px 0 12px; min-height: 52px; }
+.google-block.big .g_id_signin { transform: scale(1.12); transform-origin: center top; margin-bottom: 6px; }

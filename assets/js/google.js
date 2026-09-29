@@ -1,4 +1,13 @@
 /* Kakebe Tech Camp — "Continue with Google" (Google Identity Services callback) */
+
+// Size the buttons to their container before Google draws them (this file loads before the Google script).
+document.querySelectorAll('.google-block .g_id_signin').forEach((el) => {
+  const block = el.closest('.google-block');
+  const scale = block.classList.contains('big') ? 1.12 : 1;
+  const width = Math.floor(Math.min(400, (block.clientWidth - 4) / scale));
+  if (width >= 200) el.setAttribute('data-width', String(width));
+});
+
 window.ktGoogleCredential = async function (response) {
   const cfg = window.KT_GOOGLE || {};
   const msg = document.getElementById('googleMsg');
