@@ -167,14 +167,20 @@
     const amount = $('input[name="amount"]', form);
     const wrap = $('.js-custom-amount', form);
     const label = $('.js-amt', form);
+    const usd = $('.js-usd', form);
+    const rate = digits(form.dataset.usdRate) || 3750;
+    const show = (n) => {
+      if (label) label.textContent = money(n);
+      if (usd) usd.textContent = '$' + Math.max(1, Math.round(n / rate)).toLocaleString('en-US');
+    };
     const sync = () => {
       const k = parseInt(kids.value, 10) || 0;
       wrap.hidden = k > 0;
       if (k > 0) amount.value = (k * per).toLocaleString('en-US');
-      if (label) label.textContent = money(digits(amount.value));
+      show(digits(amount.value));
     };
     kids.addEventListener('change', sync);
-    amount.addEventListener('input', () => { const n = digits(amount.value); amount.value = n ? n.toLocaleString('en-US') : ''; if (label) label.textContent = money(n); });
+    amount.addEventListener('input', () => { const n = digits(amount.value); amount.value = n ? n.toLocaleString('en-US') : ''; show(n); });
     sync();
   });
 

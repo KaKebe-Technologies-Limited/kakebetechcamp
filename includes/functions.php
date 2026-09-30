@@ -316,7 +316,7 @@ function fees(): array
         'jersey'        => (int) setting('jersey_fee', 20000),
         'park'          => (int) setting('park_fee', 20000),
         'park_name'     => (string) setting('park_name', 'Aruu Falls'),
-        'sponsor_child' => (int) setting('sponsor_child_amount', 120000),
+        'sponsor_child' => (int) setting('sponsor_child_amount', 150000),
     ];
 }
 
@@ -417,6 +417,33 @@ function programs(): array
 function program_name(string $key): string
 {
     return programs()[$key]['name'] ?? 'Kakebe Tech Camp 2026';
+}
+
+/** Approximate US-dollar value, for donors abroad (Admin → Settings → Pricing: UGX per $1). */
+function approx_usd(int $ugx): int
+{
+    return (int) max(1, round($ugx / max(1, (int) setting('usd_rate', 3750))));
+}
+
+/**
+ * Public donors list: everyone whose gift was received, biggest first. Gifts from the same email are added
+ * together; anonymous gifts are listed as "Anonymous".
+ */
+function donor_wall(int $limit = 10): array
+{
+    $donors = [];
+    foreach (db()->query('SELECT id, donor_name, organization, email, is_anonymous, amount_paid FROM donations WHERE amount_paid > 0 ORDER BY paid_at DESC, id DESC') as $d) {
+        $key = $d['is_anonymous'] ? 'anon-' . $d['id'] : 'email-' . strtolower((string) $d['email']);
+        $donors[$key] ??= [
+            'name' => $d['is_anonymous'] ? 'Anonymous' : (string) $d['donor_name'],
+            'organization' => $d['is_anonymous'] ? '' : (string) $d['organization'],
+            'amount' => 0,
+        ];
+        $donors[$key]['amount'] += (int) $d['amount_paid'];
+    }
+    $donors = array_values($donors);
+    usort($donors, fn($x, $y) => $y['amount'] <=> $x['amount']); // equal gifts stay newest-first
+    return ['donors' => array_slice($donors, 0, $limit), 'count' => count($donors), 'total' => array_sum(array_column($donors, 'amount'))];
 }
 
 function format_ugx($amount, string $currency = 'UGX'): string

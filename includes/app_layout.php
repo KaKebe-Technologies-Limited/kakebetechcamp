@@ -54,7 +54,7 @@ function app_footer(string $base = '', array $scripts = []): void
 </main>
 <footer class="app-foot">
   <p><i class="fa-solid fa-headset"></i> Support line: <a href="<?= e(tel_link(setting('contact_phone'))) ?>"><?= e(setting('contact_phone')) ?></a> · <a href="<?= e(whatsapp_link()) ?>" target="_blank" rel="noopener">WhatsApp</a></p>
-  <p class="muted">© <?= date('Y') ?> Kakebe Technologies Limited · Payments secured by ioTec Pay</p>
+  <p class="muted">© <?= date('Y') ?> Kakebe Technologies Limited</p>
 </footer>
 <script src="<?= $base ?>assets/js/payment.js?v=<?= filemtime(ROOT . '/assets/js/payment.js') ?>"></script>
 <?php foreach ($scripts as $src): ?><script src="<?= $base . e($src) ?>?v=<?= filemtime(ROOT . '/' . $src) ?>"></script>

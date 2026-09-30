@@ -1,6 +1,6 @@
 <?php
 /**
- * POST /api/donate.php — "Sponsor a child" / donation: saves the sponsor and starts the ioTec payment.
+ * POST /api/donate.php — "Sponsor an innovator" / donation: saves the donor and starts the payment.
  */
 require dirname(__DIR__) . '/includes/bootstrap.php';
 
@@ -33,7 +33,7 @@ $payPhone = trim((string) ($_POST['pay_phone'] ?? $phone));
 
 if (mb_strlen($name) < 2) $errors['donor_name'] = 'Please enter your name.';
 if ($problem = email_problem($email)) $errors['donor_email'] = $problem;
-if (strlen(preg_replace('/\D/', '', $phone)) < 9) $errors['donor_phone'] = 'Please enter a valid phone number.';
+if ($phone !== '' && strlen(preg_replace('/\D/', '', $phone)) < 9) $errors['donor_phone'] = 'Please enter a valid phone number, or leave it empty.';
 if ($children > 0) {
     $amount = $children * fees()['sponsor_child'];
 }

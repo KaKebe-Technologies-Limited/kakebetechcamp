@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setting_set('park_fee', $num('park_fee'));
             setting_set('park_name', $str('park_name', 60) ?: 'Aruu Falls');
             setting_set('sponsor_child_amount', $num('sponsor_child_amount'));
+            setting_set('usd_rate', (string) max(1, (int) $num('usd_rate')));
             flash('Pricing saved. New registrations use these amounts; existing participants keep the package they registered with.');
             break;
 
@@ -125,6 +126,7 @@ admin_header('Settings', 'settings');
       <label>Optional excursion name<input type="text" name="park_name" value="<?= e($s['park_name']) ?>"></label>
       <label>Excursion fee (UGX)<input type="text" inputmode="numeric" name="park_fee" value="<?= e($s['park_fee']) ?>"></label>
       <label>Sponsor-an-innovator amount (UGX)<input type="text" inputmode="numeric" name="sponsor_child_amount" value="<?= e($s['sponsor_child_amount']) ?>"></label>
+      <label>US dollar rate (UGX per $1) — for the "about $…" shown to donors<input type="text" inputmode="numeric" name="usd_rate" value="<?= e($s['usd_rate']) ?>"></label>
     </div>
     <p class="small muted">Camp shirts are free for everyone. Package = camp fee + jersey (+ excursion if chosen).</p>
     <div><button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save pricing</button></div>

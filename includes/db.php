@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 function db(): PDO
 {
@@ -87,6 +87,11 @@ function migrate(PDO $pdo): void
         // v7: Derrick is copied on registration alerts too (he was already on payment alerts).
         $pdo->exec("UPDATE settings SET svalue = CONCAT(svalue, ', derricklamarh@gmail.com')
                     WHERE skey = 'notify_registration_cc' AND svalue <> '' AND svalue NOT LIKE '%derricklamarh@gmail.com%'");
+    }
+
+    if ($version >= 1 && $version < 9) {
+        // v9: one sponsored innovator = UGX 150,000 (fees, park experience and sports attire), about $40.
+        $pdo->exec("UPDATE settings SET svalue = '150000' WHERE skey = 'sponsor_child_amount' AND svalue = '120000'");
     }
 
     $defaults = default_settings();
@@ -362,7 +367,8 @@ function default_settings(): array
         'jersey_fee'             => '20000',
         'park_fee'               => '20000',
         'park_name'              => 'Aruu Falls',
-        'sponsor_child_amount'   => '120000',
+        'sponsor_child_amount'   => '150000',
+        'usd_rate'               => '3750',
         'camp_capacity'          => '300',
         'notify_emails'          => env('MAIL_NOTIFY', 'info@kakebetechcamp.com'),
         'notify_registration_cc' => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',

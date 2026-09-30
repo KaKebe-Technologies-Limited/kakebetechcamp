@@ -537,3 +537,24 @@
 .gate-row input { flex: 1; min-width: 0; }
 .gate-row .btn { flex-shrink: 0; padding: 0 22px; border-radius: 12px; font-size: 15px; }
 .gate-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+
+/* ---------- Sponsor section: price highlight + donors list ---------- */
+.sponsor-price { display: inline-flex; flex-direction: column; gap: 2px; margin: 4px 0 2px; padding: 14px 22px; border-radius: 18px; background: var(--navy); color: #fff; }
+.sponsor-price b { font-size: 28px; font-weight: 800; line-height: 1.15; }
+.sponsor-price b small { font-size: 15px; font-weight: 600; opacity: .85; margin-left: 6px; }
+.sponsor-price span { font-size: 14px; opacity: .85; }
+.sponsor-abroad { margin: -2px 0 14px; }
+.donor-wall { margin-top: 26px; padding: 22px 24px; border-radius: 24px; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.dw-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 8px; }
+.dw-head h3 { font-size: 19px; font-weight: 800; }
+.dw-head span { font-size: 13px; font-weight: 700; color: var(--muted); }
+.dw-list { list-style: none; margin: 0; padding: 0; }
+.dw-list li { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); }
+.dw-list li:first-child { border-top: 0; }
+.dw-rank { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: var(--soft); color: var(--ink); font-size: 13px; font-weight: 800; }
+.dw-list li:nth-child(-n+3) .dw-rank { background: var(--red); color: #fff; }
+.dw-name { flex: 1; min-width: 0; line-height: 1.3; }
+.dw-name b { display: block; color: var(--ink); overflow-wrap: anywhere; }
+.dw-name small { color: var(--muted); font-size: 12.5px; }
+.dw-amt { font-weight: 800; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dw-more, .dw-empty { margin: 10px 0 0; font-size: 14px; color: var(--muted); }

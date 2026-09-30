@@ -806,56 +806,84 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 </section>
 
 <!-- ============ SPONSOR AN INNOVATOR ============ -->
+<?php $wall = donor_wall(10); ?>
 <section class="section sponsor" id="sponsor">
   <div class="container sponsor-grid">
     <div class="sponsor-info reveal">
-      <h2 class="title">Give a young innovator <span class="hl">a seat at camp</span></h2>
-      <p class="lead">Many talented young people in Northern Uganda can't afford the camp. <?= e(format_ugx($f['sponsor_child'])) ?> covers one participant's full package — camp fee, accommodation, meals, training and sports jersey.</p>
+      <h2 class="title">Sponsor an innovator. <span class="hl">Change a future.</span></h2>
+      <p class="lead">Across Northern Uganda there are creative, determined young people with big ideas — and no way to pay for a place at camp. Your gift puts one of them in the room: learning, building, and going home with the skills and confidence to become a change maker in their community.</p>
+      <div class="sponsor-price">
+        <b><?= e(format_ugx($f['sponsor_child'])) ?> <small>about $<?= approx_usd($f['sponsor_child']) ?></small></b>
+        <span>sponsors one innovator's full camp package</span>
+      </div>
       <ul class="sponsor-impact">
-        <li><div><b>10 days of hands-on learning</b><p>AI, software, content, entrepreneurship, gaming, robotics.</p></div></li>
-        <li><div><b>Mentorship &amp; internship</b><p>Two months of guidance from industry professionals.</p></div></li>
-        <li><div><b>Instant PDF receipt</b><p>Transparent receipt emailed as soon as you give.</p></div></li>
+        <li><div><b>Camp fees</b><p>Training, accommodation and meals for the whole camp in Kitgum.</p></div></li>
+        <li><div><b>Park experience</b><p>The <?= e($f['park_name']) ?> excursion with fellow campers.</p></div></li>
+        <li><div><b>Sports attire</b><p>Camp sportswear for games and team activities.</p></div></li>
+        <li><div><b>Skills and mentorship</b><p>Hands-on learning in AI, software, content creation, entrepreneurship, gaming and robotics — then two months of mentorship and internship.</p></div></li>
       </ul>
-      <figure class="sponsor-photo"><img src="assets/img/graduation-sm.jpg" alt="Kakebe Tech Camp graduates celebrating" loading="lazy" decoding="async" width="720" height="408"></figure>
+      <figure class="sponsor-photo"><img src="assets/img/camp-visit.jpg" alt="Kakebe Tech Camp participants in red camp shirts during a camp visit" loading="lazy" decoding="async" width="1000" height="563"></figure>
+
+      <div class="donor-wall">
+        <div class="dw-head">
+          <h3>Thank you to our donors</h3>
+          <?php if ($wall['count']): ?><span><?= $wall['count'] ?> donor<?= $wall['count'] === 1 ? '' : 's' ?> · <?= e(format_ugx($wall['total'])) ?> given</span><?php endif; ?>
+        </div>
+        <?php if ($wall['donors']): ?>
+        <ol class="dw-list">
+          <?php foreach ($wall['donors'] as $i => $d): ?>
+          <li>
+            <span class="dw-rank"><?= $i + 1 ?></span>
+            <span class="dw-name"><b><?= e($d['name']) ?></b><?php if ($d['organization']): ?><small><?= e($d['organization']) ?></small><?php endif; ?></span>
+            <span class="dw-amt"><?= e(format_ugx($d['amount'])) ?></span>
+          </li>
+          <?php endforeach; ?>
+        </ol>
+        <?php if ($wall['count'] > count($wall['donors'])): ?><p class="dw-more">and <?= $wall['count'] - count($wall['donors']) ?> more generous donor<?= $wall['count'] - count($wall['donors']) === 1 ? '' : 's' ?></p><?php endif; ?>
+        <?php else: ?>
+        <p class="dw-empty">Be the first to sponsor an innovator — your name will appear here.</p>
+        <?php endif; ?>
+      </div>
     </div>
 
     <div class="sponsor-card reveal">
-      <form class="js-pay-form js-sponsor" action="api/donate.php" data-status="api/payment-status.php" data-kind="donation" data-per-child="<?= $f['sponsor_child'] ?>" novalidate>
+      <form class="js-pay-form js-sponsor" action="api/donate.php" data-status="api/payment-status.php" data-kind="donation" data-per-child="<?= $f['sponsor_child'] ?>" data-usd-rate="<?= max(1, (int) setting('usd_rate', 3750)) ?>" novalidate>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
         <div class="pay-body">
-          <h3>Support Kakebe Tech Camp</h3>
-          <p class="muted">Sponsor one or more young innovators, or give any amount.</p>
+          <h3>Sponsor an innovator</h3>
+          <p class="muted">Give from anywhere in the world — sponsor one or more innovators, or give any amount.</p>
           <div class="form-grid">
-            <div class="field">
+            <div class="field full">
               <label for="s_children">I'd like to sponsor</label>
               <select id="s_children" name="children">
-                <?php foreach ([1, 2, 3, 5, 10] as $k): ?><option value="<?= $k ?>"><?= $k ?> innovator<?= $k > 1 ? 's' : '' ?> — <?= e(format_ugx($k * $f['sponsor_child'])) ?></option><?php endforeach; ?>
+                <?php foreach ([1, 2, 3, 5, 10] as $k): ?><option value="<?= $k ?>"><?= $k ?> innovator<?= $k > 1 ? 's' : '' ?> — <?= e(format_ugx($k * $f['sponsor_child'])) ?> (about $<?= number_format(approx_usd($k * $f['sponsor_child'])) ?>)</option><?php endforeach; ?>
                 <option value="0">A custom amount</option>
               </select>
             </div>
-            <div class="field js-custom-amount" hidden>
+            <div class="field full js-custom-amount" hidden>
               <label for="s_amount">Amount (UGX)</label>
               <input id="s_amount" name="amount" type="text" inputmode="numeric" value="<?= number_format($f['sponsor_child']) ?>">
               <span class="err" data-err="amount"></span>
             </div>
-            <div class="field"><label for="s_name">Your name <span class="req">*</span></label><input id="s_name" name="donor_name" type="text" maxlength="150" required><span class="err" data-err="donor_name"></span></div>
-            <div class="field"><label for="s_org">Organisation <span class="opt">(optional)</span></label><input id="s_org" name="organization" type="text" maxlength="150"></div>
-            <div class="field"><label for="s_email">Email <span class="req">*</span></label><input id="s_email" name="donor_email" type="email" maxlength="190" required><span class="err" data-err="donor_email"></span></div>
-            <div class="field"><label for="s_phone">Phone <span class="req">*</span></label><input id="s_phone" name="donor_phone" type="tel" maxlength="40" required><span class="err" data-err="donor_phone"></span></div>
+            <div class="field"><label for="s_name">Your name <span class="req">*</span></label><input id="s_name" name="donor_name" type="text" maxlength="150" autocomplete="name" required><span class="err" data-err="donor_name"></span></div>
+            <div class="field"><label for="s_org">Organisation <span class="opt">(optional)</span></label><input id="s_org" name="organization" type="text" maxlength="150" autocomplete="organization"></div>
+            <div class="field"><label for="s_email">Email <span class="req">*</span></label><input id="s_email" name="donor_email" type="email" maxlength="190" autocomplete="email" required><span class="err" data-err="donor_email"></span></div>
+            <div class="field"><label for="s_phone">Phone <span class="opt">(optional)</span></label><input id="s_phone" name="donor_phone" type="tel" maxlength="40" autocomplete="tel"><span class="err" data-err="donor_phone"></span></div>
             <div class="field full"><label for="s_msg">Message <span class="opt">(optional)</span></label><textarea id="s_msg" name="message" rows="2" maxlength="1000" placeholder="A note of encouragement for the campers…"></textarea></div>
           </div>
-          <label class="check"><input type="checkbox" name="anonymous" value="1"><span>Keep my sponsorship anonymous</span></label>
+          <label class="check"><input type="checkbox" name="anonymous" value="1"><span>Keep my gift anonymous — don't show my name on the donors list</span></label>
           <label class="lbl">Payment method</label>
           <div class="methods">
-            <label class="method"><input type="radio" name="method" value="mobile_money" checked><span><i class="fa-solid fa-mobile-screen-button"></i><b>Mobile Money</b><small>MTN · Airtel</small></span></label>
+            <label class="method"><input type="radio" name="method" value="mobile_money" checked><span><i class="fa-solid fa-mobile-screen-button"></i><b>Mobile Money</b><small>MTN · Airtel (Uganda)</small></span></label>
             <label class="method"><input type="radio" name="method" value="card"><span><i class="fa-regular fa-credit-card"></i><b>Card</b><small>Visa · Mastercard</small></span></label>
           </div>
+          <p class="hint sponsor-abroad">Giving from outside Uganda? Choose <b>Card</b>.</p>
           <div class="field js-mm"><label for="s_payphone">Mobile Money number</label><input id="s_payphone" name="pay_phone" type="tel" value="" placeholder="e.g. 0772 123 456"><span class="err" data-err="pay_phone"></span></div>
-          <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to ioTec's secure card page.</p>
+          <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to a secure card page to complete your gift.</p>
           <div class="form-alert" hidden></div>
           <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label">Give <span class="js-amt"><?= e(format_ugx($f['sponsor_child'])) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
-          <p class="secure"><i class="fa-solid fa-shield-halved"></i> Secure payments by ioTec Pay</p>
+          <p class="secure">About <span class="js-usd">$<?= approx_usd($f['sponsor_child']) ?></span> · your receipt is emailed straight away</p>
         </div>
         <div class="pay-state" hidden></div>
       </form>
