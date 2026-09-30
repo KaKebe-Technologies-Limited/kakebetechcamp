@@ -2,6 +2,19 @@
 require __DIR__ . '/_init.php';
 $admin = require_admin();
 
+/* ---------- Remind one participant (the row button): emails them; the browser opens WhatsApp ---------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remind_one') {
+    require_csrf();
+    $r = find_registration((int) ($_POST['id'] ?? 0));
+    if (!$r || !can_remind($r)) {
+        json_response(['ok' => false, 'message' => 'This participant has nothing left to pay.'], 422);
+    }
+    $sent = send_balance_reminder($r);
+    json_response(['ok' => true, 'emailed' => $sent, 'message' => $sent
+        ? 'Reminder emailed to ' . $r['email'] . '.' . mail_note()
+        : 'The reminder email to ' . $r['email'] . ' could not be sent — check Settings → Email.']);
+}
+
 /* ---------- Bulk actions ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
@@ -25,9 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
             case 'remind':
-                if (balance($r) > 0 && $r['status'] !== 'cancelled') {
-                    [$s, $h] = tpl_balance_reminder($r);
-                    $mailed += send_mail($r['email'], $s, $h, setting('contact_email') ?: null) ? 1 : 0;
+                if (can_remind($r)) {
+                    $mailed += send_balance_reminder($r) ? 1 : 0;
                     $done++;
                 }
                 break;
@@ -105,7 +117,7 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
   <?php if ($list): ?>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><th>Participant</th><th>Reference</th><th>Phone</th><th>District</th><th>Tracks</th><th>Size</th><th>Park</th><th>Funding</th><th>Paid / package</th><th>Balance</th><th>Status</th><th>Registered</th><th></th></tr></thead>
+      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><th>Participant</th><th>Reference</th><th>Phone</th><th>District</th><th>Tracks</th><th>Size</th><th>Park</th><th>Funding</th><th>Paid / package</th><th>Balance</th><th>Status</th><th>Registered</th><th class="row-actions"></th></tr></thead>
       <tbody>
       <?php foreach ($list as $r): ?>
         <tr class="row-link" data-href="view.php?id=<?= (int) $r['id'] ?>">
@@ -122,7 +134,11 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
           <td><?= balance($r) ? '<b class="due">' . number_format(balance($r)) . '</b>' : '<b class="ok-text">0</b>' ?></td>
           <td><?= status_badge($r['status']) ?></td>
           <td class="nowrap muted" title="<?= e($r['created_at']) ?>"><?= e(date('j M, g:i a', strtotime($r['created_at']))) ?></td>
-          <td class="nowrap"><a class="btn btn-light btn-sm" href="view.php?id=<?= (int) $r['id'] ?>"><i class="fa-regular fa-eye"></i> View</a></td>
+          <td class="nowrap row-actions">
+            <?php if (can_remind($r)): ?><button type="button" class="btn btn-sm btn-remind js-remind" data-id="<?= (int) $r['id'] ?>" data-wa="<?= e(participant_whatsapp_reminder_link($r)) ?>" title="Emails a payment reminder and opens WhatsApp with the message ready to send"><i class="fa-solid fa-bell"></i> Remind</button><?php endif; ?>
+            <a class="btn btn-light btn-sm" href="view.php?id=<?= (int) $r['id'] ?>"><i class="fa-regular fa-eye"></i> View</a>
+            <?php if (!empty($r['reminded_at']) && can_remind($r)): ?><small class="block muted reminded-note">Reminded <?= e(time_ago($r['reminded_at'])) ?></small><?php endif; ?>
+          </td>
         </tr>
       <?php endforeach; ?>
       </tbody>

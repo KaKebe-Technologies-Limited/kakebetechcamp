@@ -8,8 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $rows = q("SELECT * FROM registrations WHERE status NOT IN ('cancelled','waitlisted') AND payment_status IN ('unpaid','partial')")->fetchAll();
         $sent = 0;
         foreach ($rows as $r) {
-            [$s, $h] = tpl_balance_reminder($r);
-            $sent += send_mail($r['email'], $s, $h, setting('contact_email') ?: null) ? 1 : 0;
+            $sent += send_balance_reminder($r) ? 1 : 0;
         }
         flash("Balance reminders sent to $sent participant" . ($sent === 1 ? '' : 's') . '.' . mail_note());
     }

@@ -473,3 +473,15 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .ga-strip span small { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .ga-strip span b { font-size: 22px; color: var(--ink); }
 .ga-strip .link { margin-left: auto; }
+
+/* Payment reminder button */
+.btn-remind { background: var(--amber-50); color: var(--amber); border-color: #F9DBAF; }
+.btn-remind:hover { background: #FDEBD0; color: var(--amber); }
+.btn-remind.done { background: var(--green-50); color: var(--green); border-color: #BFE8CF; }
+.btn-remind:disabled { opacity: .7; cursor: progress; }
+.row-actions .btn + .btn { margin-left: 6px; }
+.reminded-note { margin-top: 4px; font-size: 12px; }
+/* Keep the row buttons in view while the wide table scrolls sideways */
+.table th.row-actions, .table td.row-actions { position: sticky; right: 0; background: #fff; box-shadow: -10px 0 14px -10px rgba(16, 25, 53, .18); }
+.table th.row-actions { background: #FAFBFD; }
+.table tbody tr:hover td.row-actions { background: #FAFBFE; }

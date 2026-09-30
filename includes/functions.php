@@ -483,6 +483,32 @@ function whatsapp_welcome_message(array $r): string
     ]);
 }
 
+/** A payment reminder makes sense only while something is owed on an active registration. */
+function can_remind(array $r): bool
+{
+    return balance($r) > 0 && !in_array($r['status'], ['cancelled', 'waitlisted', 'review'], true);
+}
+
+/** The team's WhatsApp payment reminder (Admin → Settings → Email). */
+function whatsapp_reminder_message(array $r): string
+{
+    $tpl = trim((string) setting('wa_reminder_message')) ?: (string) default_settings()['wa_reminder_message'];
+    return strtr($tpl, [
+        '{first_name}' => explode(' ', trim($r['full_name']))[0],
+        '{full_name}'  => trim($r['full_name']),
+        '{reference}'  => $r['reference'],
+        '{total}'      => format_ugx($r['total_amount']),
+        '{balance}'    => format_ugx(balance($r)),
+        '{pay_link}'   => pay_url($r),
+        '{camp_dates}' => camp()['dates'],
+    ]);
+}
+
+function participant_whatsapp_reminder_link(array $r): string
+{
+    return 'https://wa.me/' . intl_digits((string) $r['phone']) . '?text=' . rawurlencode(whatsapp_reminder_message($r));
+}
+
 /** Opens WhatsApp with the participant, the welcome message already typed (the sender just presses send). */
 function participant_whatsapp_link(array $r): string
 {

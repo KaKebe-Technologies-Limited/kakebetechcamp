@@ -93,6 +93,35 @@
     fd.set('id', d.dataset.id);
     fetch('messages.php', { method: 'POST', body: fd, credentials: 'same-origin' }).then(() => d.classList.remove('unread'));
   }));
+  // Payment reminder: emails the participant and opens WhatsApp with the message ready to send
+  $$(".js-remind").forEach((btn) => btn.addEventListener("click", async () => {
+    const label = btn.innerHTML;
+    if (btn.dataset.wa) window.open(btn.dataset.wa, "_blank", "noopener"); // must happen inside the click, or browsers block it
+    btn.disabled = true;
+    btn.innerHTML = "<i class=\"fa-solid fa-spinner fa-spin\"></i> Sending…";
+    try {
+      const fd = new FormData();
+      fd.set("action", "remind_one");
+      fd.set("id", btn.dataset.id);
+      fd.set("csrf", ($("input[name=csrf]") || {}).value || "");
+      const res = await fetch("registrations.php", { method: "POST", body: fd, credentials: "same-origin", headers: { "X-Requested-With": "fetch" } });
+      const json = await res.json();
+      if (json.ok && json.emailed) {
+        btn.innerHTML = "<i class=\"fa-solid fa-check\"></i> Reminded";
+        btn.classList.add("done");
+        btn.title = json.message;
+      } else {
+        btn.innerHTML = label;
+        alert(json.message || "The reminder could not be sent.");
+      }
+    } catch (_) {
+      btn.innerHTML = label;
+      alert("The reminder email was not sent (network or session problem). Refresh the page and try again.");
+    } finally {
+      btn.disabled = false;
+    }
+  }));
+
   // Analytics line chart: crosshair + tooltip (mouse, touch and arrow keys)
   $$(".ga-chart").forEach((chart) => {
     const svg = $("svg", chart);

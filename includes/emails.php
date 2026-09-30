@@ -291,11 +291,33 @@ function tpl_login_code(array $r, string $code): array
 
 function tpl_balance_reminder(array $r): array
 {
-    $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p><p>This is a friendly reminder about your Kakebe Tech Camp 2026 package (' . e($r['reference']) . ').</p>'
-        . kt_detail(['💰 Package total' => format_ugx($r['total_amount']), '✅ Paid so far' => format_ugx($r['amount_paid']), '⏳ Balance' => format_ugx(balance($r)), '📅 Camp' => camp()['dates']])
-        . '<p>Pay the full amount to confirm your place and receive your camp ticket — places are limited to ' . seat_capacity() . '.</p>'
-        . kt_btn('Pay now', pay_url($r));
-    return ['⏰ Reminder: your Kakebe Tech Camp balance is ' . format_ugx(balance($r)), kt_email('Payment Reminder', $inner)];
+    $bal = balance($r);
+    $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p>'
+        . '<p>Thank you for registering for <strong>Kakebe Tech Camp 2026</strong> — we truly appreciate it, and we are excited to have you with us. 🎉</p>'
+        . '<p>We are now preparing for camp — accommodation, meals, jerseys and learning materials — and we plan for every participant whose payment is complete. Kindly complete your payment so that we can include you in the preparations.</p>'
+        . kt_detail([
+            '🆔 Code number' => $r['reference'],
+            '💰 Camp package' => format_ugx($r['total_amount']),
+            '✅ Paid so far' => (int) $r['amount_paid'] > 0 ? format_ugx($r['amount_paid']) : null,
+            '⏳ To pay' => format_ugx($bal),
+            '📅 Camp' => camp()['dates'] . ' · ' . camp()['venue'],
+        ])
+        . '<p><strong>When you are ready to pay, use this link to make your payment:</strong></p>'
+        . kt_btn('Pay ' . format_ugx($bal) . ' now', pay_url($r))
+        . "<p style='text-align:center;font-size:13px;word-break:break-all;margin-top:-12px;'><a href='" . e(pay_url($r)) . "'>" . e(pay_url($r)) . '</a></p>'
+        . '<p>Pay with Mobile Money (MTN / Airtel) or card — it takes about a minute, and your camp ticket is emailed to you straight away. Seats are limited to ' . seat_capacity() . '.</p>'
+        . '<p>If you have already paid or need any help, simply reply to this email or message us on WhatsApp — we are happy to help.</p>'
+        . '<p>Thank you, and see you in Kitgum! 🚀<br><strong>The Kakebe Tech Camp Team</strong></p>';
+    return ['⏰ A friendly reminder — complete your Kakebe Tech Camp payment', kt_email('Payment Reminder', $inner, 'Complete your payment of ' . format_ugx($bal) . ' to be included in camp preparations')];
+}
+
+/** Email the payment reminder and note when the participant was last reminded. */
+function send_balance_reminder(array $r): bool
+{
+    [$subject, $html] = tpl_balance_reminder($r);
+    $sent = send_mail($r['email'], $subject, $html, setting('contact_email') ?: null);
+    db()->prepare('UPDATE registrations SET reminded_at = ? WHERE id = ?')->execute([now(), $r['id']]);
+    return $sent;
 }
 
 function tpl_ticket(array $r): array

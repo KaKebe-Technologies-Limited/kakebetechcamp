@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setting_set('notify_emails', implode(', ', array_unique($emails)));
             setting_set('notify_registration_cc', implode(', ', email_list($str('notify_registration_cc', 1000))));
             setting_set('notify_payment_cc', implode(', ', email_list($str('notify_payment_cc', 1000))));
+            setting_set('wa_reminder_message', mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['wa_reminder_message'] ?? ''))), 0, 2000));
             setting_set('wa_welcome_message', mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['wa_welcome_message'] ?? ''))), 0, 2000));
             setting_set('applicant_confirmation', !empty($_POST['applicant_confirmation']) ? '1' : '0');
             setting_set('mail_transport', in_array($_POST['mail_transport'] ?? '', ['smtp', 'mail', 'log'], true) ? $_POST['mail_transport'] : 'log');
@@ -144,6 +145,7 @@ admin_header('Settings', 'settings');
 <?= e($s['notify_payment_cc']) ?></textarea></label>
     </div>
     <label>WhatsApp welcome message <small class="muted">opens when the team taps a new participant's phone number in the registration email · use {first_name}, {reference}, {camp_dates}, {register_link} · leave empty for the default</small><textarea name="wa_welcome_message" rows="9"><?= e($s['wa_welcome_message']) ?></textarea></label>
+    <label>WhatsApp payment reminder <small class="muted">opens from the Remind button on the Participants page · use {first_name}, {reference}, {balance}, {total}, {pay_link}, {camp_dates} · leave empty for the default</small><textarea name="wa_reminder_message" rows="9"><?= e($s['wa_reminder_message']) ?></textarea></label>
     <label class="switch"><input type="checkbox" name="applicant_confirmation" value="1" <?= $s['applicant_confirmation'] === '1' ? 'checked' : '' ?>><span class="slider"></span> Email applicants a confirmation when they register</label>
     <div class="row-3">
       <label>Transport<select name="mail_transport"><option value="smtp" <?= $s['mail_transport'] === 'smtp' ? 'selected' : '' ?>>SMTP (Gmail)</option><option value="mail" <?= $s['mail_transport'] === 'mail' ? 'selected' : '' ?>>PHP mail()</option><option value="log" <?= $s['mail_transport'] === 'log' ? 'selected' : '' ?>>Log only (don't send)</option></select></label>

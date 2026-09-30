@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 function db(): PDO
 {
@@ -70,6 +70,7 @@ function migrate(PDO $pdo): void
             'sponsor_note'       => 'VARCHAR(255) NULL AFTER sponsor_decided_at',
             'auth_provider'      => "VARCHAR(20) NOT NULL DEFAULT 'email' AFTER password_hash",
             'google_sub'         => 'VARCHAR(64) NULL AFTER auth_provider',
+            'reminded_at'        => 'DATETIME NULL AFTER last_login_at', // v8: last payment reminder
         ];
         foreach ($add as $col => $def) {
             if (!column_exists($pdo, 'registrations', $col)) {
@@ -200,6 +201,7 @@ function schema_statements(): array
             ip             VARCHAR(45) NULL,
             user_agent     VARCHAR(255) NULL,
             last_login_at  DATETIME NULL,
+            reminded_at    DATETIME NULL,
             created_at     DATETIME NOT NULL,
             updated_at     DATETIME NULL,
             KEY idx_status (status),
@@ -365,6 +367,21 @@ function default_settings(): array
         'notify_emails'          => env('MAIL_NOTIFY', 'info@kakebetechcamp.com'),
         'notify_registration_cc' => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',
         'notify_payment_cc'      => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',
+        'wa_reminder_message'    => 'Hello {first_name} 👋
+
+Thank you for registering for Kakebe Tech Camp 2026 — we truly appreciate it and we are excited to have you with us! 🎉
+
+We are now preparing for camp (accommodation, meals, jerseys and learning materials) and we plan for every participant whose payment is complete. Kindly complete your payment of *{balance}* so that we can include you in the preparations.
+
+When you are ready to pay, use this link to make your payment (Mobile Money or card — it takes about a minute):
+{pay_link}
+
+Your code number: *{reference}*
+Camp dates: {camp_dates}, Kitgum.
+
+If you have already paid or need any help, just reply to this message. Thank you, and see you at camp! 🚀
+
+Kakebe Tech Camp Team',
         'ga_measurement_id'      => 'G-H4TEE2S6RG',
         'wa_welcome_message'     => 'Hello {first_name} 👋
 
