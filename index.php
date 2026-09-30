@@ -714,6 +714,10 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
             <select id="f_jersey" name="jersey_size" required><option value="">Select…</option><?php foreach (jersey_sizes() as $s): ?><option><?= $s ?></option><?php endforeach; ?></select>
             <span class="err" data-err="jersey_size"></span>
           </div>
+          <div class="field full">
+            <label for="f_ref" class="lbl-row">Who recommended you? <small>optional</small></label>
+            <input id="f_ref" name="referred_by" type="text" maxlength="150" autocomplete="off" placeholder="Name of the person who told you about the camp">
+          </div>
         </div>
 
         <div class="field full">
