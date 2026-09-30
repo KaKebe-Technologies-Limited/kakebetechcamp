@@ -141,7 +141,7 @@ function tpl_applicant_received(array $r): array
             . kt_btn('Pay now or view my registration', pay_url($r));
     }
 
-    $inner .= ($r['mentorship'] ? kt_detail(['🎁 Bonus' => 'You are automatically enrolled — free — in the Kakebe Mentorship Program and Digital Bridge Internship (' . camp()['mentorship'] . ') with experienced industry professionals. Online sessions run every Monday, 8:00 – 9:30 PM.'], 'green') : '')
+    $inner .= ($r['mentorship'] ? kt_detail(['🎁 Bonus' => 'You are automatically enrolled — free — in the Kakebe Mentorship Program and Digital Bridge Internship (' . camp()['mentorship'] . ') with experienced industry professionals. Online sessions run every Monday, 8:00 – 9:30 PM, with in-person sessions in Lira, Gulu and Kitgum.'], 'green') : '')
         . '<p><strong>Your participant dashboard</strong><br>Create a password to log in any time, update your profile and photo, see your tracks and download your ticket.</p>'
         . kt_btn('Create my password', $setup, 'navy')
         . '<p style="font-size:13px;color:#6B7390;">This link is valid for 7 days. You can always request a new one from the login page.</p>'

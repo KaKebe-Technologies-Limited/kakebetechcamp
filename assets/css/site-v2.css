@@ -558,3 +558,5 @@
 .dw-name small { color: var(--muted); font-size: 12.5px; }
 .dw-amt { font-weight: 800; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dw-more, .dw-empty { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.programs-alt { margin: 16px 0 0; font-size: 14px; color: var(--muted); }
+.programs-alt a { color: var(--red); font-weight: 700; }

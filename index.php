@@ -63,28 +63,28 @@ $img = fn(string $name) => 'assets/img/' . $name;
 $details = [
     'mentorship' => [
         'title'  => 'Mentorship Program',
-        'badge'  => 'Free with Tech Camp',
+        'badge'  => 'Before camp · open to all',
         'image'  => $img('mentors.jpg'),
         'icon'   => 'fa-people-arrows',
-        'desc'   => 'The Mentorship Program is the foundation of the ecosystem. It connects young people with experienced industry professionals across business, technology, content creation, and personal development. Everyone who registers for Kakebe Tech Camp 2026 is automatically enrolled — completely free.',
+        'desc'   => 'The Mentorship Program is the foundation of the ecosystem. It connects young people with experienced industry professionals across business, technology, content creation, and personal development. It runs before the camp — online and in person in Lira, Gulu and Kitgum — and is open to all. Everyone who registers for Kakebe Tech Camp 2026 is enrolled automatically, free.',
         'facts'  => [
             ['fa-calendar-days', 'When', 'October – November 2026 · online every Monday, 8:00 – 9:30 PM (from 5th October)'],
-            ['fa-location-dot', 'Physical sessions', 'Lira, Kitgum and Kampala'],
-            ['fa-tag', 'Cost', 'Free for Tech Camp participants'],
+            ['fa-location-dot', 'Where', 'Online, and in person in Lira, Gulu and Kitgum'],
+            ['fa-users', 'Who', 'Open to all · Tech Camp participants are enrolled free'],
         ],
         'output' => 'Participants mentored in entrepreneurship, digital marketing, IT, AI, and personal branding — gaining skills, confidence, and a clear pathway to the next stage of the ecosystem.',
         'expect' => ['Weekly guidance from industry experts', 'Practical skills development', 'One-on-one mentorship', 'A supportive community of young people who share your ambition'],
     ],
     'internship' => [
         'title'  => 'Digital Bridge Internship Program',
-        'badge'  => 'Free with Tech Camp',
+        'badge'  => 'Before camp · open to all',
         'image'  => $img('team-red.jpg'),
         'icon'   => 'fa-briefcase',
-        'desc'   => 'The Digital Bridge Internship Program (DBIP) provides hands-on experience by connecting participants with companies, businesses, creators, and entrepreneurs. Interns work on real projects, build their portfolios, and expand their professional networks. Tech Camp participants join free.',
+        'desc'   => 'The Digital Bridge Internship Program (DBIP) provides hands-on experience by connecting participants with companies, businesses, creators, and entrepreneurs. Interns work on real projects, build their portfolios, and expand their professional networks. It runs before the camp — online and in person in Lira, Gulu and Kitgum — and is open to all. Tech Camp participants join free.',
         'facts'  => [
             ['fa-calendar-days', 'When', 'October – November 2026'],
-            ['fa-user-tie', 'Guided by', 'Experienced industry professionals'],
-            ['fa-tag', 'Cost', 'Free for Tech Camp participants'],
+            ['fa-location-dot', 'Where', 'Online, and in person in Lira, Gulu and Kitgum'],
+            ['fa-users', 'Who', 'Open to all · Tech Camp participants join free'],
         ],
         'output' => 'Interns placed with companies, businesses, and creators, gaining practical experience in software development, business, content creation, and digital marketing.',
         'expect' => ['Virtual and physical work with real organisations', 'Mentorship from industry professionals', 'Networking opportunities', 'A pathway to employment or entrepreneurship'],
@@ -146,6 +146,7 @@ $faqs = [
     ['What does it cost to attend?', 'The camp package is ' . format_ugx($base) . ' — the camp fee (' . format_ugx($f['camp']) . ') covering training, accommodation and meals, plus the sports jersey every participant receives (' . format_ugx($f['jersey']) . '). The camp shirt is free and the ' . $f['park_name'] . ' excursion is optional (' . format_ugx($f['park']) . '). Pay the full package in one payment — right after registering or later from your dashboard — and your camp ticket is emailed as soon as it is paid.'],
     ['I have registered. How do I check my registration?', 'Click "My registration" at the top of the website and enter the email and phone number you registered with, or log in to the participant portal. There you can view your details, complete any payment (Mobile Money or card) and download receipts and your ticket.'],
     ['What do I get with my registration?', 'Ten days of residential training in Kitgum (accommodation and meals included), camp materials, a free camp shirt, your sports jersey, hackathons, Demo Day, a certificate — plus free enrolment in the Mentorship Program and Digital Bridge Internship (October – November 2026).'],
+    ['Can I join the mentorship or internship without coming to camp?', 'Yes. The Mentorship Program and the Digital Bridge Internship run before the camp (October – November 2026), online and in person in Lira, Gulu and Kitgum, and they are open to all. Camp participants are enrolled automatically. If you are not coming to camp, message us on WhatsApp (' . $phone . ') and we will add you to the sessions.'],
     ['When will I get my camp ticket?', 'Once your package is fully paid, your camp ticket (with your photo and a QR code) is available in your email and portal. Upload a clear photo when registering or from your portal.'],
     ['Can I sponsor a young person?', 'Yes! Use the "Sponsor an innovator" section to cover a participant\'s package (' . format_ugx($f['sponsor_child']) . ' per innovator) or give any amount. You receive a PDF receipt by email.'],
 ];
@@ -383,20 +384,22 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container programs-grid">
     <div class="programs-intro reveal">
       <h2 class="title">One sign-up.<br>A whole <span class="hl">journey.</span></h2>
-      <p>Register for Kakebe Tech Camp 2026 and you are automatically enrolled — free — in the Mentorship Program and the Digital Bridge Internship from October to November, guided by experienced industry professionals.</p>
+      <p>Kakebe Tech Camp in December is the main event. The journey starts earlier: from October to November the Mentorship Program and the Digital Bridge Internship run online and in person in Lira, Gulu and Kitgum — open to all, and included free when you register for the camp.</p>
       <ul class="mini-list">
-        <li><span>Mentorship &amp; internship <b>free with the camp</b></span></li>
-        <li><span>Hands-on learning with <b>industry experts</b></span></li>
+        <li><span><b>The camp:</b> ten residential days in Kitgum, <?= e($c['dates_short']) ?></span></li>
+        <li><span><b>Before camp:</b> mentorship &amp; internship, online and in Lira, Gulu and Kitgum</span></li>
+        <li><span><b>Open to all</b> — camp participants are enrolled automatically</span></li>
       </ul>
       <a href="#register" class="btn btn-primary">Start Your Journey <i class="fa-solid fa-arrow-right"></i></a>
+      <p class="programs-alt">Only want the mentorship or internship? <a href="<?= e(whatsapp_link('Hello, I would like to join the Mentorship / Digital Bridge Internship sessions before Kakebe Tech Camp 2026.')) ?>" target="_blank" rel="noopener">Message us on WhatsApp</a>.</p>
     </div>
     <div class="eco-grid" role="list">
       <?php
       $eco = [
-          ['mentorship', '01', 'Free', 'Oct – Nov 2026', 'Weekly guidance and one-on-one mentorship from experienced industry professionals.'],
-          ['internship', '02', 'Free', 'Oct – Nov 2026', 'Hands-on work on real projects with companies, businesses and creators.'],
-          ['trees', '03', '1 Day', 'Date to be announced', 'All teams plant 1,000+ seedlings for greener, healthier communities.'],
-          ['techcamp', '04', 'Flagship', $c['dates_short'], 'Ten residential days in Kitgum: learn, build, innovate and present at Demo Day.'],
+          ['techcamp', '01', 'Main event', $c['dates_short'], 'Ten residential days in Kitgum: learn, build, innovate and present at Demo Day.'],
+          ['mentorship', '02', 'Before camp', 'Oct – Nov 2026 · open to all', 'Weekly guidance from industry professionals — online and in person in Lira, Gulu and Kitgum.'],
+          ['internship', '03', 'Before camp', 'Oct – Nov 2026 · open to all', 'Real projects with companies, businesses and creators — online and in person.'],
+          ['trees', '04', '1 Day', 'Date to be announced', 'All teams plant 1,000+ seedlings for greener, healthier communities.'],
       ];
       foreach ($eco as [$key, $num, $badge, $when, $blurb]): $d = $details[$key]; ?>
       <button type="button" class="eco-card reveal<?= $key === 'techcamp' ? ' featured' : '' ?>" data-program="<?= e($key) ?>" role="listitem" aria-label="View details: <?= e($d['title']) ?>">
@@ -419,7 +422,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
     <div class="about-copy reveal">
       <h2>About Kakebe Tech Camp 2026</h2>
       <p>From <?= e($c['dates']) ?>, Kakebe Tech Camp brings 300 young people aged 14 to 30 from across Uganda to Kitgum for ten days of living, learning and building together. Each camper follows two of six learning tracks — AI and software development, content creation, entrepreneurship, video gaming, robotics and digital marketing — taught in small groups by people who practise these skills every day. Mornings are hands-on workshops; afternoons turn into studio time where ideas become prototypes, videos, games and business plans.</p>
-      <p>As the days go on, campers form teams around real problems in their communities, test their solutions through hackathons and expert feedback, and close the camp by presenting their work at Demo Day before judges, partners and guests. Between sessions there is sport, networking and an optional visit to Aruu Falls. Every camper is also enrolled in the free Mentorship Program and Digital Bridge Internship from October to November, so they arrive prepared and leave with skills, a certificate and a network that lasts well beyond December.</p>
+      <p>As the days go on, campers form teams around real problems in their communities, test their solutions through hackathons and expert feedback, and close the camp by presenting their work at Demo Day before judges, partners and guests. Between sessions there is sport, networking and an optional visit to Aruu Falls. Every camper is also enrolled in the free Mentorship Program and Digital Bridge Internship, which run before the camp from October to November — online and in person in Lira, Gulu and Kitgum — so they arrive prepared and leave with skills, a certificate and a network that lasts well beyond December.</p>
       <a href="#register" class="btn btn-white">Register for the camp <i class="fa-solid fa-arrow-right"></i></a>
     </div>
   </div>
@@ -499,27 +502,27 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container">
     <div class="section-head center reveal">
       <h2 class="title">Your roadmap from <span class="hl">October to December</span></h2>
-      <p>Mentorship and the Digital Bridge Internship run from October to November, leading up to the Tech Camp in Kitgum from <?= e($c['dates']) ?>.</p>
+      <p>Before the camp, the Mentorship Program and the Digital Bridge Internship run from October to November — online and in person in Lira, Gulu and Kitgum, open to all — leading up to the Tech Camp in Kitgum from <?= e($c['dates']) ?>.</p>
     </div>
     <div class="sessions">
       <div class="session-card online reveal">
-        <span class="s-tag">Online · Free</span>
+        <span class="s-tag">Online · Open to all</span>
         <h3>Weekly mentorship sessions</h3>
         <div class="s-time"><b>Every Monday</b><span>8:00 – 9:30 PM</span></div>
-        <p>From <b>5th October</b> to the end of November 2026, with experienced industry professionals. Included free for every Tech Camp participant.</p>
+        <p>From <b>5th October</b> to the end of November 2026, with experienced industry professionals. Open to all, and included free for every Tech Camp participant.</p>
         <a href="#register" class="btn btn-light btn-sm">Register to join <i class="fa-solid fa-arrow-right"></i></a>
       </div>
-      <?php foreach ([['Lira', '2 weeks', 'in October and November'], ['Kitgum', 'Last week', 'of October and November'], ['Kampala', '4 sessions', 'in October']] as [$city, $when, $rest]): ?>
+      <?php foreach ([['Lira', '2 weeks', 'in October and November'], ['Gulu', 'October – November', '· dates to be announced'], ['Kitgum', 'Last week', 'of October and November']] as [$city, $when, $rest]): ?>
       <div class="session-card city reveal">
         <span class="s-city"><?= $city ?></span>
-        <h3>Physical sessions</h3>
+        <h3>In-person sessions</h3>
         <p><b><?= $when ?></b> <?= $rest ?></p>
       </div>
       <?php endforeach; ?>
     </div>
     <ol class="timeline">
-      <li class="tl-item reveal"><span class="tl-dot">1</span><div class="tl-card"><small>5th October 2026</small><h4>Mentorship kicks off</h4><p>Online sessions every Monday, 8:00 – 9:30 PM, plus physical sessions in Lira, Kitgum and Kampala.</p></div></li>
-      <li class="tl-item reveal"><span class="tl-dot">2</span><div class="tl-card"><small>October – November 2026</small><h4>Digital Bridge Internship</h4><p>Participants work on real projects with companies, businesses and creators.</p></div></li>
+      <li class="tl-item reveal"><span class="tl-dot">1</span><div class="tl-card"><small>5th October 2026</small><h4>Mentorship kicks off</h4><p>Online sessions every Monday, 8:00 – 9:30 PM, plus in-person sessions in Lira, Gulu and Kitgum. Open to all.</p></div></li>
+      <li class="tl-item reveal"><span class="tl-dot">2</span><div class="tl-card"><small>October – November 2026</small><h4>Digital Bridge Internship</h4><p>Participants work on real projects with companies, businesses and creators — online and in person in Lira, Gulu and Kitgum.</p></div></li>
       <li class="tl-item reveal"><span class="tl-dot">3</span><div class="tl-card"><small>One day · date to be announced</small><h4>Tree planting activity</h4><p>All teams come together to plant 1,000+ seedlings and promote environmental awareness.</p></div></li>
       <li class="tl-item reveal featured"><span class="tl-dot">4</span><div class="tl-card"><small><?= e($c['dates']) ?></small><h4>Kakebe Tech Camp · Kitgum</h4><p>10 days of hands-on training, hackathons, networking and expert sessions — residential.</p></div></li>
       <li class="tl-item reveal"><span class="tl-dot">5</span><div class="tl-card"><small>Camp finale</small><h4>Demo Day &amp; certificates</h4><p>Participants present their market-ready innovations and celebrate their achievements.</p></div></li>
