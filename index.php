@@ -811,7 +811,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container sponsor-grid">
     <div class="sponsor-info reveal">
       <h2 class="title">Sponsor an innovator. <span class="hl">Change a future.</span></h2>
-      <p class="lead">Across Northern Uganda there are creative, determined young people with big ideas — and no way to pay for a place at camp. Your gift puts one of them in the room: learning, building, and going home with the skills and confidence to become a change maker in their community.</p>
+      <p class="lead">Across Uganda there are creative, determined young people with big ideas — and no way to pay for a place at camp. Your gift puts one of them in the room: learning, building, connnecting and going home with the skills and confidence to become a change maker in their community in tech, business, creative industry and impact.</p>
       <div class="sponsor-price">
         <b><?= e(format_ugx($f['sponsor_child'])) ?> <small>about $<?= approx_usd($f['sponsor_child']) ?></small></b>
         <span>sponsors one innovator's full camp package</span>
