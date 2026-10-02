@@ -110,6 +110,27 @@ function iotec_error_text(array $data, int $code): string
  * Payment records
  * ------------------------------------------------------------------ */
 
+/** "Visa •••• 1111 · Pesapal", "ioTec", "Recorded by admin" — the detail line under the payment method. */
+function payment_channel_detail(array $p): string
+{
+    $parts = [];
+    if (preg_match('/·\s*(.+)$/u', (string) ($p['provider_status'] ?? ''), $m)) {
+        $parts[] = trim($m[1]);                         // card type / wallet, e.g. Visa
+    }
+    $account = preg_replace('/\s+/', '', (string) ($p['payer_account'] ?? ''));
+    if ($account !== '') {
+        $parts[] = preg_match('/(\d{4})$/', $account, $m) ? '•••• ' . $m[1] : $account;
+    }
+    $parts[] = ['pesapal' => 'Pesapal', 'iotec' => 'ioTec', 'manual' => 'Recorded by admin'][$p['provider'] ?? ''] ?? (string) ($p['provider'] ?? '');
+    return implode(' · ', array_filter($parts));
+}
+
+/** The provider's reference for a payment: confirmation code, else its transaction id, else the admin's note. */
+function payment_reference(array $p): string
+{
+    return (string) ($p['provider_ref'] ?? '') ?: ((string) $p['provider_txn_id'] ?: ((string) $p['notes'] ?: '—'));
+}
+
 function payment_find(int $id): ?array
 {
     $stmt = db()->prepare('SELECT * FROM payments WHERE id = ?');

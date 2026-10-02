@@ -122,7 +122,7 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
       <?php foreach ($recentPay as $p): ?>
       <li>
         <span class="feed-icon <?= $p['purpose'] === 'camp' ? 'red' : 'purple' ?>"><i class="fa-solid <?= $p['purpose'] === 'camp' ? 'fa-ticket' : 'fa-heart' ?>"></i></span>
-        <div><b><?= e($p['full_name'] ?? $p['donor_name'] ?? $p['payer_name']) ?></b><small><?= e(payment_methods()[$p['method']] ?? $p['method']) ?> · <?= e(time_ago($p['completed_at'] ?? $p['created_at'])) ?><?= $p['reference'] ? ' · ' . e($p['reference']) : '' ?></small></div>
+        <div><b><?= e($p['full_name'] ?? $p['donor_name'] ?? $p['payer_name']) ?></b><small><?= e(payment_methods()[$p['method']] ?? $p['method']) ?> · <?= e(payment_channel_detail($p)) ?> · <?= e(time_ago($p['completed_at'] ?? $p['created_at'])) ?><?= $p['reference'] ? ' · ' . e($p['reference']) : '' ?></small></div>
         <strong><?= e(format_ugx($p['amount'], $p['currency'])) ?></strong>
       </li>
       <?php endforeach; ?>

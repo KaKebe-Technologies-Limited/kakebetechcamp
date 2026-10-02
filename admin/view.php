@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'recheck':
             $p = sync_payment((int) ($_POST['payment_id'] ?? 0), true);
-            flash($p ? 'Payment ' . receipt_no($p) . ' is ' . $p['status'] . ($p['provider_status'] ? ' (ioTec: ' . $p['provider_status'] . ')' : '') . '.' : 'Payment not found.', $p ? 'success' : 'error');
+            flash($p ? 'Payment ' . receipt_no($p) . ' is ' . $p['status'] . ($p['provider_status'] ? ' (' . ($p['provider'] === 'pesapal' ? 'Pesapal' : 'ioTec') . ': ' . $p['provider_status'] . ')' : '') . '.' : 'Payment not found.', $p ? 'success' : 'error');
             break;
 
         case 'resend_receipt':
@@ -213,9 +213,9 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
               <td><b><?= e(receipt_no($p)) ?></b></td>
               <td class="nowrap muted"><?= e(date('j M Y, g:i a', strtotime($p['completed_at'] ?: $p['created_at']))) ?></td>
               <td><?= money_cell((int) $p['amount'], $p['currency']) ?></td>
-              <td><?= e(payment_methods()[$p['method']] ?? $p['method']) ?><small class="block muted"><?= $p['provider'] === 'manual' ? 'Recorded by ' . e($p['admin_name'] ?? 'admin') : 'ioTec' ?></small></td>
+              <td><?= e(payment_methods()[$p['method']] ?? $p['method']) ?><small class="block muted"><?= $p['provider'] === 'manual' ? 'Recorded by ' . e($p['admin_name'] ?? 'admin') : e(payment_channel_detail($p)) ?></small></td>
               <td><?= txn_badge($p['status']) ?><?php if ($p['message'] && $p['status'] !== 'success'): ?><small class="block muted"><?= e(mb_strimwidth($p['message'], 0, 60, '…')) ?></small><?php endif; ?></td>
-              <td class="small muted"><?= e(mb_strimwidth((string) ($p['provider_txn_id'] ?: $p['notes'] ?: '—'), 0, 30, '…')) ?></td>
+              <td class="small muted" title="<?= e(payment_reference($p)) ?>"><?= e(mb_strimwidth(payment_reference($p), 0, 30, '…')) ?></td>
               <td class="nowrap actions">
                 <?php if ($p['status'] === 'success'): ?>
                   <a class="icon-btn" href="../receipt.php?id=<?= (int) $p['id'] ?>" target="_blank" title="Open PDF receipt"><i class="fa-solid fa-file-pdf"></i></a>

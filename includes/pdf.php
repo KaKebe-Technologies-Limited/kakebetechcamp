@@ -250,10 +250,9 @@ function receipt_pdf(array $p): string
     $pdf->fill($gray);
     $pdf->textRight(540, 270, 'PAYMENT METHOD', 8.5, true);
     $pdf->fill($ink);
-    $pdf->textRight(540, 288, payment_methods()[$p['method']] ?? ucfirst($p['method']), 11, true);
+    $pdf->textRight(540, 288, (payment_methods()[$p['method']] ?? ucfirst($p['method'])) . (preg_match('/·\s*(.+)$/u', (string) $p['provider_status'], $cm) ? ' (' . trim($cm[1]) . ')' : ''), 11, true);
     $pdf->fill($gray);
-    $txn = $p['provider_txn_id'] ?: ($p['notes'] ?: '—');
-    $pdf->textRight(540, 305, 'Txn: ' . mb_strimwidth((string) $txn, 0, 40, '…'), 8.5);
+    $pdf->textRight(540, 305, 'Ref: ' . mb_strimwidth(payment_reference($p), 0, 40, '…'), 8.5);
 
     $y = 356;
     if ($r) {

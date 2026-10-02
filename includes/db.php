@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 function db(): PDO
 {
@@ -89,6 +89,14 @@ function migrate(PDO $pdo): void
                     WHERE skey = 'notify_registration_cc' AND svalue <> '' AND svalue NOT LIKE '%derricklamarh@gmail.com%'");
     }
 
+    if ($version >= 1) {
+        // v10: card payments keep Pesapal's confirmation code and the masked card number
+        foreach (['provider_ref' => 'VARCHAR(80) NULL AFTER provider_txn_id', 'payer_account' => 'VARCHAR(80) NULL AFTER provider_ref'] as $col => $def) {
+            if (!column_exists($pdo, 'payments', $col)) {
+                $pdo->exec("ALTER TABLE payments ADD COLUMN `$col` $def");
+            }
+        }
+    }
     if ($version >= 1 && $version < 9) {
         // v9: one sponsored innovator = UGX 150,000 (fees, park experience and sports attire), about $40.
         $pdo->exec("UPDATE settings SET svalue = '150000' WHERE skey = 'sponsor_child_amount' AND svalue = '120000'");
@@ -229,6 +237,8 @@ function schema_statements(): array
             payer_email     VARCHAR(190) NULL,
             external_id     VARCHAR(64) NULL UNIQUE,
             provider_txn_id VARCHAR(64) NULL,
+            provider_ref    VARCHAR(80) NULL,
+            payer_account   VARCHAR(80) NULL,
             status          VARCHAR(20) NOT NULL DEFAULT 'pending',
             provider_status VARCHAR(40) NULL,
             message         VARCHAR(255) NULL,

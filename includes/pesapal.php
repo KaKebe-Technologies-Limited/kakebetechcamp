@@ -29,7 +29,7 @@ function pesapal_configured(): bool
 function card_page_hint(): string
 {
     return pesapal_configured()
-        ? "You'll be taken to Pesapal's secure page to pay by card, then brought back here."
+        ? "You'll go to Pesapal's secure page — tap “Card payments” (Visa · Mastercard) there, then you'll be brought back here."
         : "You'll be taken to a secure card page, then brought back here.";
 }
 
@@ -147,7 +147,12 @@ function pesapal_sync_payment(array $p): void
     $method = trim((string) ($data['payment_method'] ?? ''));
 
     if ($statusCode === 1) {            // COMPLETED
-        db()->prepare('UPDATE payments SET provider_status = ?, message = NULL WHERE id = ?')->execute([$label . ($method ? ' · ' . $method : ''), $p['id']]);
+        db()->prepare('UPDATE payments SET provider_status = ?, provider_ref = ?, payer_account = ?, message = NULL WHERE id = ?')->execute([
+            $label . ($method ? ' · ' . $method : ''),
+            mb_substr(trim((string) ($data['confirmation_code'] ?? '')), 0, 80) ?: null,
+            mb_substr(trim((string) ($data['payment_account'] ?? '')), 0, 80) ?: null,
+            $p['id'],
+        ]);
         finalize_payment((int) $p['id']);
     } elseif ($statusCode === 2 || $statusCode === 3) {   // FAILED / REVERSED
         db()->prepare("UPDATE payments SET status = 'failed', provider_status = ?, message = ? WHERE id = ? AND status = 'pending'")

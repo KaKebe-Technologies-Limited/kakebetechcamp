@@ -79,7 +79,7 @@ admin_header('Payments', 'payments', number_format($total) . ' transactions · '
   <?php if ($list): ?>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>Receipt</th><th>Payer</th><th>For</th><th>Amount</th><th>Method</th><th>Status</th><th>ioTec / ref</th><th>Date</th><th></th></tr></thead>
+      <thead><tr><th>Receipt</th><th>Payer</th><th>For</th><th>Amount</th><th>Method</th><th>Status</th><th>Reference</th><th>Date</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($list as $p): ?>
         <tr>
@@ -87,9 +87,9 @@ admin_header('Payments', 'payments', number_format($total) . ' transactions · '
           <td><b><?= e($p['full_name'] ?? $p['donor_name'] ?? $p['payer_name']) ?></b><small class="block muted"><?= e($p['payer_phone']) ?></small></td>
           <td><?php if ($p['registration_id']): ?><a class="ref" href="view.php?id=<?= (int) $p['registration_id'] ?>"><?= e($p['rref']) ?></a><?php elseif ($p['donation_id']): ?><a class="ref" href="sponsors.php?q=<?= e(rawurlencode((string) $p['dref'])) ?>"><?= e($p['dref']) ?></a> <span class="tag">Sponsor</span><?php else: ?><span class="muted">—</span><?php endif; ?></td>
           <td><?= money_cell((int) $p['amount'], $p['currency']) ?></td>
-          <td><?= e(payment_methods()[$p['method']] ?? $p['method']) ?><small class="block muted"><?= $p['provider'] === 'manual' ? 'Manual' : 'ioTec' ?></small></td>
+          <td><?= e(payment_methods()[$p['method']] ?? $p['method']) ?><small class="block muted"><?= e(payment_channel_detail($p)) ?></small></td>
           <td><?= txn_badge($p['status']) ?><?php if ($p['status'] !== 'success' && $p['message']): ?><small class="block muted"><?= e(mb_strimwidth($p['message'], 0, 50, '…')) ?></small><?php endif; ?></td>
-          <td class="small muted"><?= e(mb_strimwidth((string) ($p['provider_txn_id'] ?: $p['notes'] ?: '—'), 0, 26, '…')) ?></td>
+          <td class="small muted" title="<?= e(payment_reference($p)) ?>"><?= e(mb_strimwidth(payment_reference($p), 0, 26, '…')) ?></td>
           <td class="nowrap muted"><?= e(date('j M, g:i a', strtotime($p['completed_at'] ?: $p['created_at']))) ?></td>
           <td class="nowrap actions">
             <?php if ($p['status'] === 'success'): ?><a class="icon-btn" href="../receipt.php?id=<?= (int) $p['id'] ?>" target="_blank" title="PDF receipt"><i class="fa-solid fa-file-pdf"></i></a><?php endif; ?>
