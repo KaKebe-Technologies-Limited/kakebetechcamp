@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 function db(): PDO
 {
@@ -365,6 +365,70 @@ function schema_statements(): array
             email      VARCHAR(190) NULL,
             created_at DATETIME NOT NULL,
             KEY idx_ip_time (ip, created_at)
+        ) $t",
+
+        // v11: email marketing — contacts, lists, campaigns and one row per person per campaign
+        "CREATE TABLE IF NOT EXISTS mk_contacts (
+            id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            email           VARCHAR(190) NOT NULL UNIQUE,
+            name            VARCHAR(150) NULL,
+            status          VARCHAR(16) NOT NULL DEFAULT 'valid',
+            reason          VARCHAR(120) NULL,
+            domain          VARCHAR(120) NOT NULL DEFAULT '',
+            domain_checked  TINYINT(1) NOT NULL DEFAULT 0,
+            token           CHAR(24) NOT NULL,
+            created_at      DATETIME NOT NULL,
+            unsubscribed_at DATETIME NULL,
+            KEY idx_status (status),
+            KEY idx_domain (domain)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS mk_lists (
+            id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name       VARCHAR(120) NOT NULL,
+            created_at DATETIME NOT NULL
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS mk_list_contacts (
+            list_id    INT UNSIGNED NOT NULL,
+            contact_id INT UNSIGNED NOT NULL,
+            PRIMARY KEY (list_id, contact_id),
+            KEY idx_contact (contact_id)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS mk_campaigns (
+            id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name        VARCHAR(150) NOT NULL,
+            subject     VARCHAR(200) NOT NULL DEFAULT '',
+            preheader   VARCHAR(200) NULL,
+            body        MEDIUMTEXT NULL,
+            cta_label   VARCHAR(80) NULL,
+            cta_url     VARCHAR(500) NULL,
+            list_id     INT UNSIGNED NULL,
+            status      VARCHAR(16) NOT NULL DEFAULT 'draft',
+            created_by  INT UNSIGNED NULL,
+            created_at  DATETIME NOT NULL,
+            updated_at  DATETIME NULL,
+            queued_at   DATETIME NULL,
+            finished_at DATETIME NULL
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS mk_sends (
+            id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            campaign_id INT UNSIGNED NOT NULL,
+            contact_id  INT UNSIGNED NOT NULL,
+            email       VARCHAR(190) NOT NULL,
+            batch       INT UNSIGNED NOT NULL DEFAULT 1,
+            status      VARCHAR(12) NOT NULL DEFAULT 'queued',
+            error       VARCHAR(255) NULL,
+            token       CHAR(24) NOT NULL,
+            sent_at     DATETIME NULL,
+            opened_at   DATETIME NULL,
+            open_count  INT UNSIGNED NOT NULL DEFAULT 0,
+            UNIQUE KEY uq_campaign_contact (campaign_id, contact_id),
+            UNIQUE KEY uq_token (token),
+            KEY idx_campaign_batch (campaign_id, batch, status),
+            KEY idx_sent (status, sent_at)
         ) $t",
     ];
 }

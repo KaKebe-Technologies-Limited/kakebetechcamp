@@ -307,7 +307,7 @@ function bar_list(array $items, int $total, string $color = 'red'): string
 
 /* ---------- Layout ---------- */
 
-function admin_header(string $title, string $active = '', string $subtitle = ''): void
+function admin_header(string $title, string $active = '', string $subtitle = '', array $css = []): void
 {
     $admin = current_admin();
     $pending = (int) db()->query("SELECT COUNT(*) FROM registrations WHERE status = 'review'")->fetchColumn();
@@ -327,6 +327,10 @@ function admin_header(string $title, string $active = '', string $subtitle = '')
             'take'     => ['take-payment.php', 'fa-hand-holding-dollar', 'Take a payment', 0],
             'payments' => ['payments.php', 'fa-money-bill-transfer', 'Payments', $pendingPay],
             'sponsors' => ['sponsors.php', 'fa-hand-holding-heart', 'Sponsorships', 0],
+        ],
+        'Marketing' => [
+            'campaigns' => ['marketing.php', 'fa-bullhorn', 'Email campaigns', 0],
+            'contacts'  => ['marketing-contacts.php', 'fa-address-book', 'Email contacts', 0],
         ],
         'Website' => [
             'team' => ['team.php', 'fa-people-group', 'Core team', 0],
@@ -351,6 +355,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '')
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
+  <?php foreach ($css as $href): ?><link rel="stylesheet" href="<?= e($href) ?>" referrerpolicy="no-referrer"><?php endforeach; ?>
 </head>
 <body class="admin">
 <aside class="sidebar" id="sidebar">
@@ -387,12 +392,15 @@ function admin_header(string $title, string $active = '', string $subtitle = '')
     <?php
 }
 
-function admin_footer(): void
+/** $js: extra scripts — full URLs, or files in admin/assets (versioned by file time). */
+function admin_footer(array $js = []): void
 {
     ?>
   </main>
 </div>
 <script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>"></script>
+<?php foreach ($js as $src): ?><script src="<?= e(str_starts_with($src, 'https://') ? $src : 'assets/' . $src . '?v=' . filemtime(__DIR__ . '/assets/' . $src)) ?>"<?= str_starts_with($src, 'https://') ? ' referrerpolicy="no-referrer"' : '' ?>></script>
+<?php endforeach; ?>
 </body>
 </html>
     <?php

@@ -13,6 +13,65 @@ class SmtpMailer
     {
     }
 
+    /** Open one connection for several messages (bulk campaigns): open() → deliver() … → close(). */
+    public function open(): bool
+    {
+        $this->error = '';
+        try {
+            $this->connect();
+            $this->authenticate();
+            return true;
+        } catch (RuntimeException $e) {
+            $this->error = $e->getMessage();
+            $this->close();
+            return false;
+        }
+    }
+
+    /** Send one message on an open connection. $headers: extra headers, e.g. List-Unsubscribe. */
+    public function deliver(string $to, string $subject, string $html, string $text, ?string $replyTo = null, array $headers = []): bool
+    {
+        $this->error = '';
+        if (!is_resource($this->sock)) {
+            $this->error = 'Not connected.';
+            return false;
+        }
+        try {
+            $this->command('MAIL FROM:<' . $this->fromEmail() . '>', [250]);
+            $this->command('RCPT TO:<' . $to . '>', [250, 251]);
+            $this->command('DATA', [354]);
+            $message = preg_replace('/^\./m', '..', build_mime_message($this->fromEmail(), (string) ($this->cfg['from_name'] ?? ''), [$to], $subject, $html, $text, $replyTo, true, [], [], $headers));
+            fwrite($this->sock, $message . "\r\n.\r\n");
+            $this->expect([250]);
+            return true;
+        } catch (RuntimeException $e) {
+            $this->error = $e->getMessage();
+            try {
+                $this->command('RSET', [250]);   // keep the connection usable for the next recipient
+            } catch (RuntimeException $ignored) {
+                $this->close();
+            }
+            return false;
+        }
+    }
+
+    public function connected(): bool
+    {
+        return is_resource($this->sock);
+    }
+
+    public function close(): void
+    {
+        if (is_resource($this->sock)) {
+            try {
+                $this->command('QUIT', [221]);
+            } catch (RuntimeException $ignored) {
+            }
+            fclose($this->sock);
+        }
+        $this->sock = null;
+    }
+
     /** @param string[] $to */
     public function send(array $to, string $subject, string $html, string $text, ?string $replyTo = null, array $attachments = [], array $cc = []): bool
     {
@@ -170,7 +229,7 @@ function format_address(string $email, string $name = ''): string
  * With $full = false the To/Subject headers are omitted (for mail()).
  * $attachments: list of ['name' => 'file.pdf', 'type' => 'application/pdf', 'data' => bytes].
  */
-function build_mime_message(string $fromEmail, string $fromName, array $to, string $subject, string $html, string $text, ?string $replyTo, bool $full, array $attachments = [], array $cc = []): string
+function build_mime_message(string $fromEmail, string $fromName, array $to, string $subject, string $html, string $text, ?string $replyTo, bool $full, array $attachments = [], array $cc = [], array $extra = []): string
 {
     $boundary = 'ktc_' . bin2hex(random_bytes(12));
     $mixed = 'ktm_' . bin2hex(random_bytes(12));
@@ -195,6 +254,9 @@ function build_mime_message(string $fromEmail, string $fromName, array $to, stri
         ? 'Content-Type: multipart/mixed; boundary="' . $mixed . '"'
         : 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';
     $headers[] = 'X-Mailer: KakebeTechCamp';
+    foreach ($extra as $name => $value) {
+        $headers[] = preg_replace('/[^A-Za-z0-9-]/', '', (string) $name) . ': ' . str_replace(["\r", "\n"], '', (string) $value);
+    }
 
     $alt = "--$boundary\r\n"
         . "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"

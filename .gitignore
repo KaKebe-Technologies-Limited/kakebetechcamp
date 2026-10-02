@@ -13,3 +13,7 @@ imgs/*.ARW
 uploads/team/*
 !uploads/team/.htaccess
 storage/cache/
+
+# Campaign email images (uploaded from Admin → Email campaigns)
+uploads/mail/*
+!uploads/mail/.htaccess
