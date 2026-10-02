@@ -83,7 +83,7 @@ $details = [
         'badge'  => 'Before camp · open to all',
         'image'  => $img('team-red.jpg'),
         'icon'   => 'fa-briefcase',
-        'desc'   => 'The Digital Bridge Internship Program (DBIP) provides hands-on experience by connecting participants with companies, businesses, creators, and entrepreneurs. Interns work on real projects, build their portfolios, and expand their professional networks. It runs before the camp — online and in person in Lira, Gulu and Kitgum — and is open to all. Tech Camp participants join free.',
+        'desc'   => 'The Digital Bridge Internship Program (DBIP) provides hands-on experience by connecting participants with mentors, companies, businesses, creators, development partners and entrepreneurs — virtually or in person — so they practise the skills they learn in the Mentorship Program. Interns work on real projects, build their portfolios, and expand their professional networks. It runs before the camp — online and in person in Lira, Gulu and Kitgum — and is open to all. Tech Camp participants join free.',
         'facts'  => [
             ['fa-calendar-days', 'When', 'October – November 2026'],
             ['fa-location-dot', 'Where', 'Online, and in person in Lira, Gulu and Kitgum'],

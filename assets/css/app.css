@@ -318,3 +318,9 @@ b.ok, .ok-text { color: var(--green); }
   .mh-body { padding: 26px 22px; }
   .ment-how { grid-template-columns: 1fr; }
 }
+.ment-about { max-width: 1140px; margin: 0 auto 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.ment-about > div { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 22px; }
+.ment-about span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: var(--red-50); color: var(--red); font-size: 18px; margin-bottom: 12px; }
+.ment-about b { display: block; font-size: 17px; color: var(--ink); margin-bottom: 4px; }
+.ment-about p { margin: 0; font-size: 14.5px; }
+@media (max-width: 900px) { .ment-about { grid-template-columns: 1fr; } }

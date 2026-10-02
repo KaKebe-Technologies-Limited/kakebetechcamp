@@ -182,11 +182,11 @@ app_header('Kakebe Mentorship Program — ' . $capacity . ' free places', '', ''
     <span class="ment-kicker"><i class="fa-solid fa-users"></i> Only <?= $capacity ?> places</span>
     <h1>Kakebe Mentorship Program</h1>
     <p class="mh-sub">with the Digital Bridge Internship Program (DBIP)</p>
-    <p>Learn every week from great speakers and professionals, get mentors in your field — virtually or in person — and earn a certificate.</p>
+    <p>Learn every week from great speakers and professionals, then put your skills to work: through the Digital Bridge Internship Program you intern — virtually or in person — with mentors, companies and development partners in the fields you choose.</p>
     <ul class="mh-facts">
       <li><i class="fa-solid fa-video"></i><span><b>Every Monday</b> · 8:00 – 9:30 PM, online</span></li>
       <li><i class="fa-regular fa-calendar"></i><span><b><?= e($dates) ?></b> · <?= $sched['started'] ? 'next session' : 'first session' ?> <?= e(date('l j F', $sched['next'] ?? $sched['start'])) ?></span></li>
-      <li><i class="fa-solid fa-people-arrows"></i><span><b>Mentors in your field</b> through DBIP</span></li>
+      <li><i class="fa-solid fa-briefcase"></i><span><b>Internship</b> with mentors, companies &amp; development partners</span></li>
       <li><i class="fa-solid fa-certificate"></i><span><b>Certificate</b> and an in-person closing session at 75% attendance</span></li>
     </ul>
     <div class="places<?= $full ? ' full' : '' ?>">
@@ -195,6 +195,12 @@ app_header('Kakebe Mentorship Program — ' . $capacity . ' free places', '', ''
     </div>
     <a href="#register" class="btn btn-primary"><?= $full ? 'Join the waiting list' : 'Register free' ?> <i class="fa-solid fa-arrow-down"></i></a>
   </div>
+</section>
+
+<section class="ment-about">
+  <div><span><i class="fa-solid fa-chalkboard-user"></i></span><b>Learn</b><p>Online sessions every Monday, 8:00 – 9:30 PM, led by great speakers and professionals who champion each session.</p></div>
+  <div><span><i class="fa-solid fa-briefcase"></i></span><b>Intern</b><p>Through the Digital Bridge Internship Program you intern virtually or in person with mentors, companies and development partners — practising the skills you learn, in the fields you choose.</p></div>
+  <div><span><i class="fa-solid fa-certificate"></i></span><b>Get certified</b><p>Attend at least 75% of the sessions to earn your certificate and join the in-person closing session at selected locations.</p></div>
 </section>
 
 <section class="app-card ment-form" id="register">

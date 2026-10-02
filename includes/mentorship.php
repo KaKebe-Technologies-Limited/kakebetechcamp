@@ -126,7 +126,7 @@ function send_mentorship_welcome(array $m): bool
         . '<p><strong>What happens next</strong></p>'
         . '<ul style="padding-left:20px;margin:0 0 14px;">'
         . '<li>Join the online session every Monday from 8:00 to 9:30 PM, led by great speakers and professionals who champion each session.</li>'
-        . '<li>You are officially attached to the <strong>Digital Bridge Internship Program</strong>. Mentors in your field will be in touch with you — virtually or in person.</li>'
+        . '<li>You are officially attached to the <strong>Digital Bridge Internship Program</strong>: you will intern — virtually or in person — with mentors, companies and development partners, practising the skills you learn in the fields you chose.</li>'
         . '<li>Attend at least <strong>75% of the sessions</strong> to receive your <strong>certificate</strong> and join the in-person <strong>closing session</strong> at selected locations.</li>'
         . '</ul>'
         . kt_btn('Add the sessions to my calendar', mentorship_calendar_url(), 'navy')
