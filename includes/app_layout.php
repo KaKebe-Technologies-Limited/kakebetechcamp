@@ -4,7 +4,8 @@
  * $base is the relative path back to the site root ('' for root pages, '../' for /portal).
  */
 
-function app_header(string $title, string $base = '', string $active = ''): void
+/** $seo: ['description' => …, 'canonical' => …] makes the page indexable by search engines. */
+function app_header(string $title, string $base = '', string $active = '', array $seo = []): void
 {
     $p = current_participant();
     $css = $base . 'assets/css/app.css?v=' . filemtime(ROOT . '/assets/css/app.css');
@@ -14,7 +15,17 @@ function app_header(string $title, string $base = '', string $active = ''): void
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+<?php if ($seo): ?>
+  <meta name="description" content="<?= e($seo['description'] ?? '') ?>">
+  <link rel="canonical" href="<?= e($seo['canonical'] ?? '') ?>">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="<?= e($title) ?> · Kakebe Tech Camp 2026">
+  <meta property="og:description" content="<?= e($seo['description'] ?? '') ?>">
+  <meta property="og:url" content="<?= e($seo['canonical'] ?? '') ?>">
+  <meta property="og:image" content="<?= e(base_url('assets/img/techcamp-flyer.webp')) ?>">
+<?php else: ?>
   <meta name="robots" content="noindex">
+<?php endif; ?>
 <?= ga_tag() ?>
   <title><?= e($title) ?> · Kakebe Tech Camp 2026</title>
   <link rel="icon" href="<?= $base ?>favicon.ico" sizes="any">

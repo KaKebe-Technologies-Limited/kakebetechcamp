@@ -270,3 +270,27 @@ b.ok, .ok-text { color: var(--green); }
 /* Big "Continue with Google" — the main way to register / log in */
 .google-block.big { margin: 8px 0 12px; min-height: 52px; }
 .google-block.big .g_id_signin { transform: scale(1.12); transform-origin: center top; margin-bottom: 6px; }
+
+/* Mentorship & DBIP registration */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.ment-hero { text-align: center; max-width: 820px; margin: 0 auto 30px; }
+.ment-hero p { font-size: 16.5px; }
+.ment-kicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--green-50); color: var(--green); font-weight: 800; font-size: 13px; margin-bottom: 12px; }
+.ment-facts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
+.ment-facts span { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-weight: 700; font-size: 14px; color: var(--ink); }
+.ment-facts i { color: var(--red); }
+.inline-check { display: inline-flex !important; align-items: center; gap: 8px; font-weight: 600 !important; font-size: 13px !important; color: var(--body) !important; cursor: pointer; }
+.inline-check input { width: 16px !important; height: 16px; padding: 0 !important; accent-color: var(--red); }
+.commit { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; font-size: 14px; font-weight: 500 !important; color: var(--body) !important; cursor: pointer; }
+.commit input { width: 20px !important; height: 20px; flex-shrink: 0; margin-top: 2px; padding: 0 !important; accent-color: var(--red); }
+.commit b { color: var(--ink); }
+.field.invalid .commit { border-color: #E5484D; background: #FFF7F7; }
+.field.invalid .tracks-pick .tp span { border-color: #F4B3B5; }
+.ment-steps { margin: 0; padding-left: 20px; }
+.ment-steps li { margin-bottom: 8px; }
+.ment-ref { background: var(--red-50); border: 2px dashed #F4A6A0; border-radius: 14px; padding: 12px; margin: 16px auto; max-width: 300px; }
+.ment-ref small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #B5121B; }
+.ment-ref b { font-size: 24px; color: var(--navy); letter-spacing: 1px; }
+.ment-next { text-align: left; margin: 0 0 18px; }
+.ment-wa { background: #128C7E; box-shadow: none; }
+.ment-wa:hover { background: #0E6F63; }

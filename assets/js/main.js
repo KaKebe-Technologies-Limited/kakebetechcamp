@@ -156,6 +156,8 @@
     $('#pmOutput').textContent = p.output;
     $('#pmFacts').innerHTML = p.facts.map(([icon, label, value]) => `<div class="pm-fact"><i class="fa-solid ${esc(icon)}"></i><small>${esc(label)}</small><span>${esc(value)}</span></div>`).join('');
     $('#pmExpect').innerHTML = p.expect.map((x) => `<li><i class="fa-solid fa-circle-check"></i><span>${esc(x)}</span></li>`).join('');
+    $('#pmApply').href = p.href || '#register';
+    $('#pmApply').innerHTML = esc(p.cta || 'Register for Tech Camp') + ' <i class="fa-solid fa-arrow-right"></i>';
     modal.hidden = false;
     body.style.overflow = 'hidden';
     $('.modal-close', modal).focus();

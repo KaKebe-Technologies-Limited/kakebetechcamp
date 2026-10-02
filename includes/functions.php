@@ -212,7 +212,7 @@ function receipt_url(array $p): string
 
 function too_many(string $table, string $ip, int $minutes, int $max): bool
 {
-    $allowed = ['registrations', 'messages', 'login_attempts', 'payments', 'donations', 'login_codes', 'email_verifications'];
+    $allowed = ['registrations', 'messages', 'login_attempts', 'payments', 'donations', 'login_codes', 'email_verifications', 'mentorship_registrations'];
     if (!in_array($table, $allowed, true)) {
         return false;
     }

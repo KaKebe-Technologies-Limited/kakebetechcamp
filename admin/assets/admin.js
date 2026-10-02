@@ -10,6 +10,13 @@
   const overlay = $('#sbOverlay');
   if (overlay) overlay.addEventListener('click', () => document.body.classList.remove('sb-open'));
 
+  // Collapse the sidebar to icons (desktop), remembered on this browser
+  const collapse = $('#sbCollapse');
+  if (collapse) collapse.addEventListener('click', () => {
+    const mini = document.body.classList.toggle('sb-mini');
+    try { localStorage.setItem('kt_sb_mini', mini ? '1' : '0'); } catch (e) {}
+  });
+
   // Auto-hide success alerts
   $$('.alert-success[data-autohide]').forEach((el) => setTimeout(() => {
     el.style.transition = 'opacity .4s';

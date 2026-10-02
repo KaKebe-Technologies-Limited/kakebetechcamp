@@ -320,6 +320,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
         ],
         'Participants' => [
             'registrations' => ['registrations.php', 'fa-users', 'Participants', $pending],
+            'mentorship'    => ['mentorship.php', 'fa-handshake-angle', 'Mentorship & DBIP', 0],
             'messages'      => ['messages.php', 'fa-envelope', 'Messages', $unread],
         ],
         'Finance' => [
@@ -358,22 +359,25 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
   <?php foreach ($css as $href): ?><link rel="stylesheet" href="<?= e($href) ?>" referrerpolicy="no-referrer"><?php endforeach; ?>
 </head>
 <body class="admin">
+<script>try { if (localStorage.getItem('kt_sb_mini') === '1') document.body.classList.add('sb-mini'); } catch (e) {}</script>
 <aside class="sidebar" id="sidebar">
-  <a href="index.php" class="sb-brand">
-    <img src="../assets/img/techcamp-logo-email.png" alt="Kakebe Tech Camp 2026">
+  <a href="index.php" class="sb-brand" title="Dashboard">
+    <img class="sb-full-logo" src="../assets/img/techcamp-logo-email.png" alt="Kakebe Tech Camp 2026">
+    <img class="sb-mini-logo" src="../assets/img/favicon.png" alt="Kakebe Tech Camp 2026">
     <span>Control Panel</span>
   </a>
   <nav class="sb-nav">
     <?php foreach ($groups as $group => $items): ?>
       <p class="sb-group"><?= e($group) ?></p>
       <?php foreach ($items as $key => [$href, $icon, $label, $count]): ?>
-      <a href="<?= $href ?>" class="<?= $active === $key ? 'active' : '' ?>"><i class="fa-solid <?= $icon ?>"></i><span><?= $label ?></span><?php if ($count): ?><em><?= $count ?></em><?php endif; ?></a>
+      <a href="<?= $href ?>" class="<?= $active === $key ? 'active' : '' ?>" title="<?= e($label) ?>"><i class="fa-solid <?= $icon ?>"></i><span><?= $label ?></span><?php if ($count): ?><em><?= $count ?></em><?php endif; ?></a>
       <?php endforeach; ?>
     <?php endforeach; ?>
   </nav>
   <div class="sb-foot">
-    <a href="../" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>View website</span></a>
-    <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i><span>Log out</span></a>
+    <button type="button" class="sb-collapse" id="sbCollapse" title="Collapse or expand the menu"><i class="fa-solid fa-angles-left"></i><span>Collapse menu</span></button>
+    <a href="../" target="_blank" title="View website"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>View website</span></a>
+    <a href="logout.php" title="Log out"><i class="fa-solid fa-right-from-bracket"></i><span>Log out</span></a>
   </div>
 </aside>
 <div class="sb-overlay" id="sbOverlay"></div>

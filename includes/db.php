@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 12;
 
 function db(): PDO
 {
@@ -429,6 +429,27 @@ function schema_statements(): array
             UNIQUE KEY uq_token (token),
             KEY idx_campaign_batch (campaign_id, batch, status),
             KEY idx_sent (status, sent_at)
+        ) $t",
+
+        // v12: Mentorship Program & Digital Bridge Internship (DBIP) registrations, confirmed by email
+        "CREATE TABLE IF NOT EXISTS mentorship_registrations (
+            id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            reference    VARCHAR(20) NULL UNIQUE,
+            full_name    VARCHAR(150) NOT NULL,
+            email        VARCHAR(190) NOT NULL UNIQUE,
+            phone        VARCHAR(40) NOT NULL,
+            whatsapp     VARCHAR(40) NOT NULL,
+            location     VARCHAR(120) NOT NULL DEFAULT '',
+            tracks       VARCHAR(255) NOT NULL DEFAULT '',
+            status       VARCHAR(16) NOT NULL DEFAULT 'pending',
+            notes        VARCHAR(255) NULL,
+            ip           VARCHAR(45) NULL,
+            link_sent_at DATETIME NULL,
+            confirmed_at DATETIME NULL,
+            created_at   DATETIME NOT NULL,
+            updated_at   DATETIME NULL,
+            KEY idx_status (status),
+            KEY idx_ip (ip, created_at)
         ) $t",
     ];
 }
