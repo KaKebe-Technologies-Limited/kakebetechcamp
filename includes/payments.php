@@ -48,6 +48,9 @@ function iotec_http(string $method, string $url, array $headers, ?string $body =
     if ($body !== null) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
     }
+    if (env('CURL_CA_BUNDLE') !== '' && is_file(env('CURL_CA_BUNDLE'))) {
+        curl_setopt($ch, CURLOPT_CAINFO, env('CURL_CA_BUNDLE')); // only needed where PHP's own certificate list is outdated (e.g. a local XAMPP)
+    }
     $raw = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err = curl_error($ch) ?: null;
@@ -144,6 +147,10 @@ function create_payment(array $f): array
  */
 function start_payment(array $p): array
 {
+    // Card payments go through Pesapal when it is set up; Mobile Money stays on ioTec.
+    if ($p['method'] === 'card' && pesapal_configured()) {
+        return pesapal_start_payment($p);
+    }
     if (!iotec_configured()) {
         db()->prepare("UPDATE payments SET status = 'failed', message = ? WHERE id = ?")->execute(['Online payments are not configured.', $p['id']]);
         return ['ok' => false, 'message' => 'Online payments are not available right now. Please contact us on ' . setting('contact_phone') . '.'];
@@ -206,17 +213,21 @@ function start_payment(array $p): array
     return ['ok' => true, 'payment' => $row, 'redirect' => $redirect];
 }
 
-/** Ask ioTec for the latest status of a pending payment and apply it. Returns the updated row. */
+/** Ask the payment provider (ioTec or Pesapal) for the latest status of a pending payment and apply it. Returns the updated row. */
 function sync_payment(int $id, bool $force = false): ?array
 {
     $p = payment_find($id);
-    if (!$p || $p['status'] !== 'pending' || $p['provider'] !== 'iotec') {
+    if (!$p || $p['status'] !== 'pending' || !in_array($p['provider'], ['iotec', 'pesapal'], true)) {
         return $p;
     }
     if (!$force && $p['checked_at'] && time() - strtotime($p['checked_at']) < 4) {
         return $p;
     }
     db()->prepare('UPDATE payments SET checked_at = ? WHERE id = ?')->execute([now(), $id]);
+    if ($p['provider'] === 'pesapal') {
+        pesapal_sync_payment($p);
+        return payment_find($id);
+    }
 
     $token = iotec_token();
     if (!$token) {

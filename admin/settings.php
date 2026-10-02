@@ -58,6 +58,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash(!$ok ? 'Test email failed: ' . $err : (setting('mail_transport') === 'log' ? 'Sending is switched off (Log only) — the test was written to the log. Choose SMTP to send real emails.' : "Test email sent to $to."), $ok ? (setting('mail_transport') === 'log' ? 'warning' : 'success') : 'error');
             break;
 
+        case 'pesapal_test':
+            if (!pesapal_configured()) {
+                flash('Pesapal is not set up — add PESAPAL_CONSUMER_KEY and PESAPAL_CONSUMER_SECRET to the .env file.', 'error');
+                break;
+            }
+            $err = null;
+            $token = pesapal_token($err);
+            $ipn = $token ? pesapal_ipn_id() : null;
+            flash($token
+                ? 'Connected to Pesapal (' . (pesapal()['sandbox'] ? 'sandbox / test' : 'LIVE') . ' mode).' . ($ipn ? ' Kakebe\'s notification URL is registered.' : ' But the notification URL could not be registered.')
+                : 'Could not connect to Pesapal: ' . $err, $token && $ipn ? 'success' : 'error');
+            break;
         case 'iotec_test':
             $token = iotec_configured() ? iotec_token() : null;
             flash($token ? 'Connected to ioTec successfully (' . (iotec()['sandbox'] ? 'sandbox / test' : 'LIVE') . ' mode).' : 'Could not connect to ioTec — check the IOTEC_* keys in the .env file.', $token ? 'success' : 'error');
@@ -104,15 +116,34 @@ admin_header('Settings', 'settings');
   </section>
 
   <section class="card" id="payments">
-    <div class="card-head"><h3><i class="fa-solid fa-credit-card"></i> Payments (ioTec Pay)</h3><span class="badge <?= $io['sandbox'] ? 'st-pending' : 'st-confirmed' ?>"><?= $io['sandbox'] ? 'Sandbox / test' : 'LIVE' ?></span></div>
+    <?php
+    $pp = pesapal();
+    $tick = fn(bool $ok, string $label) => '<span class="' . ($ok ? 'ok-text' : 'err-text') . '"><i class="fa-solid ' . ($ok ? 'fa-circle-check' : 'fa-circle-xmark') . '"></i> ' . e($label) . '</span>';
+    $keys = fn(array $names) => implode('<br>', array_map(fn($k) => $tick(env($k) !== '', $k), $names));
+    ?>
+    <div class="card-head"><h3><i class="fa-solid fa-credit-card"></i> Payment setup</h3><span class="badge <?= $io['sandbox'] ? 'st-pending' : 'st-confirmed' ?>"><?= $io['sandbox'] ? 'Sandbox / test' : 'LIVE' ?></span></div>
+    <p class="small muted">Keys are read from the <b>.env</b> file on this server and are never shown here — only whether each one is present.</p>
+
+    <h4 class="pay-setup-h"><i class="fa-solid fa-mobile-screen-button"></i> Mobile Money → ioTec Pay</h4>
     <dl class="details one">
-      <div><dt>Mode</dt><dd><?= $io['sandbox'] ? 'Sandbox — test numbers only, no real money (localhost)' : 'Live — real Mobile Money & card payments' ?></dd></div>
-      <div><dt>Currency</dt><dd><?= e($io['currency']) ?></dd></div>
-      <div><dt>Credentials</dt><dd><?= iotec_configured() ? '<span class="ok-text"><i class="fa-solid fa-circle-check"></i> Client ID, secret and wallet configured in .env</span>' : '<span class="err-text">Missing — add IOTEC_* keys to the .env file</span>' ?></dd></div>
-      <div><dt>IPN / callback URL</dt><dd class="small"><?= e(base_url('api/iotec-ipn.php')) ?></dd></div>
+      <div><dt>Mode</dt><dd><?= $io['sandbox'] ? 'Sandbox — test numbers only, no real money (localhost)' : 'Live — real Mobile Money payments' ?></dd></div>
+      <div><dt>Wallet</dt><dd><?= $io['wallet'] ? 'ending …' . e(substr((string) $io['wallet'], -5)) : '—' ?></dd></div>
+      <div><dt>Keys</dt><dd class="small"><?= $keys(['IOTEC_CLIENT_ID', 'IOTEC_CLIENT_SECRET', $io['sandbox'] ? 'IOTEC_TEST_WALLET_ID' : 'IOTEC_LIVE_WALLET_ID', 'IOTEC_IPN_SECRET']) ?></dd></div>
+      <div><dt>Callback URL</dt><dd class="small"><?= e(base_url('api/iotec-ipn.php')) ?></dd></div>
     </dl>
-    <p class="small muted">Payments are confirmed by checking ioTec directly, so they work even without callbacks. On a live domain the live wallet is always used.</p>
-    <form method="post"><?= csrf_field() ?><input type="hidden" name="section" value="iotec_test"><button class="btn btn-navy" type="submit"><i class="fa-solid fa-plug"></i> Test ioTec connection</button></form>
+
+    <h4 class="pay-setup-h"><i class="fa-regular fa-credit-card"></i> Card → <?= pesapal_configured() ? 'Pesapal' : 'ioTec card page (Pesapal not set up)' ?></h4>
+    <dl class="details one">
+      <div><dt>Mode</dt><dd><?= $pp['sandbox'] ? 'Sandbox — Pesapal test environment (localhost)' : 'Live — real card payments' ?></dd></div>
+      <div><dt>Keys</dt><dd class="small"><?= $keys($pp['sandbox'] ? ['PESAPAL_SANDBOX_CONSUMER_KEY', 'PESAPAL_SANDBOX_CONSUMER_SECRET'] : ['PESAPAL_CONSUMER_KEY', 'PESAPAL_CONSUMER_SECRET']) ?></dd></div>
+      <div><dt>Notification URL</dt><dd class="small"><?= e(base_url('api/pesapal-ipn.php')) ?><br><?= setting(pesapal_ipn_key()) ? $tick(true, 'Registered with Pesapal') : '<span class="muted">Registers automatically with the first card payment, or press Test Pesapal</span>' ?></dd></div>
+    </dl>
+
+    <div class="pay-setup-actions">
+      <form method="post"><?= csrf_field() ?><input type="hidden" name="section" value="iotec_test"><button class="btn btn-navy btn-sm" type="submit"><i class="fa-solid fa-plug"></i> Test ioTec</button></form>
+      <form method="post"><?= csrf_field() ?><input type="hidden" name="section" value="pesapal_test"><button class="btn btn-navy btn-sm" type="submit"><i class="fa-solid fa-plug"></i> Test Pesapal</button></form>
+    </div>
+    <p class="small muted">Tests only sign in to each provider — nothing is charged.</p>
   </section>
 </div>
 

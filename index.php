@@ -883,7 +883,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           </div>
           <p class="hint sponsor-abroad">Giving from outside Uganda? Choose <b>Card</b>.</p>
           <div class="field js-mm"><label for="s_payphone">Mobile Money number</label><input id="s_payphone" name="pay_phone" type="tel" value="" placeholder="e.g. 0772 123 456"><span class="err" data-err="pay_phone"></span></div>
-          <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to a secure card page to complete your gift.</p>
+          <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> <?= e(card_page_hint()) ?></p>
           <div class="form-alert" hidden></div>
           <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label">Give <span class="js-amt"><?= e(format_ugx($f['sponsor_child'])) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
           <p class="secure">About <span class="js-usd">$<?= approx_usd($f['sponsor_child']) ?></span> · your receipt is emailed straight away</p>

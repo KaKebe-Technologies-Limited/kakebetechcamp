@@ -1,6 +1,6 @@
 <?php
 /**
- * Return page after the ioTec hosted card page. Re-checks the payment with ioTec and shows the result.
+ * Return page after a hosted card page (Pesapal, or ioTec). Re-checks the payment with the provider and shows the result.
  */
 require __DIR__ . '/includes/bootstrap.php';
 require __DIR__ . '/includes/app_layout.php';

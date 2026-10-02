@@ -71,6 +71,7 @@ require ROOT . '/includes/mailer.php';
 require ROOT . '/includes/pdf.php';
 require ROOT . '/includes/emails.php';
 require ROOT . '/includes/payments.php';
+require ROOT . '/includes/pesapal.php';
 require ROOT . '/includes/google.php';
 require ROOT . '/includes/analytics.php';
 

@@ -6,9 +6,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     if (($_POST['action'] ?? '') === 'recheck') {
         $p = sync_payment((int) ($_POST['id'] ?? 0), true);
-        flash($p ? receipt_no($p) . ' is now ' . $p['status'] . ($p['provider_status'] ? ' (ioTec: ' . $p['provider_status'] . ')' : '') . '.' : 'Payment not found.', $p ? 'success' : 'error');
+        flash($p ? receipt_no($p) . ' is now ' . $p['status'] . ($p['provider_status'] ? ' (' . ($p['provider'] === 'pesapal' ? 'Pesapal' : 'ioTec') . ': ' . $p['provider_status'] . ')' : '') . '.' : 'Payment not found.', $p ? 'success' : 'error');
     } elseif (($_POST['action'] ?? '') === 'recheck_all') {
-        $ids = q("SELECT id FROM payments WHERE status = 'pending' AND provider = 'iotec' AND created_at > ?", [date('Y-m-d H:i:s', strtotime('-3 days'))])->fetchAll(PDO::FETCH_COLUMN);
+        $ids = q("SELECT id FROM payments WHERE status = 'pending' AND provider IN ('iotec','pesapal') AND created_at > ?", [date('Y-m-d H:i:s', strtotime('-3 days'))])->fetchAll(PDO::FETCH_COLUMN);
         $res = ['success' => 0, 'failed' => 0, 'pending' => 0];
         foreach ($ids as $pid) {
             $p = sync_payment((int) $pid, true);
@@ -72,7 +72,7 @@ admin_header('Payments', 'payments', number_format($total) . ' transactions · '
   <div class="card-head list-head">
     <h3><?= number_format($total) ?> transaction<?= $total === 1 ? '' : 's' ?></h3>
     <div class="bulk">
-      <?php if ($pendingCount): ?><form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="recheck_all"><input type="hidden" name="return" value="<?= e($qsString) ?>"><button class="btn btn-primary btn-sm"><i class="fa-solid fa-rotate"></i> Re-check <?= $pendingCount ?> pending with ioTec</button></form><?php endif; ?>
+      <?php if ($pendingCount): ?><form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="recheck_all"><input type="hidden" name="return" value="<?= e($qsString) ?>"><button class="btn btn-primary btn-sm"><i class="fa-solid fa-rotate"></i> Re-check <?= $pendingCount ?> pending payments</button></form><?php endif; ?>
       <a href="export.php?type=payments&amp;<?= e(http_build_query($qs)) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> Export</a>
     </div>
   </div>
@@ -93,7 +93,7 @@ admin_header('Payments', 'payments', number_format($total) . ' transactions · '
           <td class="nowrap muted"><?= e(date('j M, g:i a', strtotime($p['completed_at'] ?: $p['created_at']))) ?></td>
           <td class="nowrap actions">
             <?php if ($p['status'] === 'success'): ?><a class="icon-btn" href="../receipt.php?id=<?= (int) $p['id'] ?>" target="_blank" title="PDF receipt"><i class="fa-solid fa-file-pdf"></i></a><?php endif; ?>
-            <?php if ($p['status'] === 'pending' && $p['provider'] === 'iotec'): ?><form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="recheck"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="return" value="<?= e($qsString) ?>"><button class="icon-btn" title="Re-check with ioTec"><i class="fa-solid fa-rotate"></i></button></form><?php endif; ?>
+            <?php if ($p['status'] === 'pending' && in_array($p['provider'], ['iotec', 'pesapal'], true)): ?><form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="recheck"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="return" value="<?= e($qsString) ?>"><button class="icon-btn" title="Re-check with <?= $p['provider'] === 'pesapal' ? 'Pesapal' : 'ioTec' ?>"><i class="fa-solid fa-rotate"></i></button></form><?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>

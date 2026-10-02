@@ -120,7 +120,7 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
           <span class="hint">You'll get a prompt on this phone — enter your PIN to approve.</span>
           <span class="err" data-err="pay_phone"></span>
         </div>
-        <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> You'll be taken to ioTec's secure card page, then returned here.</p>
+        <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> <?= e(card_page_hint()) ?></p>
         <div class="form-alert" hidden></div>
         <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-lock"></i> Pay <span class="js-amt"><?= e(format_ugx($bal)) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
       </div>
