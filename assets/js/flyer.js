@@ -1,5 +1,6 @@
 /* Kakebe Tech Camp 2026 — "I will be there" flyer maker.
-   Everything happens in the browser: the photo is never uploaded. */
+   The flyer is drawn in the browser. On download / share, a copy of the finished flyer is sent to the site
+   (api/flyer-save.php) so the team can reuse it; the original photo is never uploaded. */
 (function () {
   'use strict';
 
@@ -216,6 +217,23 @@
   const fileName = () => 'i-will-be-there-' + ((nameInput.value.trim() || 'kakebe-tech-camp').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kakebe') + '.png';
   const toBlob = () => new Promise((resolve) => { draw(); canvas.toBlob(resolve, 'image/png'); });
 
+  // Keep a copy of the finished flyer (plus a small preview) for the team — quietly, it never blocks the download
+  const saveCopy = (blob) => {
+    if (!root.dataset.save || !blob) return;
+    const small = document.createElement('canvas');
+    small.width = small.height = 420;
+    small.getContext('2d').drawImage(canvas, 0, 0, 420, 420);
+    small.toBlob((thumb) => {
+      const fd = new FormData();
+      fd.append('csrf', root.dataset.csrf);
+      fd.append('name', nameInput.value.trim());
+      fd.append('code', codeInput ? codeInput.value.trim() : '');
+      fd.append('flyer', blob, 'flyer.png');
+      if (thumb) fd.append('thumb', thumb, 'flyer.jpg');
+      fetch(root.dataset.save, { method: 'POST', body: fd, credentials: 'same-origin' }).catch(() => {});
+    }, 'image/jpeg', 0.82);
+  };
+
   downloadBtn.addEventListener('click', async () => {
     const blob = await toBlob();
     if (!blob) { showError('Sorry, your browser could not create the image. Please try another browser.'); return; }
@@ -228,6 +246,7 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     window.ktTrack && window.ktTrack('flyer_download');
+    saveCopy(blob);
   });
 
   if (shareBtn) {
@@ -240,6 +259,7 @@
       shareBtn.addEventListener('click', async () => {
         const blob = await toBlob();
         if (!blob) return;
+        saveCopy(blob);
         try {
           await navigator.share({
             files: [new File([blob], fileName(), { type: 'image/png' })],

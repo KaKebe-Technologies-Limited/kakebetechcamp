@@ -18,11 +18,14 @@ function ga_measurement_id(): string
 function ga_tag(bool $force = false): string
 {
     $id = ga_measurement_id();
+    // Our own visit counter (Dashboard → Website traffic) runs everywhere except when an admin views a participant's portal
+    $own = empty($_SESSION['impersonated_by']) ? "
+" . traffic_tag() : '';
     if ($id === '' || (!$force && (!is_production() || !empty($_SESSION['impersonated_by'])))) {
-        return '<script>window.ktTrack = function () {};</script>';
+        return '<script>window.ktTrack = function () {};</script>' . $own;
     }
     $idJs = json_encode($id);
-    return <<<HTML
+    return $own . <<<HTML
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id={$id}"></script>
   <script>

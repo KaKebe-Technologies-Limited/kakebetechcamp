@@ -1,7 +1,8 @@
 <?php
 /**
  * "I will be there" flyer — upload a photo, get a personalised PNG to share.
- * The flyer is drawn in the browser (assets/js/flyer.js); the photo is never uploaded.
+ * The flyer is drawn in the browser (assets/js/flyer.js). The photo itself is never uploaded; when the flyer is
+ * downloaded or shared, a copy of the finished flyer is kept for the team (api/flyer-save.php, Admin → flyers).
  */
 require __DIR__ . '/includes/bootstrap.php';
 require __DIR__ . '/includes/app_layout.php';
@@ -17,7 +18,8 @@ app_header('My “I will be there” flyer');
 ?>
 <div class="app-grid flyer-grid" id="flyerMaker"
      data-base="assets/img/flyer-base.webp?v=<?= filemtime(__DIR__ . '/assets/img/flyer-base.webp') ?>"
-     data-site="<?= e(preg_replace('~^https?://~', '', base_url())) ?>">
+     data-site="<?= e(preg_replace('~^https?://~', '', base_url())) ?>"
+     data-save="api/flyer-save.php" data-csrf="<?= e(csrf_token()) ?>">
   <section class="app-card flyer-preview">
     <canvas id="flyerCanvas" width="1254" height="1254" role="img" aria-label="Preview of your I will be there flyer"></canvas>
     <p class="muted small center flyer-hint">Drag your photo to position it · pinch or use the slider to zoom</p>
@@ -34,7 +36,7 @@ app_header('My “I will be there” flyer');
           <b>Your best photo</b>
           <label class="btn btn-primary btn-block flyer-upload" for="flyerPhoto"><i class="fa-solid fa-camera"></i> <span>Upload your photo</span></label>
           <input id="flyerPhoto" type="file" accept="image/*" hidden>
-          <small class="muted"><i class="fa-solid fa-lock"></i> Your photo stays on your device — it is not uploaded.</small>
+          <small class="muted"><i class="fa-solid fa-circle-info"></i> When you download or share, Kakebe Tech Camp keeps a copy of your finished flyer so we can feature it.</small>
         </div>
       </div>
 

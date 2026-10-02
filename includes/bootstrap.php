@@ -77,6 +77,7 @@ require ROOT . '/includes/marketing.php';
 require ROOT . '/includes/mentorship.php';
 require ROOT . '/includes/google.php';
 require ROOT . '/includes/analytics.php';
+require ROOT . '/includes/traffic.php';
 
 // Fail with a clear message (not a blank error page) if the live database can't be reached.
 if (PHP_SAPI !== 'cli') {

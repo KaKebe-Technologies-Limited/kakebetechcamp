@@ -17,6 +17,15 @@
     try { localStorage.setItem('kt_sb_mini', mini ? '1' : '0'); } catch (e) {}
   });
 
+  // Tabs: [data-tabs] > [data-tab="x"] buttons switch [data-panel="x"] panels
+  $$('[data-tabs]').forEach((box) => {
+    $$('[data-tab]', box).forEach((tab) => tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      $$('[data-tab]', box).forEach((t) => t.classList.toggle('active', t === tab));
+      $$('[data-panel]', box).forEach((p) => { p.hidden = p.dataset.panel !== tab.dataset.tab; });
+    }));
+  });
+
   // Auto-hide success alerts
   $$('.alert-success[data-autohide]').forEach((el) => setTimeout(() => {
     el.style.transition = 'opacity .4s';

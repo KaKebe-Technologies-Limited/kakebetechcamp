@@ -78,7 +78,8 @@ $ready = trim((string) $c['subject']) !== '' && trim((string) $c['body']) !== ''
 
 // Recipients
 $views = ['' => 'All', 'opened' => 'Opened', 'unopened' => 'Not opened', 'queued' => 'Waiting', 'failed' => 'Failed', 'skipped' => 'Skipped'];
-$view = isset($views[$_GET['view'] ?? '']) ? (string) $_GET['view'] : '';
+$view = (string) ($_GET['view'] ?? '');
+$view = isset($views[$view]) ? $view : '';
 $search = trim((string) ($_GET['q'] ?? ''));
 $batchFilter = max(0, (int) ($_GET['batch'] ?? 0));
 $where = ['s.campaign_id = ?'];

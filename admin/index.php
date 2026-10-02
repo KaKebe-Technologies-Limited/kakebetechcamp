@@ -48,6 +48,15 @@ $recent    = $all('SELECT * FROM registrations ORDER BY id DESC LIMIT 8');
 $recentPay = $all("SELECT p.*, r.full_name, r.reference, d.donor_name FROM payments p LEFT JOIN registrations r ON r.id = p.registration_id LEFT JOIN donations d ON d.id = p.donation_id WHERE p.status = 'success' ORDER BY p.completed_at DESC LIMIT 8");
 $emailReady = setting('mail_transport', 'log') !== 'log' && trim((string) setting('notify_emails')) !== '';
 
+// Outreach: email contacts, campaign emails, mentorship
+$mk = mk_contact_stats();
+$mkSends = q("SELECT COUNT(*) sent, COALESCE(SUM(opened_at IS NOT NULL), 0) opened FROM mk_sends WHERE status = 'sent'")->fetch();
+$mkRate = $mkSends['sent'] ? round($mkSends['opened'] / $mkSends['sent'] * 100, 1) : 0;
+$notifSent = (int) $one("SELECT COUNT(*) FROM email_log WHERE status = 'sent'");
+$mentees = array_column($all('SELECT status, COUNT(*) c FROM mentorship_registrations GROUP BY status'), 'c', 'status');
+$flyers = $all('SELECT id, name, reference, updated_at FROM flyers ORDER BY updated_at DESC LIMIT 6');
+$flyerCount = (int) $one('SELECT COUNT(*) FROM flyers');
+
 admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dates']);
 ?>
 <?php if (!$emailReady): ?>
@@ -81,9 +90,18 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
   <a class="kpi" href="sponsors.php"><span class="kpi-icon purple"><i class="fa-solid fa-hand-holding-heart"></i></span><div><small>Sponsorships</small><b><?= e(format_ugx($sponsorAmt)) ?></b><em>donations received</em></div></a>
 </div>
 
+<div class="kpis">
+  <a class="kpi" href="marketing-contacts.php"><span class="kpi-icon blue"><i class="fa-solid fa-address-book"></i></span><div><small>Email contacts</small><b><?= number_format($mk['total']) ?></b><em><?= number_format($mk['valid']) ?> ready to email</em></div></a>
+  <a class="kpi" href="marketing.php"><span class="kpi-icon green"><i class="fa-solid fa-paper-plane"></i></span><div><small>Emails sent</small><b><?= number_format((int) $mkSends['sent']) ?></b><em><?= number_format(mk_sent_last_24h()) ?> today · <?= number_format($notifSent) ?> notifications</em></div></a>
+  <a class="kpi" href="marketing.php"><span class="kpi-icon navy"><i class="fa-solid fa-check-double mk-blue"></i></span><div><small>Emails opened</small><b><?= number_format((int) $mkSends['opened']) ?></b><em><?= $mkRate ?>% open rate</em></div></a>
+  <a class="kpi" href="mentorship.php"><span class="kpi-icon purple"><i class="fa-solid fa-handshake-angle"></i></span><div><small>Mentorship &amp; DBIP</small><b><?= number_format((int) ($mentees['confirmed'] ?? 0)) ?></b><em><?= number_format((int) ($mentees['pending'] ?? 0)) ?> awaiting email confirmation</em></div></a>
+</div>
+
+<?= traffic_section(7) ?>
+
 <?php if (ga_connected() && ($ga = ga_summary(7))): $gaNow = ga_realtime_users(); ?>
 <a class="card ga-strip" href="analytics.php?days=7">
-  <span class="ga-strip-title"><i class="fa-solid fa-chart-line"></i> Website — last 7 days</span>
+  <span class="ga-strip-title"><i class="fa-brands fa-google"></i> Google Analytics — last 7 days</span>
   <span><small>Visitors</small><b><?= number_format($ga['current']['activeUsers']) ?></b></span>
   <span><small>Page views</small><b><?= number_format($ga['current']['screenPageViews']) ?></b></span>
   <span><small>New visitors</small><b><?= number_format($ga['current']['newUsers']) ?></b></span>
@@ -158,6 +176,15 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
   <div class="card"><div class="card-head"><h3><i class="fa-solid fa-map-location-dot"></i> Top districts</h3></div><?= bar_list($districts, max(1, $active), 'blue') ?></div>
   <div class="card"><div class="card-head"><h3><i class="fa-solid fa-venus-mars"></i> Gender</h3></div><?= bar_list($genders, max(1, $active), 'red') ?></div>
 </div>
+
+<?php if ($flyers): ?>
+<div class="card">
+  <div class="card-head"><h3><i class="fa-solid fa-image-portrait"></i> Latest “I will be there” flyers</h3><a href="flyers.php" class="link">All <?= number_format($flyerCount) ?> flyers →</a></div>
+  <div class="flyer-strip">
+    <?php foreach ($flyers as $fl): ?><a href="flyers.php?img=<?= (int) $fl['id'] ?>" target="_blank" title="<?= e($fl['name'] . ($fl['reference'] ? ' · ' . $fl['reference'] : '')) ?>"><img src="flyers.php?img=<?= (int) $fl['id'] ?>&amp;thumb=1&amp;v=<?= e(strtotime($fl['updated_at'])) ?>" alt="" loading="lazy"><span><?= e($fl['name'] ?: $fl['reference']) ?></span></a><?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="card">
   <div class="card-head"><h3><i class="fa-solid fa-clock-rotate-left"></i> Latest registrations</h3><a href="registrations.php" class="link">All participants →</a></div>

@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 12;
+const SCHEMA_VERSION = 14;
 
 function db(): PDO
 {
@@ -449,6 +449,38 @@ function schema_statements(): array
             created_at   DATETIME NOT NULL,
             updated_at   DATETIME NULL,
             KEY idx_status (status),
+            KEY idx_ip (ip, created_at)
+        ) $t",
+
+        // v13: first-party website statistics — page views and clicks (no cookies, no personal data)
+        "CREATE TABLE IF NOT EXISTS site_events (
+            id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            type       VARCHAR(8) NOT NULL,
+            visitor    CHAR(16) NOT NULL,
+            session    CHAR(16) NOT NULL,
+            path       VARCHAR(190) NOT NULL,
+            label      VARCHAR(120) NULL,
+            source     VARCHAR(60) NOT NULL DEFAULT '',
+            device     VARCHAR(10) NOT NULL DEFAULT '',
+            created_at DATETIME NOT NULL,
+            KEY idx_type_time (type, created_at),
+            KEY idx_time (created_at)
+        ) $t",
+
+        // v14: "I will be there" flyers people made — kept so the team can reuse them
+        "CREATE TABLE IF NOT EXISTS flyers (
+            id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            registration_id INT UNSIGNED NULL,
+            reference       VARCHAR(20) NOT NULL DEFAULT '',
+            name            VARCHAR(80) NOT NULL DEFAULT '',
+            file            VARCHAR(120) NOT NULL,
+            thumb           VARCHAR(120) NULL,
+            bytes           INT UNSIGNED NOT NULL DEFAULT 0,
+            saves           INT UNSIGNED NOT NULL DEFAULT 1,
+            ip              VARCHAR(45) NULL,
+            created_at      DATETIME NOT NULL,
+            updated_at      DATETIME NOT NULL,
+            KEY idx_registration (registration_id),
             KEY idx_ip (ip, created_at)
         ) $t",
     ];

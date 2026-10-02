@@ -96,8 +96,18 @@ $deltaHtml = function (float $cur, float $prev) use ($days): string {
     return '<span class="delta ' . $cls . '"><i class="fa-solid ' . $icon . '"></i> ' . abs($d) . '%</span> vs previous ' . $days . ' days';
 };
 
-admin_header('Website analytics', 'analytics', 'Visitors to kakebetechcamp.com — from Google Analytics');
+$ownRanges = [1 => 'Today', 7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 90 days'];
+$ownDays = (int) ($_GET['site'] ?? 7);
+$ownDays = isset($ownRanges[$ownDays]) ? $ownDays : 7;
+
+admin_header('Website analytics', 'analytics', 'Visitors, visits, page views and clicks on kakebetechcamp.com');
 ?>
+<div class="tabs big">
+  <?php foreach ($ownRanges as $d => $label): ?><a href="analytics.php?site=<?= $d ?>" class="<?= $ownDays === $d ? 'active' : '' ?>"><?= e($label) ?></a><?php endforeach; ?>
+</div>
+<?= traffic_section($ownDays, true) ?>
+
+<h2 class="section-title"><i class="fa-brands fa-google"></i> Google Analytics</h2>
 
 <?php if (!$connected): ?>
 <div class="grid-2 align-start">
