@@ -19,10 +19,22 @@ function app_header(string $title, string $base = '', string $active = '', array
   <meta name="description" content="<?= e($seo['description'] ?? '') ?>">
   <link rel="canonical" href="<?= e($seo['canonical'] ?? '') ?>">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="<?= e($title) ?> · Kakebe Tech Camp 2026">
+  <meta property="og:title" content="<?= e($title) ?>">
   <meta property="og:description" content="<?= e($seo['description'] ?? '') ?>">
   <meta property="og:url" content="<?= e($seo['canonical'] ?? '') ?>">
-  <meta property="og:image" content="<?= e(base_url('assets/img/techcamp-flyer.webp')) ?>">
+  <meta property="og:site_name" content="Kakebe Tech Camp">
+  <meta property="og:image" content="<?= e($seo['image'] ?? base_url('assets/img/techcamp-flyer.webp')) ?>">
+  <meta property="og:image:secure_url" content="<?= e($seo['image'] ?? base_url('assets/img/techcamp-flyer.webp')) ?>">
+<?php if (!empty($seo['image_size'])): ?>
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="<?= (int) $seo['image_size'][0] ?>">
+  <meta property="og:image:height" content="<?= (int) $seo['image_size'][1] ?>">
+<?php endif; ?>
+  <meta property="og:image:alt" content="<?= e($seo['image_alt'] ?? $title) ?>">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<?= e($title) ?>">
+  <meta name="twitter:description" content="<?= e($seo['description'] ?? '') ?>">
+  <meta name="twitter:image" content="<?= e($seo['image'] ?? base_url('assets/img/techcamp-flyer.webp')) ?>">
 <?php else: ?>
   <meta name="robots" content="noindex">
 <?php endif; ?>

@@ -94,7 +94,7 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
   <a class="kpi" href="marketing-contacts.php"><span class="kpi-icon blue"><i class="fa-solid fa-address-book"></i></span><div><small>Email contacts</small><b><?= number_format($mk['total']) ?></b><em><?= number_format($mk['valid']) ?> ready to email</em></div></a>
   <a class="kpi" href="marketing.php"><span class="kpi-icon green"><i class="fa-solid fa-paper-plane"></i></span><div><small>Emails sent</small><b><?= number_format((int) $mkSends['sent']) ?></b><em><?= number_format(mk_sent_last_24h()) ?> today · <?= number_format($notifSent) ?> notifications</em></div></a>
   <a class="kpi" href="marketing.php"><span class="kpi-icon navy"><i class="fa-solid fa-check-double mk-blue"></i></span><div><small>Emails opened</small><b><?= number_format((int) $mkSends['opened']) ?></b><em><?= $mkRate ?>% open rate</em></div></a>
-  <a class="kpi" href="mentorship.php"><span class="kpi-icon purple"><i class="fa-solid fa-handshake-angle"></i></span><div><small>Mentorship &amp; DBIP</small><b><?= number_format((int) ($mentees['confirmed'] ?? 0)) ?></b><em><?= number_format((int) ($mentees['pending'] ?? 0)) ?> awaiting email confirmation</em></div></a>
+  <a class="kpi" href="mentorship.php"><span class="kpi-icon purple"><i class="fa-solid fa-handshake-angle"></i></span><div><small>Mentorship &amp; DBIP</small><b><?= number_format((int) ($mentees['confirmed'] ?? 0)) ?></b><em><?= number_format(mentorship_places_left()) ?> of <?= number_format(mentorship_capacity()) ?> places left · <?= number_format((int) ($mentees['pending'] ?? 0)) ?> awaiting</em></div></a>
 </div>
 
 <?= traffic_section(7) ?>

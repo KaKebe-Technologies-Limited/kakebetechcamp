@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 14;
+const SCHEMA_VERSION = 15;
 
 function db(): PDO
 {
@@ -96,6 +96,10 @@ function migrate(PDO $pdo): void
                 $pdo->exec("ALTER TABLE payments ADD COLUMN `$col` $def");
             }
         }
+    }
+    if ($version >= 12 && !column_exists($pdo, 'mentorship_registrations', 'referred_by')) {
+        // v15: who recommended them for the Mentorship Program & DBIP
+        $pdo->exec('ALTER TABLE mentorship_registrations ADD COLUMN referred_by VARCHAR(150) NULL AFTER tracks');
     }
     if ($version >= 1 && $version < 9) {
         // v9: one sponsored innovator = UGX 150,000 (fees, park experience and sports attire), about $40.
@@ -441,6 +445,7 @@ function schema_statements(): array
             whatsapp     VARCHAR(40) NOT NULL,
             location     VARCHAR(120) NOT NULL DEFAULT '',
             tracks       VARCHAR(255) NOT NULL DEFAULT '',
+            referred_by  VARCHAR(150) NULL,
             status       VARCHAR(16) NOT NULL DEFAULT 'pending',
             notes        VARCHAR(255) NULL,
             ip           VARCHAR(45) NULL,

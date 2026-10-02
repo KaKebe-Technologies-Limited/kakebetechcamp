@@ -76,7 +76,7 @@ $details = [
         'output' => 'Participants mentored in entrepreneurship, digital marketing, IT, AI, and personal branding — gaining skills, confidence, and a clear pathway to the next stage of the ecosystem.',
         'expect' => ['Weekly sessions led by great speakers and professionals', 'Practical skills development', 'Mentors in your field, virtually or in person, through the Digital Bridge Internship', 'A certificate and a supportive community of young people who share your ambition'],
         'cta'    => 'Register free for Mentorship & DBIP',
-        'href'   => 'mentorship.php',
+        'href'   => 'mentorship',
     ],
     'internship' => [
         'title'  => 'Digital Bridge Internship Program',
@@ -92,7 +92,7 @@ $details = [
         'output' => 'Interns placed with companies, businesses, and creators, gaining practical experience in software development, business, content creation, and digital marketing.',
         'expect' => ['Virtual and physical work with real organisations', 'Mentorship from industry professionals', 'Networking opportunities', 'A pathway to employment or entrepreneurship'],
         'cta'    => 'Register free for Mentorship & DBIP',
-        'href'   => 'mentorship.php',
+        'href'   => 'mentorship',
     ],
     'trees' => [
         'title'  => 'Tree Planting Activity',
@@ -151,7 +151,7 @@ $faqs = [
     ['What does it cost to attend?', 'The camp package is ' . format_ugx($base) . ' — the camp fee (' . format_ugx($f['camp']) . ') covering training, accommodation and meals, plus the sports jersey every participant receives (' . format_ugx($f['jersey']) . '). The camp shirt is free and the ' . $f['park_name'] . ' excursion is optional (' . format_ugx($f['park']) . '). Pay the full package in one payment — right after registering or later from your dashboard — and your camp ticket is emailed as soon as it is paid.'],
     ['I have registered. How do I check my registration?', 'Click "My registration" at the top of the website and enter the email and phone number you registered with, or log in to the participant portal. There you can view your details, complete any payment (Mobile Money or card) and download receipts and your ticket.'],
     ['What do I get with my registration?', 'Ten days of residential training in Kitgum (accommodation and meals included), camp materials, a free camp shirt, your sports jersey, hackathons, Demo Day, a certificate — plus free enrolment in the Mentorship Program and Digital Bridge Internship (October – November 2026).'],
-    ['Can I join the mentorship or internship without coming to camp?', 'Yes. The Mentorship Program and the Digital Bridge Internship run before the camp (October – November 2026), online and in person in Lira, Gulu and Kitgum, and they are open to all. Camp participants are enrolled automatically. If you are not coming to camp, register free at ' . base_url('mentorship.php') . ' — choose up to three internship fields and confirm your email. Sessions are online every Monday, 8:00 – 9:30 PM.'],
+    ['Can I join the mentorship or internship without coming to camp?', 'Yes. The Mentorship Program and the Digital Bridge Internship run before the camp (October – November 2026), online and in person in Lira, Gulu and Kitgum, and they are open to all. Camp participants are enrolled automatically. If you are not coming to camp, register free at ' . base_url('mentorship') . ' — choose up to three internship fields and confirm your email. Sessions are online every Monday, 8:00 – 9:30 PM.'],
     ['When will I get my camp ticket?', 'Once your package is fully paid, your camp ticket (with your photo and a QR code) is available in your email and portal. Upload a clear photo when registering or from your portal.'],
     ['Can I sponsor a young person?', 'Yes! Use the "Sponsor an innovator" section to cover a participant\'s package (' . format_ugx($f['sponsor_child']) . ' per innovator) or give any amount. You receive a PDF receipt by email.'],
 ];
@@ -328,7 +328,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <nav class="mobile-menu" id="mobileMenu" aria-label="Mobile">
   <ul>
     <?php foreach (array_merge($navLeft, $navRight) as [$href, $label]): ?><li><a href="<?= $href ?>" data-nav><?= $label ?></a></li><?php endforeach; ?>
-    <li><a href="mentorship.php"><i class="fa-solid fa-people-arrows"></i> Free mentorship &amp; DBIP</a></li>
+    <li><a href="mentorship"><i class="fa-solid fa-people-arrows"></i> Free mentorship &amp; DBIP</a></li>
     <li><a href="pay.php"><i class="fa-solid fa-id-badge"></i> My registration</a></li>
     <li><a href="portal/<?= $me ? '' : 'login.php' ?>"><i class="fa-solid fa-user"></i> Participant portal</a></li>
   </ul>
@@ -397,7 +397,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <li><span><b>Open to all</b> — camp participants are enrolled automatically</span></li>
       </ul>
       <a href="#register" class="btn btn-primary">Start Your Journey <i class="fa-solid fa-arrow-right"></i></a>
-      <p class="programs-alt">Only want the mentorship or internship? <a href="mentorship.php">Register free for Mentorship &amp; DBIP</a> — online every Monday, 8:00 – 9:30 PM.</p>
+      <p class="programs-alt">Only want the mentorship or internship? <a href="mentorship">Register free for Mentorship &amp; DBIP</a> — online every Monday, 8:00 – 9:30 PM.</p>
     </div>
     <div class="eco-grid" role="list">
       <?php
@@ -527,7 +527,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <?php endforeach; ?>
     </div>
     <ol class="timeline">
-      <li class="tl-item reveal"><span class="tl-dot">1</span><div class="tl-card"><small>5th October 2026</small><h4>Mentorship kicks off</h4><p>Online sessions every Monday, 8:00 – 9:30 PM, plus in-person sessions in Lira, Gulu and Kitgum. Open to all. <a href="mentorship.php">Register free</a></p></div></li>
+      <li class="tl-item reveal"><span class="tl-dot">1</span><div class="tl-card"><small>5th October 2026</small><h4>Mentorship kicks off</h4><p>Online sessions every Monday, 8:00 – 9:30 PM, plus in-person sessions in Lira, Gulu and Kitgum. Open to all. <a href="mentorship">Register free</a></p></div></li>
       <li class="tl-item reveal"><span class="tl-dot">2</span><div class="tl-card"><small>October – November 2026</small><h4>Digital Bridge Internship</h4><p>Participants work on real projects with companies, businesses and creators — online and in person in Lira, Gulu and Kitgum.</p></div></li>
       <li class="tl-item reveal"><span class="tl-dot">3</span><div class="tl-card"><small>One day · date to be announced</small><h4>Tree planting activity</h4><p>All teams come together to plant 1,000+ seedlings and promote environmental awareness.</p></div></li>
       <li class="tl-item reveal featured"><span class="tl-dot">4</span><div class="tl-card"><small><?= e($c['dates']) ?></small><h4>Kakebe Tech Camp · Kitgum</h4><p>10 days of hands-on training, hackathons, networking and expert sessions — residential.</p></div></li>

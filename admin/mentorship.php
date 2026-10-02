@@ -3,7 +3,7 @@ require __DIR__ . '/_init.php';
 $admin = require_admin();
 
 $tracks = mentorship_tracks();
-$statuses = ['confirmed' => 'Confirmed', 'pending' => 'Awaiting email confirmation'];
+$statuses = ['confirmed' => 'Confirmed', 'waitlist' => 'Waiting list', 'pending' => 'Awaiting email confirmation'];
 
 /** WHERE clause for the filters (status, field, search). */
 $filters = function (array $in) use ($tracks, $statuses): array {
@@ -23,8 +23,8 @@ $filters = function (array $in) use ($tracks, $statuses): array {
         $f['track'] = '';
     }
     if ($f['q'] !== '') {
-        $where[] = '(full_name LIKE ? OR email LIKE ? OR phone LIKE ? OR whatsapp LIKE ? OR location LIKE ? OR reference LIKE ?)';
-        array_push($params, ...array_fill(0, 6, '%' . $f['q'] . '%'));
+        $where[] = '(full_name LIKE ? OR email LIKE ? OR phone LIKE ? OR whatsapp LIKE ? OR location LIKE ? OR reference LIKE ? OR referred_by LIKE ?)';
+        array_push($params, ...array_fill(0, 7, '%' . $f['q'] . '%'));
     }
     return [$where ? ' WHERE ' . implode(' AND ', $where) : '', $params, $f];
 };
@@ -36,9 +36,9 @@ if (($_GET['export'] ?? '') === '1') {
     header('Content-Disposition: attachment; filename="kakebe-mentorship-dbip-' . date('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");
-    fputcsv($out, ['Mentorship number', 'Full name', 'Email', 'Phone', 'WhatsApp', 'Based in', 'Fields', 'Status', 'Registered', 'Confirmed']);
+    fputcsv($out, ['Mentorship number', 'Full name', 'Email', 'Phone', 'WhatsApp', 'Based in', 'Fields', 'Recommended by', 'Status', 'Registered', 'Confirmed']);
     foreach (q("SELECT * FROM mentorship_registrations$where ORDER BY id", $params) as $r) {
-        fputcsv($out, [$r['reference'], $r['full_name'], $r['email'], $r['phone'], $r['whatsapp'], $r['location'], str_replace(',', '; ', $r['tracks']), $statuses[$r['status']] ?? $r['status'], $r['created_at'], $r['confirmed_at']]);
+        fputcsv($out, [$r['reference'], $r['full_name'], $r['email'], $r['phone'], $r['whatsapp'], $r['location'], str_replace(',', '; ', $r['tracks']), $r['referred_by'], $statuses[$r['status']] ?? $r['status'], $r['created_at'], $r['confirmed_at']]);
     }
     exit;
 }
@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'settings') {
         setting_set('mentorship_open', !empty($_POST['mentorship_open']) ? '1' : '0');
+        setting_set('mentorship_capacity', (string) max(1, min(10000, (int) ($_POST['mentorship_capacity'] ?? 50))));
         foreach (['mentorship_start_date', 'mentorship_end_date'] as $k) {
             $d = (string) ($_POST[$k] ?? '');
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
@@ -96,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $m = find_mentee($id);
             if (!$m) continue;
             if ($do === 'confirm' && $m['status'] !== 'confirmed') {
-                confirm_mentee($m);
+                confirm_mentee($m, true);   // an admin can give a place even when the program is full
                 $done++;
                 $mailed++;
             } elseif ($do === 'resend' && $m['status'] === 'pending') {
@@ -107,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $done++;
             }
         }
-        $labels = ['confirm' => 'confirmed (welcome email sent)', 'resend' => 'sent the confirmation link again', 'delete' => 'deleted'];
+        $labels = ['confirm' => 'given a place (welcome email sent)', 'resend' => 'sent the confirmation link again', 'delete' => 'deleted'];
         flash($done . ' ' . ($done === 1 ? 'person' : 'people') . ' ' . ($labels[$do] ?? 'updated') . '.' . ($mailed ? mail_note() : ''));
         redirect($back);
     }
@@ -127,6 +128,8 @@ $url = fn(array $extra) => 'mentorship.php?' . http_build_query(array_filter($ex
 $counts = array_column(q('SELECT status, COUNT(*) c FROM mentorship_registrations GROUP BY status')->fetchAll(), 'c', 'status');
 $confirmed = (int) ($counts['confirmed'] ?? 0);
 $pending = (int) ($counts['pending'] ?? 0);
+$waitlist = (int) ($counts['waitlist'] ?? 0);
+$capacity = mentorship_capacity();
 $week = (int) q("SELECT COUNT(*) FROM mentorship_registrations WHERE status = 'confirmed' AND confirmed_at >= ?", [date('Y-m-d H:i:s', strtotime('-7 days'))])->fetchColumn();
 $trackCounts = [];
 foreach ($tracks as $t) {
@@ -134,16 +137,17 @@ foreach ($tracks as $t) {
 }
 usort($trackCounts, fn($a, $b) => $b['c'] <=> $a['c']);
 $places = q("SELECT location label, COUNT(*) c FROM mentorship_registrations WHERE status = 'confirmed' GROUP BY location ORDER BY c DESC LIMIT 6")->fetchAll();
+$recommenders = q("SELECT MIN(referred_by) label, COUNT(*) c FROM mentorship_registrations WHERE referred_by IS NOT NULL AND TRIM(referred_by) <> '' GROUP BY LOWER(TRIM(referred_by)) ORDER BY c DESC LIMIT 6")->fetchAll();
 $daily = days_series("SELECT DATE(confirmed_at) d, COUNT(*) v FROM mentorship_registrations WHERE status = 'confirmed' AND confirmed_at >= ? GROUP BY DATE(confirmed_at)", 21);
 $sched = mentorship_schedule();
 $campers = (int) q("SELECT COUNT(*) FROM registrations WHERE status <> 'cancelled' AND mentorship = 1")->fetchColumn();
-$publicUrl = base_url('mentorship.php');
+$publicUrl = base_url('mentorship');
 
 admin_header('Mentorship & DBIP', 'mentorship', 'Mentorship Program & Digital Bridge Internship registry · online every Monday, 8:00 – 9:30 PM');
 ?>
 <div class="kpis">
-  <a class="kpi" href="mentorship.php?status=confirmed"><span class="kpi-icon green"><i class="fa-solid fa-user-check"></i></span><div><small>Registered</small><b><?= number_format($confirmed) ?></b><em>+<?= $week ?> in 7 days</em></div></a>
-  <a class="kpi" href="mentorship.php?status=pending"><span class="kpi-icon amber"><i class="fa-solid fa-envelope-circle-check"></i></span><div><small>Awaiting confirmation</small><b><?= number_format($pending) ?></b><em>haven't clicked the email link</em></div></a>
+  <a class="kpi" href="mentorship.php?status=confirmed"><span class="kpi-icon green"><i class="fa-solid fa-user-check"></i></span><div><small>Places taken</small><b><?= number_format($confirmed) ?> / <?= number_format($capacity) ?></b><em><?= number_format(max(0, $capacity - $confirmed)) ?> left · +<?= $week ?> in 7 days</em></div></a>
+  <a class="kpi" href="mentorship.php?status=pending"><span class="kpi-icon amber"><i class="fa-solid fa-envelope-circle-check"></i></span><div><small>Awaiting confirmation</small><b><?= number_format($pending) ?></b><em><?= $waitlist ? number_format($waitlist) . ' on the waiting list' : "haven't clicked the email link" ?></em></div></a>
   <div class="kpi"><span class="kpi-icon blue"><i class="fa-regular fa-calendar"></i></span><div><small><?= $sched['started'] ? 'Next session' : 'First session' ?></small><b><?= $sched['next'] ? e(date('D j M', $sched['next'])) : 'Ended' ?></b><em>Mondays, 8:00 – 9:30 PM</em></div></div>
   <a class="kpi" href="registrations.php"><span class="kpi-icon red"><i class="fa-solid fa-campground"></i></span><div><small>Tech Camp participants</small><b><?= number_format($campers) ?></b><em>also enrolled automatically</em></div></a>
 </div>
@@ -156,6 +160,8 @@ admin_header('Mentorship & DBIP', 'mentorship', 'Mentorship Program & Digital Br
   <section class="card">
     <div class="card-head"><h3><i class="fa-solid fa-location-dot"></i> Where they are</h3></div>
     <?= bar_list($places, $confirmed, 'navy') ?>
+    <h4 class="ment-sub-h"><i class="fa-solid fa-trophy"></i> Top recommenders</h4>
+    <?= $recommenders ? bar_list($recommenders, max(1, array_sum(array_column($recommenders, 'c'))), 'red') : '<p class="empty-note">No recommendations yet.</p>' ?>
   </section>
   <section class="card">
     <div class="card-head"><h3><i class="fa-solid fa-link"></i> Registration link</h3><span class="badge <?= mentorship_open() ? 'st-confirmed' : 'st-cancelled' ?>"><?= mentorship_open() ? 'Open' : 'Closed' ?></span></div>
@@ -177,6 +183,7 @@ admin_header('Mentorship & DBIP', 'mentorship', 'Mentorship Program & Digital Br
   <form method="post" class="stack">
     <?= csrf_field() ?><input type="hidden" name="action" value="settings">
     <label class="switch"><input type="checkbox" name="mentorship_open" value="1" <?= mentorship_open() ? 'checked' : '' ?>><span class="slider"></span> Registration is open</label>
+    <label style="max-width:260px;">Places <small class="muted">when full, new people go on the waiting list</small><input type="number" name="mentorship_capacity" min="1" max="10000" value="<?= (int) $capacity ?>"></label>
     <div class="row-2">
       <label>First session (a Monday)<input type="date" name="mentorship_start_date" value="<?= e(date('Y-m-d', $sched['start'])) ?>"></label>
       <label>Last session<input type="date" name="mentorship_end_date" value="<?= e(date('Y-m-d', $sched['end'])) ?>"></label>
@@ -191,14 +198,15 @@ admin_header('Mentorship & DBIP', 'mentorship', 'Mentorship Program & Digital Br
 </section>
 
 <div class="tabs big">
-  <a href="<?= e($url(['status' => null, 'page' => null])) ?>" class="<?= $f['status'] === '' ? 'active' : '' ?>">All <em><?= number_format($confirmed + $pending) ?></em></a>
+  <a href="<?= e($url(['status' => null, 'page' => null])) ?>" class="<?= $f['status'] === '' ? 'active' : '' ?>">All <em><?= number_format($confirmed + $pending + $waitlist) ?></em></a>
   <a href="<?= e($url(['status' => 'confirmed', 'page' => null])) ?>" class="<?= $f['status'] === 'confirmed' ? 'active' : '' ?>">Registered <em><?= number_format($confirmed) ?></em></a>
+  <a href="<?= e($url(['status' => 'waitlist', 'page' => null])) ?>" class="<?= $f['status'] === 'waitlist' ? 'active' : '' ?>">Waiting list <em><?= number_format($waitlist) ?></em></a>
   <a href="<?= e($url(['status' => 'pending', 'page' => null])) ?>" class="<?= $f['status'] === 'pending' ? 'active' : '' ?>">Awaiting confirmation <em><?= number_format($pending) ?></em></a>
 </div>
 
 <form class="card filters" method="get">
   <?php if ($f['status']): ?><input type="hidden" name="status" value="<?= e($f['status']) ?>"><?php endif; ?>
-  <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Name, email, phone, place, number…"></div>
+  <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Name, email, phone, place, number, recommender…"></div>
   <select name="track"><option value="">Any field</option><?php foreach ($tracks as $t): ?><option <?= $f['track'] === $t ? 'selected' : '' ?>><?= e($t) ?></option><?php endforeach; ?></select>
   <button class="btn btn-navy" type="submit"><i class="fa-solid fa-filter"></i> Filter</button>
   <?php if ($f['q'] !== '' || $f['track']): ?><a href="<?= e($f['status'] ? 'mentorship.php?status=' . $f['status'] : 'mentorship.php') ?>" class="btn btn-light">Clear</a><?php endif; ?>
@@ -213,7 +221,7 @@ admin_header('Mentorship & DBIP', 'mentorship', 'Mentorship Program & Digital Br
     <div class="bulk">
       <select name="bulk_action" id="bulkAction">
         <option value="">Bulk action…</option>
-        <option value="confirm">Confirm (sends the welcome email)</option>
+        <option value="confirm">Give a place (sends the welcome email)</option>
         <option value="resend">Send the confirmation link again</option>
         <option value="delete">Delete</option>
       </select>
@@ -224,7 +232,7 @@ admin_header('Mentorship & DBIP', 'mentorship', 'Mentorship Program & Digital Br
   <?php if ($rows): ?>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><th>Name</th><th>Number</th><th>Phone</th><th>WhatsApp</th><th>Based in</th><th>Fields</th><th>Status</th><th>Registered</th></tr></thead>
+      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><th>Name</th><th>Number</th><th>Phone</th><th>WhatsApp</th><th>Based in</th><th>Fields</th><th>Recommended by</th><th>Status</th><th>Registered</th></tr></thead>
       <tbody>
       <?php foreach ($rows as $r): ?>
         <tr>
@@ -235,7 +243,8 @@ admin_header('Mentorship & DBIP', 'mentorship', 'Mentorship Program & Digital Br
           <td class="nowrap"><a href="https://wa.me/<?= e(intl_digits($r['whatsapp'])) ?>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> <?= e($r['whatsapp']) ?></a></td>
           <td><?= e($r['location']) ?></td>
           <td class="tracks-cell"><?php foreach (array_filter(explode(',', (string) $r['tracks'])) as $t): ?><span class="tag"><?= e($t) ?></span><?php endforeach; ?></td>
-          <td><?= $r['status'] === 'confirmed' ? '<span class="badge st-confirmed">Registered</span>' : '<span class="badge st-pending" title="Link sent ' . e((string) $r['link_sent_at']) . '">Awaiting email</span>' ?></td>
+          <td><?= $r['referred_by'] ? e($r['referred_by']) : '<span class="muted">—</span>' ?></td>
+          <td><?= ['confirmed' => '<span class="badge st-confirmed">Registered</span>', 'waitlist' => '<span class="badge st-booked">Waiting list</span>'][$r['status']] ?? '<span class="badge st-pending" title="Link sent ' . e((string) $r['link_sent_at']) . '">Awaiting email</span>' ?></td>
           <td class="nowrap muted" title="<?= e($r['created_at']) ?>"><?= e(date('j M, g:i a', strtotime($r['confirmed_at'] ?: $r['created_at']))) ?></td>
         </tr>
       <?php endforeach; ?>

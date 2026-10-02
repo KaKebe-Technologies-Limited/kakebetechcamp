@@ -22,6 +22,22 @@ function mentorship_open(): bool
     return setting('mentorship_open', '1') === '1';
 }
 
+/** Places in the program (first come, first served — counted when people confirm their email). */
+function mentorship_capacity(): int
+{
+    return max(1, (int) setting('mentorship_capacity', 50));
+}
+
+function mentorship_taken(): int
+{
+    return (int) db()->query("SELECT COUNT(*) FROM mentorship_registrations WHERE status = 'confirmed'")->fetchColumn();
+}
+
+function mentorship_places_left(): int
+{
+    return max(0, mentorship_capacity() - mentorship_taken());
+}
+
 /** Session schedule: first and last Monday, and the next session from today. */
 function mentorship_schedule(): array
 {
@@ -67,7 +83,7 @@ function find_mentee(int $id): ?array
 /** The link in the confirmation email. */
 function mentorship_confirm_url(array $m): string
 {
-    return base_url('mentorship.php?confirm=' . (int) $m['id'] . '&t=' . sign('mentorship-confirm', $m['id'] . '|' . $m['email']));
+    return base_url('mentorship?confirm=' . (int) $m['id'] . '&t=' . sign('mentorship-confirm', $m['id'] . '|' . $m['email']));
 }
 
 function mentorship_whatsapp_group(): string
@@ -101,6 +117,7 @@ function send_mentorship_welcome(array $m): bool
         . '<p>Welcome! 🎉 Your place in the <strong>Kakebe Mentorship Program &amp; Digital Bridge Internship Program (DBIP)</strong> is confirmed. The program is completely free.</p>'
         . "<div class='ref'><small>YOUR MENTORSHIP NUMBER</small><b>" . e($m['reference']) . '</b></div>'
         . kt_detail([
+            '📅 Program' => date('j F', $s['start']) . ' – ' . date('j F Y', $s['end']),
             '🗓️ Online sessions' => $s['time'],
             '▶️ ' . ($s['started'] ? 'Next session' : 'First session') => $first,
             '🔗 Join link' => setting('mentorship_session_link') ?: 'Shared by email and WhatsApp before each session',
@@ -118,14 +135,42 @@ function send_mentorship_welcome(array $m): bool
     return send_mail($m['email'], '🎉 You\'re in: Kakebe Mentorship & DBIP — every Monday, 8:00 PM', kt_email('Mentorship & DBIP', $inner, 'Your free mentorship place is confirmed'), setting('contact_email') ?: null);
 }
 
-/** Confirm a registration from the emailed link. Returns the updated row. */
-function confirm_mentee(array $m): array
+/** Waiting-list email when all places were taken by the time they confirmed. */
+function send_mentorship_waitlist(array $m): bool
 {
-    if ($m['status'] !== 'confirmed') {
-        db()->prepare("UPDATE mentorship_registrations SET status = 'confirmed', reference = COALESCE(reference, ?), confirmed_at = ?, updated_at = ? WHERE id = ?")
-            ->execute([mentorship_reference((int) $m['id']), now(), now(), $m['id']]);
-        $m = find_mentee((int) $m['id']);
-        send_mentorship_welcome($m);
+    $inner = '<p><strong>Hi ' . first_name($m['full_name']) . ',</strong></p>'
+        . '<p>Thank you for confirming your email. All <strong>' . mentorship_capacity() . ' places</strong> in the Kakebe Mentorship Program &amp; Digital Bridge Internship Program are now taken, so you are on the <strong>waiting list</strong>.</p>'
+        . '<p>If a place opens up, we will email you straight away with the session details. We will also let you know about the next intake.</p>'
+        . '<p><strong>The Kakebe Technologies team</strong></p>';
+    return send_mail($m['email'], "You're on the waiting list — Kakebe Mentorship & DBIP", kt_email('Mentorship & DBIP', $inner, 'All places are taken — you are on the waiting list'), setting('contact_email') ?: null);
+}
+
+/**
+ * Confirm a registration (from the emailed link, or an admin). When all places are taken the person goes on the
+ * waiting list instead; $force (admins) gives them a place anyway. Returns the updated row.
+ */
+function confirm_mentee(array $m, bool $force = false): array
+{
+    if ($m['status'] === 'confirmed') {
+        return $m;
     }
+    $pdo = db();
+    $pdo->query("SELECT GET_LOCK('kt_mentorship_confirm', 5)");
+    try {
+        if (!$force && mentorship_places_left() <= 0) {
+            if ($m['status'] !== 'waitlist') {
+                $pdo->prepare("UPDATE mentorship_registrations SET status = 'waitlist', updated_at = ? WHERE id = ?")->execute([now(), $m['id']]);
+                $m = find_mentee((int) $m['id']);
+                send_mentorship_waitlist($m);
+            }
+            return $m;
+        }
+        $pdo->prepare("UPDATE mentorship_registrations SET status = 'confirmed', reference = COALESCE(reference, ?), confirmed_at = ?, updated_at = ? WHERE id = ?")
+            ->execute([mentorship_reference((int) $m['id']), now(), now(), $m['id']]);
+    } finally {
+        $pdo->query("SELECT RELEASE_LOCK('kt_mentorship_confirm')");
+    }
+    $m = find_mentee((int) $m['id']);
+    send_mentorship_welcome($m);
     return $m;
 }
