@@ -4,18 +4,28 @@
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
 
-  // Sidebar (mobile)
-  const toggle = $('#sbToggle');
-  if (toggle) toggle.addEventListener('click', () => document.body.classList.toggle('sb-open'));
-  const overlay = $('#sbOverlay');
-  if (overlay) overlay.addEventListener('click', () => document.body.classList.remove('sb-open'));
-
-  // Collapse the sidebar to icons (desktop), remembered on this browser
-  const collapse = $('#sbCollapse');
-  if (collapse) collapse.addEventListener('click', () => {
+  // Sidebar: on desktop it collapses to the left (icons only, remembered on this browser); on phones it slides in
+  const edge = $('#sbEdge');
+  const syncEdge = () => {
+    const label = document.body.classList.contains('sb-mini') ? 'Expand the menu' : 'Collapse the menu';
+    if (edge) { edge.title = label; edge.setAttribute('aria-label', label); }
+  };
+  const toggleMini = () => {
     const mini = document.body.classList.toggle('sb-mini');
     try { localStorage.setItem('kt_sb_mini', mini ? '1' : '0'); } catch (e) {}
+    syncEdge();
+  };
+  syncEdge();
+  const toggle = $('#sbToggle');
+  if (toggle) toggle.addEventListener('click', () => {
+    if (window.innerWidth > 980) toggleMini();
+    else document.body.classList.toggle('sb-open');
   });
+  if (edge) edge.addEventListener('click', toggleMini);
+  const collapse = $('#sbCollapse');
+  if (collapse) collapse.addEventListener('click', toggleMini);
+  const overlay = $('#sbOverlay');
+  if (overlay) overlay.addEventListener('click', () => document.body.classList.remove('sb-open'));
 
   // Tabs: [data-tabs] > [data-tab="x"] buttons switch [data-panel="x"] panels
   $$('[data-tabs]').forEach((box) => {

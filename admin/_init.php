@@ -381,10 +381,11 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     <a href="logout.php" title="Log out"><i class="fa-solid fa-right-from-bracket"></i><span>Log out</span></a>
   </div>
 </aside>
+<button type="button" class="sb-edge" id="sbEdge" aria-label="Collapse the menu" title="Collapse the menu"><i class="fa-solid fa-chevron-left"></i></button>
 <div class="sb-overlay" id="sbOverlay"></div>
 <div class="main">
   <header class="topbar">
-    <button class="sb-toggle" id="sbToggle" aria-label="Toggle menu"><i class="fa-solid fa-bars"></i></button>
+    <button type="button" class="sb-toggle" id="sbToggle" aria-label="Collapse or open the menu" title="Collapse or expand the menu"><i class="fa-solid fa-bars"></i></button>
     <div class="tb-title"><h1><?= e($title) ?></h1><?php if ($subtitle): ?><p><?= e($subtitle) ?></p><?php endif; ?></div>
     <div class="tb-right">
       <?php if ($sandbox): ?><span class="mode-pill test" title="ioTec sandbox — no real money"><i class="fa-solid fa-flask"></i> Test payments</span><?php else: ?><span class="mode-pill live"><i class="fa-solid fa-bolt"></i> Live payments</span><?php endif; ?>
