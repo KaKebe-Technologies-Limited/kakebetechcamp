@@ -197,6 +197,15 @@ app_header('Kakebe Mentorship Program — ' . $capacity . ' free places', '', ''
   </div>
 </section>
 
+<section class="ment-partners" aria-label="Partners">
+  <p>Brought to you by <b>Kakebe Technologies</b> in partnership with</p>
+  <div class="ment-partner-logos">
+    <?php foreach (mentorship_partners() as $pt): ?>
+    <figure title="<?= e($pt['name']) ?>"><img src="<?= e($pt['logo']) ?>?v=<?= filemtime(__DIR__ . '/' . $pt['logo']) ?>" alt="<?= e($pt['name']) ?>" width="<?= (int) $pt['size'][0] ?>" height="<?= (int) $pt['size'][1] ?>" loading="lazy"></figure>
+    <?php endforeach; ?>
+  </div>
+</section>
+
 <section class="ment-about">
   <div><span><i class="fa-solid fa-chalkboard-user"></i></span><b>Learn</b><p>Online sessions every Monday, 8:00 – 9:30 PM, led by great speakers and professionals who champion each session.</p></div>
   <div><span><i class="fa-solid fa-briefcase"></i></span><b>Intern</b><p>Through the Digital Bridge Internship Program you intern virtually or in person with mentors, companies and development partners — practising the skills you learn, in the fields you choose.</p></div>

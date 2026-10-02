@@ -17,6 +17,21 @@ function mentorship_tracks(): array
     ];
 }
 
+/** Organisations bringing the program together with Kakebe Technologies (logos on the mentorship page). */
+function mentorship_partners(): array
+{
+    return [
+        ['name' => 'The Unlimited Youths', 'logo' => 'assets/img/partners/unlimited-youths.png', 'size' => [415, 91]],
+        ['name' => 'Betterlife International Organisation', 'logo' => 'assets/img/partners/betterlife.png', 'size' => [681, 140]],
+    ];
+}
+
+function mentorship_partner_names(): string
+{
+    $names = array_column(mentorship_partners(), 'name');
+    return count($names) > 1 ? implode(', ', array_slice($names, 0, -1)) . ' and ' . end($names) : (string) ($names[0] ?? '');
+}
+
 function mentorship_open(): bool
 {
     return setting('mentorship_open', '1') === '1';
@@ -131,8 +146,48 @@ function send_mentorship_welcome(array $m): bool
         . '</ul>'
         . kt_btn('Add the sessions to my calendar', mentorship_calendar_url(), 'navy')
         . (($g = mentorship_whatsapp_group()) ? kt_btn('Join the mentorship WhatsApp group', $g, 'whatsapp') : '')
-        . '<p>We are excited to learn and build with you.</p><p><strong>The Kakebe Technologies team</strong></p>';
+        . '<p>The program is brought to you by Kakebe Technologies in partnership with ' . e(mentorship_partner_names()) . '. We are excited to learn and build with you.</p><p><strong>The Kakebe Technologies team</strong></p>';
     return send_mail($m['email'], '🎉 You\'re in: Kakebe Mentorship & DBIP — every Monday, 8:00 PM', kt_email('Mentorship & DBIP', $inner, 'Your free mentorship place is confirmed'), setting('contact_email') ?: null);
+}
+
+/** WhatsApp chat with a new mentee, with a welcome message ready to send. */
+function mentee_whatsapp_link(array $m): string
+{
+    $s = mentorship_schedule();
+    $text = 'Hello ' . explode(' ', trim($m['full_name']))[0] . ', welcome to the Kakebe Mentorship Program & Digital Bridge Internship Program (DBIP)! 🎉'
+        . ($m['reference'] ? ' Your mentorship number is ' . $m['reference'] . '.' : '')
+        . ' Our online sessions run every Monday, 8:00 – 9:30 PM, from ' . date('j F', $s['start']) . ' to ' . date('j F Y', $s['end']) . '.'
+        . (setting('mentorship_session_link') ? ' Join here: ' . setting('mentorship_session_link') : ' We will share the joining link before each session.')
+        . (mentorship_whatsapp_group() ? ' Please also join our group: ' . mentorship_whatsapp_group() : '')
+        . ' See you on Monday!';
+    return 'https://wa.me/' . intl_digits((string) $m['whatsapp']) . '?text=' . rawurlencode($text);
+}
+
+/** Tell the team (notification emails + the registration copy list) about a new mentee. */
+function notify_team_mentee(array $m): bool
+{
+    $wait = $m['status'] === 'waitlist';
+    $cap = mentorship_capacity();
+    $first = explode(' ', trim($m['full_name']))[0];
+    $inner = '<p><strong>Hi Team,</strong></p><p>' . ($wait
+            ? 'Someone confirmed their email for the Mentorship Program &amp; DBIP, but all ' . $cap . ' places are taken — they are on the <strong>waiting list</strong>.'
+            : 'A new participant just joined the <strong>Kakebe Mentorship Program &amp; Digital Bridge Internship Program</strong>.') . '</p>'
+        . kt_detail([
+            '🆔 Mentorship number' => $m['reference'] ?: 'Waiting list',
+            '👤 Name' => $m['full_name'],
+            '📧 Email' => $m['email'],
+            '📞 Phone' => "<a href='" . e(tel_link($m['phone'])) . "' style='color:#0F2557;font-weight:700;'>" . e($m['phone']) . '</a>',
+            '💬 WhatsApp' => "<a href='" . e(mentee_whatsapp_link($m)) . "' style='color:#128C7E;font-weight:700;'>" . e($m['whatsapp']) . '</a>',
+            '📍 Based in' => $m['location'],
+            '🎯 Fields' => str_replace(',', ', ', (string) $m['tracks']),
+            '🤝 Recommended by' => $m['referred_by'] ?? '',
+        ], '', ['📞 Phone', '💬 WhatsApp'])
+        . ($wait ? '' : kt_btn('💬 Welcome ' . $first . ' on WhatsApp', mentee_whatsapp_link($m), 'whatsapp')
+            . "<p style='text-align:center;font-size:13px;color:#6B7390;margin-top:-12px;'>Opens WhatsApp with a welcome message already typed — just press send.</p>")
+        . kt_detail(['🎟️ Places taken' => mentorship_taken() . ' of ' . $cap, '🕒 Registered' => date('D, j M Y · g:i A', strtotime($m['confirmed_at'] ?: ($m['updated_at'] ?: $m['created_at'])))], 'navy')
+        . kt_btn('Open the mentorship registry', base_url('admin/mentorship.php?q=' . rawurlencode($m['email'])), 'navy');
+    $subject = ($wait ? '⏳ Mentorship waiting list — ' : '🆕 Mentorship sign-up — ') . $m['full_name'] . ($m['reference'] ? ' (' . $m['reference'] . ')' : '');
+    return notify_team('registration', $subject, kt_email('Mentorship & DBIP', $inner), $m['email']);
 }
 
 /** Waiting-list email when all places were taken by the time they confirmed. */
@@ -162,6 +217,7 @@ function confirm_mentee(array $m, bool $force = false): array
                 $pdo->prepare("UPDATE mentorship_registrations SET status = 'waitlist', updated_at = ? WHERE id = ?")->execute([now(), $m['id']]);
                 $m = find_mentee((int) $m['id']);
                 send_mentorship_waitlist($m);
+                notify_team_mentee($m);
             }
             return $m;
         }
@@ -172,5 +228,8 @@ function confirm_mentee(array $m, bool $force = false): array
     }
     $m = find_mentee((int) $m['id']);
     send_mentorship_welcome($m);
+    if (!$force) {   // admins giving a place by hand already know
+        notify_team_mentee($m);
+    }
     return $m;
 }

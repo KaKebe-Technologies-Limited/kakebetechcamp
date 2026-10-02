@@ -324,3 +324,15 @@ b.ok, .ok-text { color: var(--green); }
 .ment-about b { display: block; font-size: 17px; color: var(--ink); margin-bottom: 4px; }
 .ment-about p { margin: 0; font-size: 14.5px; }
 @media (max-width: 900px) { .ment-about { grid-template-columns: 1fr; } }
+.ment-partners { max-width: 1140px; margin: 0 auto 26px; padding: 22px 26px; background: #fff; border: 1px solid var(--line); border-radius: 22px; text-align: center; }
+.ment-partners > p { margin: 0 0 14px; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ment-partners > p b { color: var(--ink); }
+.ment-partner-logos { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 18px 28px; }
+.ment-partner-logos figure { margin: 0; display: grid; place-items: center; height: 92px; padding: 0 30px; border: 1px solid var(--line); border-radius: 16px; background: #fff; transition: transform .2s, box-shadow .2s; }
+.ment-partner-logos figure:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.ment-partner-logos img { height: 52px; width: auto; max-width: 260px; object-fit: contain; }
+@media (max-width: 600px) {
+  .ment-partner-logos { gap: 12px; }
+  .ment-partner-logos figure { width: 100%; height: 80px; }
+  .ment-partner-logos img { height: 44px; }
+}
