@@ -560,3 +560,10 @@
 .dw-more, .dw-empty { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
 .programs-alt { margin: 16px 0 0; font-size: 14px; color: var(--muted); }
 .programs-alt a { color: var(--red); font-weight: 700; }
+
+/* Sponsor: give any amount */
+.give-mode { margin-bottom: 0; }
+.amount-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
+.amount-chip { padding: 7px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink); cursor: pointer; transition: .15s; }
+.amount-chip:hover { border-color: #F3B4B4; }
+.amount-chip.active { border-color: var(--red); background: #FFF7F7; color: var(--red); }

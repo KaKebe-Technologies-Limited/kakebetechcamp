@@ -858,15 +858,23 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           <p class="muted">Give from anywhere in the world — sponsor one or more innovators, or give any amount.</p>
           <div class="form-grid">
             <div class="field full">
-              <label for="s_children">I'd like to sponsor</label>
+              <label>How would you like to give?</label>
+              <div class="funding-options give-mode">
+                <label class="fund-opt"><input type="radio" name="give_mode" value="sponsor" checked><span><b>Sponsor innovators</b><small><?= e(format_ugx($f['sponsor_child'])) ?> (about $<?= approx_usd($f['sponsor_child']) ?>) each</small></span></label>
+                <label class="fund-opt"><input type="radio" name="give_mode" value="custom"><span><b>Give any amount</b><small>You choose how much to give</small></span></label>
+              </div>
+            </div>
+            <div class="field full js-sponsor-count">
+              <label for="s_children">Number of innovators</label>
               <select id="s_children" name="children">
-                <?php foreach ([1, 2, 3, 5, 10] as $k): ?><option value="<?= $k ?>"><?= $k ?> innovator<?= $k > 1 ? 's' : '' ?> — <?= e(format_ugx($k * $f['sponsor_child'])) ?> (about $<?= number_format(approx_usd($k * $f['sponsor_child'])) ?>)</option><?php endforeach; ?>
-                <option value="0">A custom amount</option>
+                <?php foreach ([1, 2, 3, 4, 5, 10, 20] as $k): ?><option value="<?= $k ?>"><?= $k ?> innovator<?= $k > 1 ? 's' : '' ?> — <?= e(format_ugx($k * $f['sponsor_child'])) ?> (about $<?= number_format(approx_usd($k * $f['sponsor_child'])) ?>)</option><?php endforeach; ?>
               </select>
             </div>
             <div class="field full js-custom-amount" hidden>
-              <label for="s_amount">Amount (UGX)</label>
-              <input id="s_amount" name="amount" type="text" inputmode="numeric" value="<?= number_format($f['sponsor_child']) ?>">
+              <label for="s_amount">Amount you'd like to give (UGX)</label>
+              <input id="s_amount" name="amount" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 50,000" value="" data-min="1000" data-max="50000000">
+              <div class="amount-chips"><?php foreach ([20000, 50000, 100000, 250000, 500000] as $quick): ?><button type="button" class="amount-chip" data-amount="<?= $quick ?>"><?= number_format($quick) ?></button><?php endforeach; ?></div>
+              <span class="hint">Any amount from UGX 1,000 · about <span class="js-usd-inline">$0</span></span>
               <span class="err" data-err="amount"></span>
             </div>
             <div class="field"><label for="s_name">Your name <span class="req">*</span></label><input id="s_name" name="donor_name" type="text" maxlength="150" autocomplete="name" required><span class="err" data-err="donor_name"></span></div>

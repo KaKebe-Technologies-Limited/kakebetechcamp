@@ -160,27 +160,44 @@
     });
   });
 
-  /* ---------- Sponsor amount helpers ---------- */
-  $$('.js-sponsor').forEach((form) => {
+  /* ---------- Sponsor: a number of innovators, or any amount the donor chooses ---------- */
+  $$(".js-sponsor").forEach((form) => {
     const per = digits(form.dataset.perChild);
-    const kids = $('select[name="children"]', form);
-    const amount = $('input[name="amount"]', form);
-    const wrap = $('.js-custom-amount', form);
-    const label = $('.js-amt', form);
-    const usd = $('.js-usd', form);
     const rate = digits(form.dataset.usdRate) || 3750;
+    const kids = $("select[name=\"children\"]", form);
+    const amount = $("input[name=\"amount\"]", form);
+    const countWrap = $(".js-sponsor-count", form);
+    const customWrap = $(".js-custom-amount", form);
+    const label = $(".js-amt", form);
+    const usdNotes = $$(".js-usd, .js-usd-inline", form);
+    let customValue = "";
+    const isCustom = () => (($("input[name=\"give_mode\"]:checked", form) || {}).value === "custom");
     const show = (n) => {
       if (label) label.textContent = money(n);
-      if (usd) usd.textContent = '$' + Math.max(1, Math.round(n / rate)).toLocaleString('en-US');
+      usdNotes.forEach((el) => { el.textContent = "$" + (n ? Math.max(1, Math.round(n / rate)) : 0).toLocaleString("en-US"); });
+      $$(".amount-chip", form).forEach((c) => c.classList.toggle("active", digits(c.dataset.amount) === n));
     };
     const sync = () => {
-      const k = parseInt(kids.value, 10) || 0;
-      wrap.hidden = k > 0;
-      if (k > 0) amount.value = (k * per).toLocaleString('en-US');
+      const custom = isCustom();
+      countWrap.hidden = custom;
+      customWrap.hidden = !custom;
+      kids.disabled = custom; // a disabled select is not sent, so the server uses the amount typed in
+      amount.value = custom ? customValue : ((parseInt(kids.value, 10) || 1) * per).toLocaleString("en-US");
       show(digits(amount.value));
     };
-    kids.addEventListener('change', sync);
-    amount.addEventListener('input', () => { const n = digits(amount.value); amount.value = n ? n.toLocaleString('en-US') : ''; show(n); });
+    $$("input[name=\"give_mode\"]", form).forEach((r) => r.addEventListener("change", () => { sync(); if (isCustom()) amount.focus(); }));
+    kids.addEventListener("change", sync);
+    amount.addEventListener("input", () => {
+      const n = digits(amount.value);
+      amount.value = n ? n.toLocaleString("en-US") : "";
+      customValue = amount.value;
+      show(n);
+    });
+    $$(".amount-chip", form).forEach((chip) => chip.addEventListener("click", () => {
+      amount.value = digits(chip.dataset.amount).toLocaleString("en-US");
+      customValue = amount.value;
+      show(digits(amount.value));
+    }));
     sync();
   });
 
