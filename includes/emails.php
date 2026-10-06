@@ -325,15 +325,14 @@ function send_balance_reminder(array $r): bool
     return $sent;
 }
 
-/** The camp ticket as a card inside an email (works without images; the QR code and photo load when images are on). */
+/** The camp ticket as a card inside an email: big photo, name, where they're from and a staff-only QR code (no prices). */
 function kt_ticket_card(array $r): string
 {
-    [$payLabel, $payText] = ticket_payment($r);
     $valid = ticket_valid($r);
     $photo = photo_path($r['photo'] ?? null) ? base_url('photo.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference'])) : '';
     $avatar = $photo
-        ? "<img src='" . e($photo) . "' width='64' height='76' alt='' style='display:block;width:64px;height:76px;object-fit:cover;border-radius:10px;border:0;'>"
-        : "<div style='width:64px;height:76px;border-radius:10px;background:#E11D2A;color:#ffffff;font-size:24px;font-weight:800;text-align:center;line-height:76px;'>" . e(initials($r['full_name'])) . '</div>';
+        ? "<img src='" . e($photo) . "' width='112' height='136' alt='' style='display:block;width:112px;height:136px;object-fit:cover;border-radius:12px;border:3px solid #ffffff;'>"
+        : "<div style='width:112px;height:136px;border-radius:12px;background:#E11D2A;color:#ffffff;font-size:38px;font-weight:800;text-align:center;line-height:136px;'>" . e(initials($r['full_name'])) . '</div>';
     $cell = fn(string $label, string $value) => "<td valign='top' style='padding:10px 12px;background:#F6F8FC;border-radius:8px;'><div style='font-size:10px;font-weight:800;letter-spacing:.1em;color:#6E748C;text-transform:uppercase;'>" . e($label) . "</div><div style='font-size:13px;font-weight:700;color:#101935;margin-top:2px;'>" . e($value) . '</div></td>';
     return "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='border-collapse:separate;border:1px solid #E2E6F0;border-radius:16px;overflow:hidden;margin:20px 0;font-family:Arial,Helvetica,sans-serif;'>"
         . "<tr><td style='background:#0F2557;padding:16px 20px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>"
@@ -341,27 +340,26 @@ function kt_ticket_card(array $r): string
         . "<td align='right'><span style='display:inline-block;background:" . ($valid ? '#14804A' : '#B54708') . ";color:#ffffff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:7px 12px;border-radius:999px;'>" . ($valid ? '✓ SEAT CONFIRMED' : 'NOT YET VALID') . '</span></td>'
         . '</tr></table></td></tr>'
         . "<tr><td style='height:5px;background:#E11D2A;font-size:0;line-height:0;'>&nbsp;</td></tr>"
-        . "<tr><td style='background:#ffffff;padding:18px 20px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>"
-        . "<td valign='top' width='76' style='padding-right:12px;'>{$avatar}</td>"
+        . "<tr><td style='background:#ffffff;padding:20px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>"
+        . "<td valign='top' width='124' style='padding-right:14px;'>{$avatar}</td>"
         . "<td valign='top'><div style='font-size:10px;font-weight:800;letter-spacing:.12em;color:#6E748C;'>PARTICIPANT</div>"
-        . "<div style='font-size:20px;font-weight:800;color:#0F2557;line-height:1.25;margin:2px 0 4px;'>" . e($r['full_name']) . '</div>'
-        . "<div style='font-size:13px;color:#4A5372;'>" . e($r['district']) . ' · Age ' . (int) $r['age'] . '</div>'
-        . "<div style='font-size:13px;font-weight:700;color:#E11D2A;margin-top:4px;'>" . e($r['interests'] ?: '') . '</div></td>'
-        . "<td valign='top' width='124' align='center'><img src='" . e(ticket_qr_url($r)) . "' width='112' height='112' alt='Ticket QR code' style='display:block;width:112px;height:112px;border:0;'><div style='font-size:10px;color:#6E748C;margin-top:4px;'>Scan at check-in</div></td>"
+        . "<div style='font-size:24px;font-weight:800;color:#0F2557;line-height:1.2;margin:4px 0 8px;'>" . e($r['full_name']) . '</div>'
+        . "<div style='font-size:10px;font-weight:800;letter-spacing:.12em;color:#6E748C;'>FROM</div>"
+        . "<div style='font-size:15px;font-weight:700;color:#101935;margin-top:2px;'>" . e(ticket_location($r)) . '</div>'
+        . ($r['interests'] ? "<div style='font-size:13px;font-weight:700;color:#E11D2A;margin-top:8px;'>" . e($r['interests']) . '</div>' : '') . '</td>'
+        . "<td valign='top' width='120' align='center'><img src='" . e(ticket_qr_url($r)) . "' width='108' height='108' alt='Ticket QR code' style='display:block;width:108px;height:108px;border:0;'><div style='font-size:10px;color:#6E748C;margin-top:4px;'>Staff check-in</div></td>"
         . '</tr></table>'
-        . "<table role='presentation' width='100%' cellpadding='0' cellspacing='6' style='margin-top:12px;'><tr>"
+        . "<table role='presentation' width='100%' cellpadding='0' cellspacing='6' style='margin-top:14px;'><tr>"
         . $cell('Code number', $r['reference']) . $cell('Dates', camp()['dates_short']) . $cell('Venue', 'Kitgum') . $cell('Jersey', ($r['jersey_size'] ?: '—'))
         . '</tr></table></td></tr>'
-        . "<tr><td style='background:" . ($valid ? '#E9F8F0' : '#FFF4E5') . ";border-top:2px dashed " . ($valid ? '#BFE5CF' : '#F8D9A8') . ";padding:14px 20px;'>"
-        . "<div style='font-size:12px;font-weight:800;letter-spacing:.08em;color:" . ($valid ? '#14804A' : '#B54708') . ";'>" . e($payLabel) . '</div>'
-        . "<div style='font-size:14px;color:#101935;margin-top:2px;'>" . e($payText) . '</div></td></tr>'
+        . "<tr><td style='background:#F2F5FB;border-top:2px dashed #D6DCEA;padding:12px 20px;font-size:12.5px;color:#4A5372;'>Show this ticket at check-in in Kitgum — printed or on your phone. Only Kakebe Tech Camp staff can scan the QR code.</td></tr>"
         . '</table>';
 }
 
 function tpl_ticket(array $r): array
 {
     $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p>'
-        . '<p>Your seat at <strong>Kakebe Tech Camp 2026</strong> is confirmed! 🎉 Here is your camp ticket — it is your proof of payment and your pass for check-in.</p>'
+        . '<p>Your seat at <strong>Kakebe Tech Camp 2026</strong> is confirmed! 🎉 Here is your camp ticket — your pass for check-in.</p>'
         . kt_ticket_card($r)
         . kt_btn('Open my ticket online', ticket_url($r))
         . '<p style="font-size:13px;color:#6B7390;">Your ticket is also attached as a PDF. Show it on your phone or bring it printed to check-in in Kitgum (' . e(camp()['dates']) . ').</p>';

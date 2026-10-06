@@ -326,6 +326,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'registrations' => ['registrations.php', 'fa-users', 'Participants', $pending],
             'mentorship'    => ['mentorship.php', 'fa-handshake-angle', 'Mentorship & DBIP', 0],
             'flyers'        => ['flyers.php', 'fa-image-portrait', '“I will be there” flyers', 0],
+            'verify'        => ['verify.php', 'fa-qrcode', 'Verify tickets', 0],
             'messages'      => ['messages.php', 'fa-envelope', 'Messages', $unread],
         ],
         'Finance' => [

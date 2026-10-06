@@ -33,7 +33,7 @@ $pdfUrl = $r ? (strtok($_SERVER['REQUEST_URI'], '#') . (str_contains($_SERVER['R
 if ($r) {
     $photoUrl = photo_path($r['photo']) ? 'photo.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference']) : null;
     $details = [['Dates', camp()['dates']], ['Duration', '10 days · Residential'], ['Venue', camp()['venue']]];
-    [$payLabel, $payText] = ticket_payment($r);
+    $qrData = 'data:image/png;base64,' . base64_encode(qr_png(ticket_verify_url($r), 8, 2));
 }
 ?>
 <!DOCTYPE html>
@@ -62,29 +62,27 @@ if ($r) {
     .pass { text-align: right; }
     .pass small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .16em; color: var(--muted); }
     .pass b { display: inline-block; margin-top: 6px; padding: 6px 14px; border-radius: 999px; background: #FFF1F1; color: var(--red); font-size: 12px; letter-spacing: .1em; }
-    .who { display: flex; gap: 20px; align-items: center; margin: 24px 0 22px; }
-    .photo { width: 112px; height: 132px; border-radius: 16px; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, var(--red), #FF6A2F); color: #fff; display: grid; place-items: center; font-size: 38px; font-weight: 800; border: 4px solid #fff; box-shadow: 0 8px 20px rgba(15,37,87,.15); }
+    .who { display: flex; gap: 26px; align-items: center; margin: 24px 0 22px; }
+    .photo { width: 160px; height: 196px; border-radius: 18px; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, var(--red), #FF6A2F); color: #fff; display: grid; place-items: center; font-size: 38px; font-weight: 800; border: 4px solid #fff; box-shadow: 0 8px 20px rgba(15,37,87,.15); }
     .photo img { width: 100%; height: 100%; object-fit: cover; }
     .who small { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--muted); }
-    .who h1 { margin: 2px 0 6px; font-size: 28px; line-height: 1.15; color: var(--navy); }
-    .who p { margin: 0; color: var(--muted); font-weight: 600; font-size: 14px; }
+    .who h1 { margin: 4px 0 12px; font-size: 34px; line-height: 1.12; color: var(--navy); letter-spacing: -.01em; }
+    .who .from { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; color: var(--ink); }
+    .who .from i { color: var(--red); }
+    .who .tracks { margin-top: 8px; color: var(--red); font-weight: 700; font-size: 14px; }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .cell { background: #F6F8FC; border-radius: 14px; padding: 12px 14px; }
     .cell small { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
     .cell b { font-size: 14px; }
     .extras { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
     .extras span { padding: 6px 12px; border-radius: 999px; background: #EEF3FF; color: var(--navy); font-size: 12px; font-weight: 700; }
-    .paid { margin-top: 14px; padding: 12px 16px; border-radius: 14px; background: #E9F8F0; border-left: 5px solid #14804A; }
-    .paid.no { background: #FFF4E5; border-left-color: #B54708; }
-    .paid small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .1em; color: #14804A; }
-    .paid.no small { color: #B54708; }
-    .paid b { font-size: 14px; }
     .foot { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
     .stub { background: linear-gradient(170deg, var(--navy), #1B3A8C); color: #fff; padding: 28px 22px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; gap: 16px; }
     .stub small { font-size: 10.5px; letter-spacing: .16em; font-weight: 800; opacity: .75; }
     .stub .ref { font-size: 24px; font-weight: 800; letter-spacing: .05em; }
-    #qr { background: #fff; padding: 10px; border-radius: 14px; }
-    #qr img, #qr canvas { display: block; width: 140px !important; height: 140px !important; }
+    .qr { background: #fff; padding: 8px; border-radius: 14px; }
+    .qr img { display: block; width: 140px; height: 140px; image-rendering: pixelated; }
+    .qr-note { font-size: 11px; opacity: .75; margin-top: -8px; }
     .stamp { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; font-weight: 800; font-size: 13px; letter-spacing: .08em; }
     .stamp.ok { background: rgba(34,197,94,.18); color: #7CF0A6; border: 1px solid rgba(124,240,166,.4); }
     .stamp.no { background: rgba(245,165,36,.18); color: #FFD37A; border: 1px solid rgba(255,211,122,.4); }
@@ -98,7 +96,8 @@ if ($r) {
       .main::after { display: none; }
       .grid { grid-template-columns: 1fr 1fr; }
       .head img { height: 64px; }
-      .who h1 { font-size: 22px; }
+      .who { flex-direction: column; align-items: flex-start; }
+      .who h1 { font-size: 26px; }
     }
     @media print {
       body { background: #fff; padding: 0; display: block; }
@@ -144,8 +143,8 @@ if ($r) {
         <div>
           <small>PARTICIPANT</small>
           <h1><?= e($r['full_name']) ?></h1>
-          <p><?= e($r['interests'] ?: 'Kakebe Tech Camp 2026') ?></p>
-          <p><?= e($r['district']) ?>, <?= e($r['country']) ?> · Age <?= (int) $r['age'] ?></p>
+          <div class="from"><i class="fa-solid fa-location-dot"></i> <?= e(ticket_location($r)) ?></div>
+          <?php if ($r['interests']): ?><div class="tracks"><?= e($r['interests']) ?></div><?php endif; ?>
         </div>
       </div>
       <div class="grid">
@@ -156,7 +155,6 @@ if ($r) {
         <?php if ($r['park_visit']): ?><span><i class="fa-solid fa-water"></i> <?= e(fees()['park_name']) ?> visit</span><?php endif; ?>
         <?php if ($r['mentorship']): ?><span><i class="fa-solid fa-people-arrows"></i> Mentorship &amp; Digital Bridge</span><?php endif; ?>
       </div>
-      <div class="paid<?= $valid ? '' : ' no' ?>"><small><?= e($payLabel) ?></small><b><?= e($payText) ?></b></div>
       <div class="foot">
         <span><i class="fa-solid fa-phone"></i> Support: <?= e(setting('contact_phone')) ?></span>
         <span>Present this ticket (printed or on your phone) at check-in.</span>
@@ -164,14 +162,11 @@ if ($r) {
     </div>
     <aside class="stub">
       <div><small>CODE NUMBER</small><div class="ref"><?= e($r['reference']) ?></div></div>
-      <div id="qr" aria-label="Ticket QR code"></div>
+      <div class="qr"><img src="<?= e($qrData) ?>" alt="Ticket QR code" width="140" height="140"></div>
+      <div class="qr-note">For staff check-in only</div>
       <span class="stamp <?= $valid ? 'ok' : 'no' ?>"><i class="fa-solid <?= $valid ? 'fa-circle-check' : 'fa-clock' ?>"></i> <?= $valid ? 'SEAT CONFIRMED' : 'NOT YET VALID' ?></span>
     </aside>
   </article>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script>
-    new QRCode(document.getElementById('qr'), { text: <?= json_encode(ticket_url($r)) ?>, width: 280, height: 280, colorDark: '#0F2557', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-  </script>
 <?php endif; ?>
 </body>
 </html>

@@ -382,7 +382,7 @@ function pdf_qr(SimplePdf $pdf, string $text, float $x, float $y, float $size, a
     }
 }
 
-/** The camp ticket: participant, seat confirmation, proof of payment and a QR code for check-in. */
+/** The camp ticket: big photo, name, where they're from, seat confirmed and a staff-only QR code. No prices or personal data. */
 function ticket_pdf(array $r): string
 {
     $red = [225, 29, 42];
@@ -395,12 +395,11 @@ function ticket_pdf(array $r): string
     $H = 460;
     $pdf = new SimplePdf($W, $H);
     $valid = ticket_valid($r);
-    [$payLabel, $payText] = ticket_payment($r);
 
     $pdf->fill([255, 255, 255]);
     $pdf->rect(0, 0, $W, $H);
 
-    // Stub (right): reference, seat status, QR code, dates
+    // Stub (right): code number, seat status, QR code, dates
     $stubX = 612;
     $pdf->fill($navy);
     $pdf->rect($stubX, 0, $W - $stubX, $H);
@@ -419,9 +418,9 @@ function ticket_pdf(array $r): string
     $pdf->textCenter($cx, 107, $valid ? 'SEAT CONFIRMED' : 'NOT YET VALID', 11, true);
     $pdf->fill([255, 255, 255]);
     $pdf->rect($cx - 64, 130, 128, 128);
-    pdf_qr($pdf, ticket_url($r), $cx - 52, 142, 104, $navy);
+    pdf_qr($pdf, ticket_verify_url($r), $cx - 52, 142, 104, $navy);
     $pdf->fill($light);
-    $pdf->textCenter($cx, 274, 'Scan to verify this ticket', 8.5);
+    $pdf->textCenter($cx, 274, 'For staff check-in only', 8.5);
     $pdf->textCenter($cx, 306, 'ADMIT ONE', 9, true);
     $pdf->fill([255, 255, 255]);
     $pdf->textCenter($cx, 328, camp()['dates_short'], 14, true);
@@ -430,42 +429,48 @@ function ticket_pdf(array $r): string
     $pdf->textCenter($cx, 420, 'Present this ticket at check-in', 8.5);
     $pdf->textCenter($cx, 434, 'Support: ' . setting('contact_phone', '0779 712 990'), 8.5);
 
-    // Main (left)
-    $pdf->jpeg(ROOT . '/assets/img/techcamp-logo-pdf.jpg', 18, 14, 190, 100);
+    // Header
+    $pdf->jpeg(ROOT . '/assets/img/techcamp-logo-pdf.jpg', 18, 12, 180, 95);
     $pdf->fill($gray);
-    $pdf->textRight(588, 52, 'CAMP TICKET', 10, true);
+    $pdf->textRight(588, 50, 'CAMP TICKET', 10, true);
     $pdf->fill($red);
-    $pdf->textRight(588, 72, 'KAKEBE TECH CAMP 2026', 9, true);
+    $pdf->textRight(588, 70, 'KAKEBE TECH CAMP 2026', 9, true);
 
-    // Photo
+    // Big photo
     $px = 40;
-    $py = 128;
-    $pw = 118;
-    $ph = 140;
+    $py = 120;
+    $pw = 172;
+    $ph = 212;
     $pdf->fill($soft);
-    $pdf->rect($px - 4, $py - 4, $pw + 8, $ph + 8);
+    $pdf->rect($px - 5, $py - 5, $pw + 10, $ph + 10);
     $photo = photo_path($r['photo'] ?? null);
     if (!$photo || !$pdf->jpegCover($photo, $px, $py, $pw, $ph)) {
         $pdf->fill($red);
         $pdf->rect($px, $py, $pw, $ph);
         $pdf->fill([255, 255, 255]);
-        $pdf->textCenter($px + $pw / 2, $py + $ph / 2 + 14, initials($r['full_name']), 38, true);
+        $pdf->textCenter($px + $pw / 2, $py + $ph / 2 + 18, initials($r['full_name']), 52, true);
     }
 
-    // Name & details
-    $tx = 186;
+    // Name, where they're from, tracks
+    $tx = 238;
     $pdf->fill($gray);
-    $pdf->text($tx, 144, 'PARTICIPANT', 8.5, true);
+    $pdf->text($tx, 146, 'PARTICIPANT', 9, true);
     $pdf->fill($navy);
-    $y = $pdf->paragraph($tx, 170, 400, $r['full_name'], 22, 26, true);
-    $pdf->fill($ink);
-    $pdf->text($tx, $y + 2, $r['district'] . ', ' . $r['country'] . '  ·  Age ' . (int) $r['age'], 10.5);
-    $pdf->fill($gray);
-    $pdf->text($tx, $y + 26, 'LEARNING TRACKS', 8.5, true);
+    $y = $pdf->paragraph($tx, 182, 350, $r['full_name'], 30, 34, true);
     $pdf->fill($red);
-    $pdf->paragraph($tx, $y + 42, 400, $r['interests'] ?: '—', 11, 15, true);
+    $pdf->rect($tx, $y - 4, 36, 3);
+    $pdf->fill($gray);
+    $pdf->text($tx, $y + 20, 'FROM', 8.5, true);
+    $pdf->fill($ink);
+    $pdf->text($tx, $y + 40, mb_strimwidth(ticket_location($r), 0, 44, '…'), 15, true);
+    if ($r['interests']) {
+        $pdf->fill($gray);
+        $pdf->text($tx, $y + 70, 'LEARNING TRACKS', 8.5, true);
+        $pdf->fill($red);
+        $pdf->paragraph($tx, $y + 88, 350, $r['interests'], 12, 16, true);
+    }
 
-    // Info cells
+    // Camp details
     $cells = [
         ['DATES', camp()['dates']],
         ['VENUE', 'Kitgum, Northern Uganda'],
@@ -475,23 +480,12 @@ function ticket_pdf(array $r): string
     foreach ($cells as $i => [$label, $value]) {
         $x = 36 + $i * ($cw + 8);
         $pdf->fill($soft);
-        $pdf->rect($x, 292, $cw, 50);
+        $pdf->rect($x, 352, $cw, 50);
         $pdf->fill($gray);
-        $pdf->text($x + 12, 311, $label, 8, true);
+        $pdf->text($x + 12, 371, $label, 8, true);
         $pdf->fill($ink);
-        $pdf->text($x + 12, 330, mb_strimwidth($value, 0, 30, '…'), 10, true);
+        $pdf->text($x + 12, 390, mb_strimwidth($value, 0, 30, '…'), 10, true);
     }
-
-    // Proof of payment
-    $pdf->fill($valid ? [231, 246, 238] : [255, 244, 229]);
-    $pdf->rect(36, 354, 544, 50);
-    $pdf->fill($valid ? [20, 128, 74] : [181, 71, 8]);
-    $pdf->rect(36, 354, 5, 50);
-    $pdf->text(54, 374, $payLabel, 11, true);
-    $pdf->fill($ink);
-    $pdf->text(54, 392, mb_strimwidth($payText, 0, 90, '…'), 10);
-    $pdf->fill($gray);
-    $pdf->textRight(568, 374, 'Issued ' . date('j M Y'), 8.5);
 
     $extras = [];
     if (!empty($r['park_visit'])) {
@@ -502,7 +496,7 @@ function ticket_pdf(array $r): string
     }
     $pdf->fill($gray);
     $pdf->text(36, 426, $extras ? 'Also includes: ' . implode('  ·  ', $extras) : 'Kakebe Technologies Limited · Learn. Build. Innovate.', 9);
-    $pdf->text(36, 442, 'Verify: scan the QR code, or open the ticket link in your email.', 8);
+    $pdf->text(36, 442, 'The QR code is scanned by Kakebe Tech Camp staff at check-in.  ·  Issued ' . date('j M Y'), 8);
 
     return $pdf->output();
 }

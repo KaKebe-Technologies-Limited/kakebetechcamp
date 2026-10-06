@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 17;
+const SCHEMA_VERSION = 18;
 
 function db(): PDO
 {
@@ -72,6 +72,8 @@ function migrate(PDO $pdo): void
             'google_sub'         => 'VARCHAR(64) NULL AFTER auth_provider',
             'reminded_at'        => 'DATETIME NULL AFTER last_login_at', // v8: last payment reminder
             'ticket_sent_at'     => 'DATETIME NULL AFTER reminded_at',   // v17: last time the camp ticket was emailed
+            'checked_in_at'      => 'DATETIME NULL AFTER ticket_sent_at', // v18: checked in at camp (ticket scanned by staff)
+            'checked_in_by'      => 'INT UNSIGNED NULL AFTER checked_in_at',
         ];
         foreach ($add as $col => $def) {
             if (!column_exists($pdo, 'registrations', $col)) {
@@ -225,6 +227,8 @@ function schema_statements(): array
             last_login_at  DATETIME NULL,
             reminded_at    DATETIME NULL,
             ticket_sent_at DATETIME NULL,
+            checked_in_at  DATETIME NULL,
+            checked_in_by  INT UNSIGNED NULL,
             created_at     DATETIME NOT NULL,
             updated_at     DATETIME NULL,
             KEY idx_status (status),

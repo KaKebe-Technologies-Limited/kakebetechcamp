@@ -194,7 +194,19 @@ function ticket_valid(array $r): bool
     return $r['status'] === 'confirmed' && in_array($r['payment_status'], ['paid', 'waived', 'sponsored'], true);
 }
 
-/** QR code image (PNG) that opens the online ticket — for emails. */
+/** What the ticket QR code opens: the staff-only verification page in the control panel. */
+function ticket_verify_url(array $r): string
+{
+    return base_url('admin/verify.php?c=' . rawurlencode($r['reference']));
+}
+
+/** "Gulu, Uganda" — the participant's district and country for the ticket. */
+function ticket_location(array $r): string
+{
+    return implode(', ', array_filter([trim((string) $r['district']), trim((string) ($r['country'] ?: 'Uganda'))]));
+}
+
+/** QR code image (PNG) for the ticket — for emails. */
 function ticket_qr_url(array $r): string
 {
     return base_url('ticket-qr.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference']));
