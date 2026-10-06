@@ -148,6 +148,34 @@
     }
   }));
 
+  // Email one participant their ticket (card + PDF)
+  $$(".js-ticket").forEach((btn) => btn.addEventListener("click", async () => {
+    const label = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = "<i class=\"fa-solid fa-spinner fa-spin\"></i> Sending…";
+    try {
+      const fd = new FormData();
+      fd.set("action", "send_ticket");
+      fd.set("id", btn.dataset.id);
+      fd.set("csrf", ($("input[name=csrf]") || {}).value || "");
+      const res = await fetch("registrations.php", { method: "POST", body: fd, credentials: "same-origin", headers: { "X-Requested-With": "fetch" } });
+      const json = await res.json();
+      if (json.ok) {
+        btn.innerHTML = "<i class=\"fa-solid fa-check\"></i> Ticket sent";
+        btn.classList.add("done");
+        btn.title = json.message;
+      } else {
+        btn.innerHTML = label;
+        alert(json.message || "The ticket could not be sent.");
+      }
+    } catch (_) {
+      btn.innerHTML = label;
+      alert("The ticket was not sent (network or session problem). Refresh the page and try again.");
+    } finally {
+      btn.disabled = false;
+    }
+  }));
+
   // Analytics line chart: crosshair + tooltip (mouse, touch and arrow keys)
   $$(".ga-chart").forEach((chart) => {
     const svg = $("svg", chart);

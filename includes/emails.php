@@ -154,9 +154,9 @@ function tpl_sponsorship_approved(array $r): array
 {
     $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p>'
         . '<p>Great news — your sponsorship has been <strong style="color:#14804A;">approved</strong>. Your Kakebe Tech Camp 2026 package is fully covered' . ($r['sponsor_name'] ? ' by <strong>' . e($r['sponsor_name']) . '</strong>' : '') . ', and your place at camp is confirmed. 🎉</p>'
-        . kt_detail(['🆔 Reference' => $r['reference'], '📅 Dates' => camp()['dates'], '📍 Venue' => camp()['venue'] . ' (residential)'], 'green')
-        . kt_btn('View & download my ticket', ticket_url($r))
-        . '<p>Log in to your participant dashboard to update your profile and photo and download your ticket as a PDF.</p>'
+        . kt_ticket_card($r)
+        . kt_btn('Open my ticket online', ticket_url($r))
+        . '<p>Your ticket is also attached as a PDF. Log in to your participant dashboard to update your profile and photo.</p>'
         . kt_btn('Go to my dashboard', base_url('portal/'), 'navy');
     return ['✅ Sponsorship approved — your place at Kakebe Tech Camp is confirmed', kt_email('Sponsorship Approved', $inner)];
 }
@@ -224,7 +224,7 @@ function tpl_payment_receipt(array $r, array $p): array
         . "<p><span class='label'>" . ($full ? '🎉 Balance:' : '⏳ Balance to clear:') . '</span> <strong>' . e(format_ugx($bal, $cur)) . '</strong></p>'
         . "<div class='bar'><i style='width:{$pct}%'></i></div><p style='font-size:12px;color:#6B7390;'>{$pct}% paid</p></div>"
         . ($full
-            ? '<p>🎟️ Your place at camp is <strong>confirmed</strong>. Your camp ticket is ready — bring it (printed or on your phone) to check-in.</p>' . kt_btn('View my camp ticket', ticket_url($r))
+            ? '<p>🎟️ Your seat at camp is <strong>confirmed</strong>! Here is your camp ticket — it is also attached as a PDF. Bring it (printed or on your phone) to check-in.</p>' . kt_ticket_card($r) . kt_btn('Open my ticket online', ticket_url($r))
             : '<p>Please pay the remaining balance to confirm your place and receive your camp ticket.</p>' . kt_btn('Pay balance — ' . format_ugx($bal, $cur), pay_url($r)));
     $subject = $full ? '✅ Paid in full — your Kakebe Tech Camp place is confirmed' : '✅ Payment received — ' . format_ugx($p['amount'], $cur) . ' · balance ' . format_ugx($bal, $cur);
     return [$subject, kt_email('Payment Receipt', $inner, 'Receipt ' . receipt_no($p))];
@@ -325,13 +325,73 @@ function send_balance_reminder(array $r): bool
     return $sent;
 }
 
+/** The camp ticket as a card inside an email (works without images; the QR code and photo load when images are on). */
+function kt_ticket_card(array $r): string
+{
+    [$payLabel, $payText] = ticket_payment($r);
+    $valid = ticket_valid($r);
+    $photo = photo_path($r['photo'] ?? null) ? base_url('photo.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference'])) : '';
+    $avatar = $photo
+        ? "<img src='" . e($photo) . "' width='64' height='76' alt='' style='display:block;width:64px;height:76px;object-fit:cover;border-radius:10px;border:0;'>"
+        : "<div style='width:64px;height:76px;border-radius:10px;background:#E11D2A;color:#ffffff;font-size:24px;font-weight:800;text-align:center;line-height:76px;'>" . e(initials($r['full_name'])) . '</div>';
+    $cell = fn(string $label, string $value) => "<td valign='top' style='padding:10px 12px;background:#F6F8FC;border-radius:8px;'><div style='font-size:10px;font-weight:800;letter-spacing:.1em;color:#6E748C;text-transform:uppercase;'>" . e($label) . "</div><div style='font-size:13px;font-weight:700;color:#101935;margin-top:2px;'>" . e($value) . '</div></td>';
+    return "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='border-collapse:separate;border:1px solid #E2E6F0;border-radius:16px;overflow:hidden;margin:20px 0;font-family:Arial,Helvetica,sans-serif;'>"
+        . "<tr><td style='background:#0F2557;padding:16px 20px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>"
+        . "<td style='color:#C4CDEA;font-size:11px;font-weight:800;letter-spacing:.14em;'>KAKEBE TECH CAMP 2026<div style='color:#ffffff;font-size:20px;letter-spacing:0;margin-top:3px;'>Camp ticket</div></td>"
+        . "<td align='right'><span style='display:inline-block;background:" . ($valid ? '#14804A' : '#B54708') . ";color:#ffffff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:7px 12px;border-radius:999px;'>" . ($valid ? '✓ SEAT CONFIRMED' : 'NOT YET VALID') . '</span></td>'
+        . '</tr></table></td></tr>'
+        . "<tr><td style='height:5px;background:#E11D2A;font-size:0;line-height:0;'>&nbsp;</td></tr>"
+        . "<tr><td style='background:#ffffff;padding:18px 20px;'><table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>"
+        . "<td valign='top' width='76' style='padding-right:12px;'>{$avatar}</td>"
+        . "<td valign='top'><div style='font-size:10px;font-weight:800;letter-spacing:.12em;color:#6E748C;'>PARTICIPANT</div>"
+        . "<div style='font-size:20px;font-weight:800;color:#0F2557;line-height:1.25;margin:2px 0 4px;'>" . e($r['full_name']) . '</div>'
+        . "<div style='font-size:13px;color:#4A5372;'>" . e($r['district']) . ' · Age ' . (int) $r['age'] . '</div>'
+        . "<div style='font-size:13px;font-weight:700;color:#E11D2A;margin-top:4px;'>" . e($r['interests'] ?: '') . '</div></td>'
+        . "<td valign='top' width='124' align='center'><img src='" . e(ticket_qr_url($r)) . "' width='112' height='112' alt='Ticket QR code' style='display:block;width:112px;height:112px;border:0;'><div style='font-size:10px;color:#6E748C;margin-top:4px;'>Scan at check-in</div></td>"
+        . '</tr></table>'
+        . "<table role='presentation' width='100%' cellpadding='0' cellspacing='6' style='margin-top:12px;'><tr>"
+        . $cell('Code number', $r['reference']) . $cell('Dates', camp()['dates_short']) . $cell('Venue', 'Kitgum') . $cell('Jersey', ($r['jersey_size'] ?: '—'))
+        . '</tr></table></td></tr>'
+        . "<tr><td style='background:" . ($valid ? '#E9F8F0' : '#FFF4E5') . ";border-top:2px dashed " . ($valid ? '#BFE5CF' : '#F8D9A8') . ";padding:14px 20px;'>"
+        . "<div style='font-size:12px;font-weight:800;letter-spacing:.08em;color:" . ($valid ? '#14804A' : '#B54708') . ";'>" . e($payLabel) . '</div>'
+        . "<div style='font-size:14px;color:#101935;margin-top:2px;'>" . e($payText) . '</div></td></tr>'
+        . '</table>';
+}
+
 function tpl_ticket(array $r): array
 {
-    $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p><p>Your place at <strong>Kakebe Tech Camp 2026</strong> is confirmed! 🎟️</p>'
-        . kt_detail(['🆔 Reference' => $r['reference'], '📅 Dates' => camp()['dates'], '📍 Venue' => camp()['venue'] . ' (residential)'], 'green')
-        . kt_btn('View & download my ticket', ticket_url($r))
-        . '<p style="font-size:13px;color:#6B7390;">Open the ticket and choose Download / Print to save it as a PDF.</p>';
-    return ['🎟️ Your Kakebe Tech Camp 2026 ticket — ' . $r['reference'], kt_email('Camp Ticket', $inner)];
+    $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p>'
+        . '<p>Your seat at <strong>Kakebe Tech Camp 2026</strong> is confirmed! 🎉 Here is your camp ticket — it is your proof of payment and your pass for check-in.</p>'
+        . kt_ticket_card($r)
+        . kt_btn('Open my ticket online', ticket_url($r))
+        . '<p style="font-size:13px;color:#6B7390;">Your ticket is also attached as a PDF. Show it on your phone or bring it printed to check-in in Kitgum (' . e(camp()['dates']) . ').</p>';
+    return ['🎟️ Your Kakebe Tech Camp ticket — ' . $r['reference'] . ' · seat confirmed', kt_email('Camp Ticket', $inner, 'Your seat is confirmed — your camp ticket is inside')];
+}
+
+/** The ticket PDF as an email attachment. */
+function ticket_attachment(array $r): array
+{
+    return ['name' => 'Kakebe-Tech-Camp-Ticket-' . $r['reference'] . '.pdf', 'type' => 'application/pdf', 'data' => ticket_pdf($r)];
+}
+
+function mark_ticket_sent(array $r): void
+{
+    db()->prepare('UPDATE registrations SET ticket_sent_at = ? WHERE id = ?')->execute([now(), $r['id']]);
+}
+
+/** Email the participant their ticket (card + PDF). Used by the admin Send buttons and when fees are waived. */
+function send_ticket_email(array $r, ?string &$error = null): bool
+{
+    if (!ticket_valid($r)) {
+        $error = 'The ticket is only valid once the camp package is fully paid, sponsored or waived.';
+        return false;
+    }
+    [$s, $h] = tpl_ticket($r);
+    $ok = send_mail($r['email'], $s, $h, setting('contact_email') ?: null, $error, [ticket_attachment($r)]);
+    if ($ok) {
+        mark_ticket_sent($r);
+    }
+    return $ok;
 }
 
 function tpl_custom(array $r, string $subject, string $message): array

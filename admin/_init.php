@@ -179,7 +179,11 @@ function approve_sponsorship(array $r, bool $notify): bool
     $r = recompute_registration((int) $r['id']);
     if ($notify) {
         [$s, $h] = tpl_sponsorship_approved($r);
-        return send_mail($r['email'], $s, $h, setting('contact_email') ?: null);
+        $ok = send_mail($r['email'], $s, $h, setting('contact_email') ?: null, $err, ticket_valid($r) ? [ticket_attachment($r)] : []);
+        if ($ok && ticket_valid($r)) {
+            mark_ticket_sent($r);
+        }
+        return $ok;
     }
     return false;
 }

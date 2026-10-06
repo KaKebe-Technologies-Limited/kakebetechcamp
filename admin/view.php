@@ -59,8 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             q("UPDATE registrations SET payment_status = 'waived', updated_at = ? WHERE id = ?", [now(), $id]);
             recompute_registration($id);
             if ($notify) {
-                [$s, $h] = tpl_ticket(find_registration($id));
-                send_mail($r['email'], $s, $h, setting('contact_email') ?: null);
+                send_ticket_email(find_registration($id));
             }
             flash('Balance waived — participant confirmed.' . ($notify ? ' Ticket emailed.' . mail_note() : ''));
             break;
@@ -113,7 +112,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash($ok ? 'Email sent to ' . $r['email'] . '.' . mail_note() : 'Email failed: ' . $err, $ok ? 'success' : 'error');
             break;
 
+        case 'send_ticket':
+            $ok = send_ticket_email($r, $err);
+            flash($ok ? 'Ticket emailed to ' . $r['email'] . ' (card + PDF).' . mail_note() : 'The ticket was not sent: ' . $err, $ok ? 'success' : 'error');
+            break;
+
         case 'quick_email':
+            if (($_POST['template'] ?? '') === 'ticket') {
+                $ok = send_ticket_email($r, $err);
+                flash($ok ? 'Ticket emailed to ' . $r['email'] . '.' . mail_note() : 'Email failed: ' . $err, $ok ? 'success' : 'error');
+                break;
+            }
             [$s, $h] = match ($_POST['template'] ?? '') {
                 'reminder' => tpl_balance_reminder($r),
                 'ticket'   => tpl_ticket($r),
@@ -187,7 +196,10 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
     <?php if (can_remind($r)): ?><button type="button" class="btn btn-sm btn-remind js-remind" data-id="<?= $id ?>" data-wa="<?= e(participant_whatsapp_reminder_link($r)) ?>" title="Emails a payment reminder and opens WhatsApp with the message ready to send"><i class="fa-solid fa-bell"></i> Remind to pay</button><?php endif; ?>
     <a class="btn btn-primary btn-sm" href="take-payment.php?id=<?= $id ?>"><i class="fa-solid fa-hand-holding-dollar"></i> Take a payment</a>
     <a class="btn btn-light btn-sm" href="<?= e(pay_url($r)) ?>" target="_blank"><i class="fa-solid fa-link"></i> Pay page</a>
-    <a class="btn btn-light btn-sm" href="../ticket.php?id=<?= $id ?>" target="_blank"><i class="fa-solid fa-ticket"></i> Ticket</a>
+    <a class="btn btn-light btn-sm" href="../ticket.php?id=<?= $id ?>" target="_blank"><i class="fa-solid fa-ticket"></i> View ticket</a>
+    <a class="btn btn-light btn-sm" href="../ticket.php?id=<?= $id ?>&amp;format=pdf&amp;download=1"><i class="fa-solid fa-download"></i> Download ticket</a>
+    <?php if (ticket_valid($r)): ?><form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="send_ticket"><button class="btn btn-sm btn-ticket" type="submit" title="Emails the ticket card and PDF to <?= e($r['email']) ?>"><i class="fa-solid fa-paper-plane"></i> <?= $r['ticket_sent_at'] ? 'Send ticket again' : 'Send ticket' ?></button></form><?php endif; ?>
+    <?php if ($r['ticket_sent_at']): ?><small class="muted ticket-sent"><i class="fa-solid fa-check"></i> Ticket emailed <?= e(time_ago($r['ticket_sent_at'])) ?></small><?php endif; ?>
     <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="impersonate"><button class="btn btn-navy btn-sm" type="submit" title="Open this participant's dashboard exactly as they see it"><i class="fa-regular fa-eye"></i> View their dashboard</button></form>
   </div>
 </section>

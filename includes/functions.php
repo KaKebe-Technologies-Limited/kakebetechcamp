@@ -188,6 +188,37 @@ function ticket_token(string $reference): string
     return sign('ticket', $reference);
 }
 
+/** A ticket is valid once the camp package is fully paid, covered by an approved sponsor, or waived. */
+function ticket_valid(array $r): bool
+{
+    return $r['status'] === 'confirmed' && in_array($r['payment_status'], ['paid', 'waived', 'sponsored'], true);
+}
+
+/** QR code image (PNG) that opens the online ticket — for emails. */
+function ticket_qr_url(array $r): string
+{
+    return base_url('ticket-qr.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference']));
+}
+
+/** Proof of payment printed on the ticket: [short label, details]. */
+function ticket_payment(array $r): array
+{
+    if ($r['payment_status'] === 'sponsored') {
+        return ['SPONSORED', 'Camp package covered by ' . ($r['sponsor_name'] ?: 'a sponsor')];
+    }
+    if ($r['payment_status'] === 'waived') {
+        return ['FEES WAIVED', 'Camp fees waived by Kakebe Technologies'];
+    }
+    $st = db()->prepare("SELECT * FROM payments WHERE registration_id = ? AND status = 'success' AND purpose = 'camp' ORDER BY COALESCE(completed_at, created_at) DESC");
+    $st->execute([$r['id']]);
+    $pays = $st->fetchAll();
+    if (balance($r) > 0 || !$pays) {
+        return ['NOT PAID YET', 'Balance ' . format_ugx(balance($r)) . ' — the ticket is valid once paid in full'];
+    }
+    $last = $pays[0];
+    return ['PAID IN FULL', format_ugx((int) $r['amount_paid']) . ' · Receipt ' . receipt_no($last) . (count($pays) > 1 ? ' + ' . (count($pays) - 1) . ' more' : '') . ' · ' . date('j M Y', strtotime($last['completed_at'] ?: $last['created_at']))];
+}
+
 function ticket_url(array $r): string
 {
     return base_url('ticket.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference']));

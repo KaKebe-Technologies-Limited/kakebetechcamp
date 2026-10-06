@@ -380,7 +380,11 @@ function send_payment_emails(array $p, bool $emailPayer = true): void
             $r = find_registration((int) $p['registration_id']);
             if ($emailPayer) {
                 [$s, $h] = tpl_payment_receipt($r, $p);
-                $ok = send_mail($r['email'], $s, $h, setting('contact_email') ?: null, $err, $attach);
+                $withTicket = balance($r) === 0 && ticket_valid($r);
+                $ok = send_mail($r['email'], $s, $h, setting('contact_email') ?: null, $err, $withTicket ? array_merge($attach, [ticket_attachment($r)]) : $attach);
+                if ($ok && $withTicket) {
+                    mark_ticket_sent($r);
+                }
             }
             [$s2, $h2] = tpl_admin_payment($p, $r, null);
             notify_team('payment', $s2, $h2, $r['email'], $attach);

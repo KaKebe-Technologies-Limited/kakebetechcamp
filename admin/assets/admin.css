@@ -664,3 +664,8 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .ment-sub-h { font-size: 15px; margin: 22px 0 12px; display: flex; align-items: center; gap: 8px; }
 .ment-sub-h i { color: var(--red); }
 .people-names { max-width: 240px; white-space: normal; line-height: 1.45; }
+.btn-ticket { background: var(--green-50); color: var(--green); border-color: #ABEFC6; }
+.btn-ticket:hover { background: var(--green); color: #fff; }
+.btn-ticket.done { background: var(--green); color: #fff; }
+.icon-only-btn { padding-inline: 11px; }
+.ticket-sent { align-self: center; font-weight: 600; }

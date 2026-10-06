@@ -69,6 +69,7 @@ require ROOT . '/includes/db.php';
 require ROOT . '/includes/functions.php';
 require ROOT . '/includes/mailer.php';
 require ROOT . '/includes/pdf.php';
+require ROOT . '/includes/qrcode.php';
 require ROOT . '/includes/emails.php';
 require ROOT . '/includes/payments.php';
 require ROOT . '/includes/pesapal.php';

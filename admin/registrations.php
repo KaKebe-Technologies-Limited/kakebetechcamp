@@ -15,6 +15,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remin
         : 'The reminder email to ' . $r['email'] . ' could not be sent — check Settings → Email.']);
 }
 
+/* ---------- Email one participant their ticket (the row button) ---------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send_ticket') {
+    require_csrf();
+    $r = find_registration((int) ($_POST['id'] ?? 0));
+    if (!$r) {
+        json_response(['ok' => false, 'message' => 'Participant not found.'], 404);
+    }
+    $ok = send_ticket_email($r, $err);
+    json_response(['ok' => $ok, 'message' => $ok ? 'Ticket emailed to ' . $r['email'] . '.' . mail_note() : 'The ticket was not sent: ' . $err]);
+}
+
 /* ---------- Bulk actions ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
@@ -37,6 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $done++;
                 }
                 break;
+            case 'tickets':
+                if (ticket_valid($r)) {
+                    $mailed += send_ticket_email($r) ? 1 : 0;
+                    $done++;
+                }
+                break;
             case 'remind':
                 if (can_remind($r)) {
                     $mailed += send_balance_reminder($r) ? 1 : 0;
@@ -55,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
         }
     }
-    $labels = ['approve' => 'approved (sponsorship)', 'remind' => 'reminded', 'waitlisted' => 'waitlisted', 'cancelled' => 'cancelled', 'auto' => 'restored', 'delete' => 'deleted'];
+    $labels = ['approve' => 'approved (sponsorship)', 'tickets' => 'sent their ticket', 'remind' => 'reminded', 'waitlisted' => 'waitlisted', 'cancelled' => 'cancelled', 'auto' => 'restored', 'delete' => 'deleted'];
     flash($done . ' participant' . ($done === 1 ? '' : 's') . ' ' . ($labels[$action] ?? 'updated') . ($mailed ? " · $mailed email" . ($mailed === 1 ? '' : 's') . ' sent' . mail_note() : '') . '.');
     redirect($back);
 }
@@ -105,6 +122,7 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
         <option value="">Bulk action…</option>
         <option value="approve">Approve sponsorship</option>
         <option value="remind">Email balance reminder</option>
+        <option value="tickets">Email tickets (fully paid only)</option>
         <option value="waitlisted">Move to waitlist</option>
         <option value="cancelled">Cancel registration</option>
         <option value="auto">Restore (status from payments)</option>
@@ -136,8 +154,11 @@ admin_header('Participants', 'registrations', number_format($total) . ' matching
           <td class="nowrap muted" title="<?= e($r['created_at']) ?>"><?= e(date('j M, g:i a', strtotime($r['created_at']))) ?></td>
           <td class="nowrap row-actions">
             <?php if (can_remind($r)): ?><button type="button" class="btn btn-sm btn-remind js-remind" data-id="<?= (int) $r['id'] ?>" data-wa="<?= e(participant_whatsapp_reminder_link($r)) ?>" title="Emails a payment reminder and opens WhatsApp with the message ready to send"><i class="fa-solid fa-bell"></i> Remind</button><?php endif; ?>
+            <?php if (ticket_valid($r)): ?><button type="button" class="btn btn-sm btn-ticket js-ticket" data-id="<?= (int) $r['id'] ?>" title="Emails the ticket card and PDF to <?= e($r['email']) ?>"><i class="fa-solid fa-ticket"></i> <?= $r['ticket_sent_at'] ? 'Resend ticket' : 'Send ticket' ?></button>
+            <a class="btn btn-light btn-sm icon-only-btn" href="../ticket.php?id=<?= (int) $r['id'] ?>&amp;format=pdf&amp;download=1" title="Download the ticket (PDF)"><i class="fa-solid fa-download"></i></a><?php endif; ?>
             <a class="btn btn-light btn-sm" href="view.php?id=<?= (int) $r['id'] ?>"><i class="fa-regular fa-eye"></i> View</a>
             <?php if (!empty($r['reminded_at']) && can_remind($r)): ?><small class="block muted reminded-note">Reminded <?= e(time_ago($r['reminded_at'])) ?></small><?php endif; ?>
+            <?php if (!empty($r['ticket_sent_at']) && ticket_valid($r)): ?><small class="block muted reminded-note">Ticket sent <?= e(time_ago($r['ticket_sent_at'])) ?></small><?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>

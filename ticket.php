@@ -16,7 +16,7 @@ if ($isAdmin && isset($_GET['id'])) {
     $r = $p;
 }
 
-$valid = $r && $r['status'] === 'confirmed' && in_array($r['payment_status'], ['paid', 'waived', 'sponsored'], true);
+$valid = $r && ticket_valid($r);
 $showTicket = $r && ($valid || $isAdmin);
 
 if ($showTicket && ($_GET['format'] ?? '') === 'pdf') {
@@ -33,6 +33,7 @@ $pdfUrl = $r ? (strtok($_SERVER['REQUEST_URI'], '#') . (str_contains($_SERVER['R
 if ($r) {
     $photoUrl = photo_path($r['photo']) ? 'photo.php?ref=' . rawurlencode($r['reference']) . '&t=' . ticket_token($r['reference']) : null;
     $details = [['Dates', camp()['dates']], ['Duration', '10 days · Residential'], ['Venue', camp()['venue']]];
+    [$payLabel, $payText] = ticket_payment($r);
 }
 ?>
 <!DOCTYPE html>
@@ -73,6 +74,11 @@ if ($r) {
     .cell b { font-size: 14px; }
     .extras { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
     .extras span { padding: 6px 12px; border-radius: 999px; background: #EEF3FF; color: var(--navy); font-size: 12px; font-weight: 700; }
+    .paid { margin-top: 14px; padding: 12px 16px; border-radius: 14px; background: #E9F8F0; border-left: 5px solid #14804A; }
+    .paid.no { background: #FFF4E5; border-left-color: #B54708; }
+    .paid small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .1em; color: #14804A; }
+    .paid.no small { color: #B54708; }
+    .paid b { font-size: 14px; }
     .foot { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
     .stub { background: linear-gradient(170deg, var(--navy), #1B3A8C); color: #fff; padding: 28px 22px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; gap: 16px; }
     .stub small { font-size: 10.5px; letter-spacing: .16em; font-weight: 800; opacity: .75; }
@@ -150,15 +156,16 @@ if ($r) {
         <?php if ($r['park_visit']): ?><span><i class="fa-solid fa-water"></i> <?= e(fees()['park_name']) ?> visit</span><?php endif; ?>
         <?php if ($r['mentorship']): ?><span><i class="fa-solid fa-people-arrows"></i> Mentorship &amp; Digital Bridge</span><?php endif; ?>
       </div>
+      <div class="paid<?= $valid ? '' : ' no' ?>"><small><?= e($payLabel) ?></small><b><?= e($payText) ?></b></div>
       <div class="foot">
         <span><i class="fa-solid fa-phone"></i> Support: <?= e(setting('contact_phone')) ?></span>
         <span>Present this ticket (printed or on your phone) at check-in.</span>
       </div>
     </div>
     <aside class="stub">
-      <div><small>REFERENCE</small><div class="ref"><?= e($r['reference']) ?></div></div>
+      <div><small>CODE NUMBER</small><div class="ref"><?= e($r['reference']) ?></div></div>
       <div id="qr" aria-label="Ticket QR code"></div>
-      <span class="stamp <?= $valid ? 'ok' : 'no' ?>"><i class="fa-solid <?= $valid ? 'fa-circle-check' : 'fa-clock' ?>"></i> <?= $valid ? 'CONFIRMED' : 'PENDING' ?></span>
+      <span class="stamp <?= $valid ? 'ok' : 'no' ?>"><i class="fa-solid <?= $valid ? 'fa-circle-check' : 'fa-clock' ?>"></i> <?= $valid ? 'SEAT CONFIRMED' : 'NOT YET VALID' ?></span>
     </aside>
   </article>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
