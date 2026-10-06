@@ -26,6 +26,17 @@ app_header('My dashboard', '../', 'portal');
   <div class="notice"><i class="fa-solid fa-key"></i> Create a password so you can log in from any device. <a href="profile.php#password">Create password</a></div>
 <?php endif; ?>
 
+<?php if (!$photo && empty($_SESSION['impersonated_by'])): ?>
+  <div class="app-card photo-reminder">
+    <span class="pr-icon"><i class="fa-solid fa-camera"></i></span>
+    <div>
+      <b>Add your photo for your camp ticket</b>
+      <p>Your photo is printed on your ticket and card, and staff use it to let you into the camp. Upload a recent, clear photo of your face — facing the camera, in good light, no sunglasses or filters.</p>
+    </div>
+    <a href="profile.php" class="btn btn-primary btn-sm"><i class="fa-solid fa-upload"></i> Upload my photo</a>
+  </div>
+<?php endif; ?>
+
 <section class="portal-hero">
   <div class="ph-left">
     <?php if ($photo): ?><img class="ph-avatar" src="<?= e($photo) ?>" alt=""><?php else: ?><span class="ph-avatar"><?= e(initials($r['full_name'])) ?></span><?php endif; ?>

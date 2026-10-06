@@ -336,3 +336,16 @@ b.ok, .ok-text { color: var(--green); }
   .ment-partner-logos figure { width: 100%; height: 80px; }
   .ment-partner-logos img { height: 44px; }
 }
+
+/* Photo guidance: the photo goes on the camp ticket */
+.photo-note { padding: 12px 14px; border-radius: 12px; background: var(--blue-50); border: 1px solid #D6E1FF; margin: 2px 0 6px; }
+.photo-note > b { color: var(--navy); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.photo-tips b { color: var(--ink); }
+.photo-note p { margin: 6px 0 8px; font-size: 13.5px; }
+.photo-tips { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.photo-tips i { color: var(--green); width: 16px; }
+.photo-reminder { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-color: #F8D98B; background: #FFFBF0; }
+.photo-reminder .pr-icon { width: 48px; height: 48px; flex-shrink: 0; display: grid; place-items: center; border-radius: 14px; background: #FFF0C2; color: #B54708; font-size: 20px; }
+.photo-reminder > div { flex: 1 1 260px; min-width: 0; }
+.photo-reminder b { color: var(--ink); }
+.photo-reminder p { margin: 4px 0 0; font-size: 14px; }

@@ -361,6 +361,7 @@ function tpl_ticket(array $r): array
     $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p>'
         . '<p>Your seat at <strong>Kakebe Tech Camp 2026</strong> is confirmed! 🎉 Here is your camp ticket — your pass for check-in.</p>'
         . kt_ticket_card($r)
+        . (photo_path($r['photo'] ?? null) ? '' : '<p style="padding:12px 14px;border-radius:10px;background:#FFF8E6;border:1px solid #F8D98B;color:#7A5200;font-size:14px;"><strong>📸 Add your photo:</strong> your ticket does not have a photo yet. Log in to your participant portal and upload a clear, recent photo of your face — it is printed on your ticket and staff use it to let you into the camp.</p>' . kt_btn('Upload my photo', base_url('portal/profile.php'), 'navy'))
         . kt_btn('Open my ticket online', ticket_url($r))
         . '<p style="font-size:13px;color:#6B7390;">Your ticket is also attached as a PDF. Show it on your phone or bring it printed to check-in in Kitgum (' . e(camp()['dates']) . ').</p>';
     return ['🎟️ Your Kakebe Tech Camp ticket — ' . $r['reference'] . ' · seat confirmed', kt_email('Camp Ticket', $inner, 'Your seat is confirmed — your camp ticket is inside')];

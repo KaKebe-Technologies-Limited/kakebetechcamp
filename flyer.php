@@ -37,6 +37,7 @@ app_header('My “I will be there” flyer');
           <label class="btn btn-primary btn-block flyer-upload" for="flyerPhoto"><i class="fa-solid fa-camera"></i> <span>Upload your photo</span></label>
           <input id="flyerPhoto" type="file" accept="image/*" hidden>
           <small class="muted"><i class="fa-solid fa-circle-info"></i> When you download or share, Kakebe Tech Camp keeps a copy of your finished flyer so we can feature it.</small>
+          <small class="muted"><i class="fa-solid fa-id-badge"></i> This photo is only for your flyer. The photo on your camp ticket is the one in <a href="portal/profile.php">your portal</a> — use a clear photo of your face there.</small>
         </div>
       </div>
 

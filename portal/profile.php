@@ -86,7 +86,7 @@ app_header('Edit profile', '../', 'portal');
 <section class="app-card" style="max-width:860px;margin:0 auto 22px;">
   <a href="./" class="small"><i class="fa-solid fa-arrow-left"></i> Back to my portal</a>
   <h1 style="margin-top:12px;">Edit your profile</h1>
-  <p class="muted">Keep your details up to date — your photo appears on your camp ticket.</p>
+  <p class="muted">Keep your details up to date — your photo appears on your camp ticket and card.</p>
   <?php if ($errors): ?><div class="form-alert"><?= e($errors['form'] ?? 'Please correct the highlighted fields.') ?></div><?php endif; ?>
 
   <form method="post" enctype="multipart/form-data">
@@ -94,7 +94,16 @@ app_header('Edit profile', '../', 'portal');
     <div class="photo-edit">
       <?php if ($photo): ?><img src="<?= e($photo) ?>" alt="Your photo"><?php else: ?><span class="ph-avatar"><?= e(initials($r['full_name'])) ?></span><?php endif; ?>
       <div class="field<?= $inv('photo') ?>" style="margin:0;flex:1;">
-        <label for="photo">Profile / passport photo</label>
+        <label for="photo">Your photo for the camp ticket</label>
+        <div class="photo-note">
+          <b><i class="fa-solid fa-id-badge"></i> Choose a good, clear photo</b>
+          <p>This photo is printed on your camp ticket and card. Staff use it to recognise you and let you into the camp, so make sure it clearly shows your face.</p>
+        <ul class="photo-tips">
+          <li><i class="fa-solid fa-check"></i> A recent photo of <b>your face only</b> — no group photos</li>
+          <li><i class="fa-solid fa-check"></i> Face the camera in <b>good light</b>, with a plain background</li>
+          <li><i class="fa-solid fa-check"></i> No sunglasses, caps, filters or stickers</li>
+        </ul>
+        </div>
         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
         <span class="hint">JPG, PNG or WEBP · max 3 MB</span><?= $err('photo') ?>
       </div>
