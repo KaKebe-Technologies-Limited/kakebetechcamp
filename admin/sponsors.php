@@ -184,7 +184,7 @@ admin_header('Sponsorships', 'sponsors', 'Sponsors, sponsored participants and s
         <tr>
           <td><b><?= e($d['donor_name']) ?></b><?= $d['is_anonymous'] ? ' <span class="tag">Anonymous</span>' : '' ?><small class="block muted"><?= e($d['organization'] ? $d['organization'] . ' · ' : '') ?><?= e($d['email']) ?> · <?= e($d['phone']) ?></small></td>
           <td><span class="ref"><?= e($d['reference']) ?></span></td>
-          <td><?= $d['children'] ? (int) $d['children'] : '<span class="muted">General</span>' ?></td>
+          <td><?= $d['children'] ? '<b>' . (int) $d['children'] . '</b><small class="block muted people-names">' . e(donation_people_label($d)) . '</small>' : '<span class="muted">General</span>' ?></td>
           <td><?= money_cell((int) $d['amount']) ?></td>
           <td><?= money_cell((int) $d['amount_paid']) ?></td>
           <td><?= txn_badge($d['status'] === 'paid' ? 'success' : $d['status']) ?></td>

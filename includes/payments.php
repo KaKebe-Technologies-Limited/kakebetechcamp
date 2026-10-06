@@ -353,6 +353,23 @@ function recompute_donation(int $id): void
     }
 }
 
+/** Names of the people a sponsor paid for (empty when they gave generally or let Kakebe choose). */
+function donation_people(array $d): array
+{
+    $names = json_decode((string) ($d['beneficiaries'] ?? ''), true);
+    return is_array($names) ? array_values(array_filter(array_map('strval', $names))) : [];
+}
+
+/** "Akello Grace, Okello Peter" — or what to show when there are no names. */
+function donation_people_label(array $d): string
+{
+    if (!(int) $d['children']) {
+        return 'General support';
+    }
+    $names = donation_people($d);
+    return $names ? implode(', ', $names) : 'Kakebe Tech Camp will choose';
+}
+
 /** Notify the team (always, with the payment copy list) and email the payer their PDF receipt (when $emailPayer). */
 function send_payment_emails(array $p, bool $emailPayer = true): void
 {

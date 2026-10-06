@@ -164,9 +164,30 @@
   $$(".js-sponsor").forEach((form) => {
     const per = digits(form.dataset.perChild);
     const rate = digits(form.dataset.usdRate) || 3750;
-    const kids = $("select[name=\"children\"]", form);
+    const kids = $("input[name=\"children\"]", form);
     const amount = $("input[name=\"amount\"]", form);
     const countWrap = $(".js-sponsor-count", form);
+    const peopleWrap = $(".js-people", form);
+    const list = $(".js-people-list", form);
+    const choose = $(".js-choose", form);
+    const sumEl = $(".js-count-sum", form);
+    const totalEl = $(".js-count-total", form);
+    const count = () => Math.max(1, Math.min(100, parseInt(kids.value, 10) || 1));
+    // One name box per person; names already typed are kept when the number changes
+    const renderPeople = () => {
+      const want = count();
+      const rows = $$(".person-row", list);
+      for (let i = rows.length; i < want; i++) {
+        const row = document.createElement("div");
+        row.className = "person-row";
+        row.innerHTML = "<span>" + (i + 1) + "</span><input type=\"text\" name=\"beneficiaries[]\" maxlength=\"120\" autocomplete=\"off\" placeholder=\"Full name of person " + (i + 1) + "\" aria-label=\"Full name of person " + (i + 1) + "\">";
+        list.appendChild(row);
+      }
+      rows.slice(want).forEach((r) => r.remove());
+      const off = isCustom() || (choose && choose.checked);
+      list.hidden = !!(choose && choose.checked);
+      $$("input", list).forEach((input) => { input.disabled = off; });
+    };
     const customWrap = $(".js-custom-amount", form);
     const label = $(".js-amt", form);
     const usdNotes = $$(".js-usd, .js-usd-inline", form);
@@ -181,12 +202,23 @@
       const custom = isCustom();
       countWrap.hidden = custom;
       customWrap.hidden = !custom;
-      kids.disabled = custom; // a disabled select is not sent, so the server uses the amount typed in
-      amount.value = custom ? customValue : ((parseInt(kids.value, 10) || 1) * per).toLocaleString("en-US");
+      if (peopleWrap) peopleWrap.hidden = custom;
+      kids.disabled = custom; // a disabled field is not sent, so the server uses the amount typed in
+      const n = count();
+      if (sumEl) sumEl.textContent = n + " × " + money(per);
+      if (totalEl) totalEl.textContent = money(n * per);
+      amount.value = custom ? customValue : (n * per).toLocaleString("en-US");
       show(digits(amount.value));
+      renderPeople();
     };
     $$("input[name=\"give_mode\"]", form).forEach((r) => r.addEventListener("change", () => { sync(); if (isCustom()) amount.focus(); }));
-    kids.addEventListener("change", sync);
+    kids.addEventListener("input", () => { if (kids.value !== "") sync(); });
+    kids.addEventListener("change", () => { kids.value = count(); sync(); });
+    $$(".step", form).forEach((b) => b.addEventListener("click", () => {
+      kids.value = Math.max(1, Math.min(100, count() + parseInt(b.dataset.step, 10)));
+      sync();
+    }));
+    if (choose) choose.addEventListener("change", renderPeople);
     amount.addEventListener("input", () => {
       const n = digits(amount.value);
       amount.value = n ? n.toLocaleString("en-US") : "";

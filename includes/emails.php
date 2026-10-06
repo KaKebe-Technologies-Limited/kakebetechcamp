@@ -237,12 +237,16 @@ function tpl_admin_payment(array $p, ?array $r, ?array $d): array
         '👤 From' => $who,
         '💰 Amount' => format_ugx($p['amount'], $p['currency']),
         '🎯 For' => $p['purpose'] === 'camp' ? 'Camp fees' : 'Sponsorship / donation',
-        '💳 Method' => (payment_methods()[$p['method']] ?? $p['method']) . ($p['provider'] === 'manual' ? ' (recorded manually)' : ' via ioTec'),
+        '💳 Method' => (payment_methods()[$p['method']] ?? $p['method']) . ($p['provider'] === 'manual' ? ' (recorded manually)' : ($p['provider'] === 'pesapal' ? ' via Pesapal' : ' via ioTec')),
         '🧾 Receipt' => receipt_no($p),
         '🔗 Transaction' => $p['provider_txn_id'],
     ];
     if ($r) {
         $rows['⏳ Balance'] = format_ugx(balance($r), $p['currency']) . ' · ' . (statuses()[$r['status']] ?? $r['status']);
+    }
+    if ($d && (int) $d['children']) {
+        $rows['🌟 Innovators'] = (string) (int) $d['children'];
+        $rows['👥 Paying for'] = donation_people_label($d);
     }
     $link = $r ? base_url('admin/view.php?id=' . $r['id']) : base_url('admin/sponsors.php');
     $inner = '<p><strong>Hi Team,</strong></p><p>A payment has just been completed. 💸</p>' . kt_detail($rows) . kt_btn('Open in control panel', $link, 'navy');
@@ -257,6 +261,7 @@ function tpl_donation_thanks(array $d, array $p): array
             '🧾 Receipt No' => receipt_no($p),
             '🆔 Reference' => $d['reference'],
             '🌟 Innovators sponsored' => $d['children'] ? (string) $d['children'] : 'General support',
+            '👥 Paying for' => $d['children'] ? donation_people_label($d) : '',
             '🏢 Organisation' => $d['organization'],
         ], 'green')
         . '<p>Your support gives young people from Northern Uganda 10 days of hands-on learning in AI, software, content creation, entrepreneurship, gaming and robotics. We will share updates and photos from camp with you.</p>';
@@ -266,7 +271,7 @@ function tpl_donation_thanks(array $d, array $p): array
 function tpl_admin_donation_pledge(array $d): array
 {
     $inner = '<p><strong>Hi Team,</strong></p><p>A new sponsor has started a pledge on the website.</p>'
-        . kt_detail(['👤 Sponsor' => $d['donor_name'], '🏢 Organisation' => $d['organization'], '📧 Email' => $d['email'], '📞 Phone' => $d['phone'], '🌟 Innovators' => $d['children'] ?: 'General', '💰 Amount' => format_ugx($d['amount']), '💬 Message' => $d['message']])
+        . kt_detail(['👤 Sponsor' => $d['donor_name'], '🏢 Organisation' => $d['organization'], '📧 Email' => $d['email'], '📞 Phone' => $d['phone'], '🌟 Innovators' => $d['children'] ?: 'General', '👥 Paying for' => $d['children'] ? donation_people_label($d) : '', '💰 Amount' => format_ugx($d['amount']), '💬 Message' => $d['message']])
         . kt_btn('Open sponsorships', base_url('admin/sponsors.php'), 'navy');
     return ['🤝 New sponsorship pledge — ' . $d['donor_name'], kt_email('Sponsorship Pledge', $inner)];
 }

@@ -567,3 +567,21 @@
 .amount-chip { padding: 7px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink); cursor: pointer; transition: .15s; }
 .amount-chip:hover { border-color: #F3B4B4; }
 .amount-chip.active { border-color: var(--red); background: #FFF7F7; color: var(--red); }
+
+/* Sponsor form: paying for several named people */
+.count-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 18px; }
+.stepper { display: inline-flex; align-items: stretch; border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+.stepper .step { width: 44px; border: 0; background: #F6F7FB; color: var(--ink); font-size: 14px; cursor: pointer; transition: background .15s, color .15s; }
+.stepper .step:hover { background: #FFF1F1; color: var(--red); }
+.stepper input { width: 64px; border: 0; border-inline: 1.5px solid var(--line); text-align: center; font: inherit; font-size: 18px; font-weight: 800; color: var(--ink); padding: 10px 4px; -moz-appearance: textfield; appearance: textfield; background: #fff; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper input:focus { outline: none; box-shadow: inset 0 0 0 2px rgba(225, 29, 42, .25); }
+.count-total { margin: 0; font-size: 15px; color: var(--body); }
+.count-total b { color: var(--red); font-size: 18px; }
+.people-list { display: grid; gap: 8px; max-height: 330px; overflow-y: auto; padding-right: 2px; }
+.person-row { display: flex; align-items: center; gap: 10px; }
+.person-row > span { width: 28px; height: 28px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: #FFF1F1; color: var(--red); font-size: 13px; font-weight: 800; }
+.person-row input { flex: 1; min-width: 0; }
+.choose-check { margin-top: 10px !important; font-size: 13.5px; }
+.field .stepper input, .field .stepper input:focus { width: 64px; height: auto; margin: 0; padding: 10px 4px; border: 0; border-inline: 1.5px solid var(--line); border-radius: 0; background: #fff; box-shadow: none; text-align: center; font-size: 18px; font-weight: 800; }
+.field .stepper input:focus-visible { box-shadow: inset 0 0 0 2px rgba(225, 29, 42, .3); }

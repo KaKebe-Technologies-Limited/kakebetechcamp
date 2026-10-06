@@ -33,9 +33,9 @@ if ($type === 'participants') {
             payment_methods()[$p['method']] ?? $p['method'], $p['provider'], $p['status'], $p['provider_txn_id'], $p['external_id'], $p['notes'] ?: $p['message']]);
     }
 } else {
-    $write(['Reference', 'Sponsor', 'Organisation', 'Email', 'Phone', 'Innovators sponsored', 'Pledged (UGX)', 'Received (UGX)', 'Status', 'Anonymous', 'Message', 'Date']);
+    $write(['Reference', 'Sponsor', 'Organisation', 'Email', 'Phone', 'Innovators sponsored', 'Paying for', 'Pledged (UGX)', 'Received (UGX)', 'Status', 'Anonymous', 'Message', 'Date']);
     foreach (q('SELECT * FROM donations ORDER BY id') as $d) {
-        $write([$d['reference'], $d['donor_name'], $d['organization'], $d['email'], $d['phone'], $d['children'], $d['amount'], $d['amount_paid'], $d['status'], $d['is_anonymous'] ? 'Yes' : 'No', $d['message'], $d['created_at']]);
+        $write([$d['reference'], $d['donor_name'], $d['organization'], $d['email'], $d['phone'], $d['children'], $d['children'] ? donation_people_label($d) : '', $d['amount'], $d['amount_paid'], $d['status'], $d['is_anonymous'] ? 'Yes' : 'No', $d['message'], $d['created_at']]);
     }
 }
 fclose($out);

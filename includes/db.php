@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 15;
+const SCHEMA_VERSION = 16;
 
 function db(): PDO
 {
@@ -96,6 +96,10 @@ function migrate(PDO $pdo): void
                 $pdo->exec("ALTER TABLE payments ADD COLUMN `$col` $def");
             }
         }
+    }
+    if ($version >= 1 && !column_exists($pdo, 'donations', 'beneficiaries')) {
+        // v16: the names of the people a sponsor pays for
+        $pdo->exec('ALTER TABLE donations ADD COLUMN beneficiaries TEXT NULL AFTER children');
     }
     if ($version >= 12 && !column_exists($pdo, 'mentorship_registrations', 'referred_by')) {
         // v15: who recommended them for the Mentorship Program & DBIP
@@ -268,6 +272,7 @@ function schema_statements(): array
             phone        VARCHAR(40) NOT NULL,
             organization VARCHAR(150) NULL,
             children     INT UNSIGNED NOT NULL DEFAULT 0,
+            beneficiaries TEXT NULL,
             amount       INT UNSIGNED NOT NULL,
             amount_paid  INT UNSIGNED NOT NULL DEFAULT 0,
             message      TEXT NULL,

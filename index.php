@@ -873,10 +873,23 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
               </div>
             </div>
             <div class="field full js-sponsor-count">
-              <label for="s_children">Number of innovators</label>
-              <select id="s_children" name="children">
-                <?php foreach ([1, 2, 3, 4, 5, 10, 20] as $k): ?><option value="<?= $k ?>"><?= $k ?> innovator<?= $k > 1 ? 's' : '' ?> — <?= e(format_ugx($k * $f['sponsor_child'])) ?> (about $<?= number_format(approx_usd($k * $f['sponsor_child'])) ?>)</option><?php endforeach; ?>
-              </select>
+              <label for="s_children">How many people are you paying for?</label>
+              <div class="count-row">
+                <div class="stepper">
+                  <button type="button" class="step" data-step="-1" aria-label="One person fewer"><i class="fa-solid fa-minus"></i></button>
+                  <input id="s_children" name="children" type="number" min="1" max="100" step="1" value="1" inputmode="numeric" aria-describedby="s_total">
+                  <button type="button" class="step" data-step="1" aria-label="One person more"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <p class="count-total" id="s_total" aria-live="polite"><span class="js-count-sum">1 × <?= e(format_ugx($f['sponsor_child'])) ?></span> = <b class="js-count-total"><?= e(format_ugx($f['sponsor_child'])) ?></b></p>
+              </div>
+            </div>
+            <div class="field full js-people">
+              <label>Names of the people you're paying for <span class="req">*</span></label>
+              <div class="people-list js-people-list">
+                <div class="person-row"><span>1</span><input type="text" name="beneficiaries[]" maxlength="120" placeholder="Full name of person 1" autocomplete="off" aria-label="Full name of person 1"></div>
+              </div>
+              <label class="check choose-check"><input type="checkbox" name="choose_for_me" value="1" class="js-choose"><span>I don't have names — let Kakebe Tech Camp choose young people who need support</span></label>
+              <span class="err" data-err="beneficiaries"></span>
             </div>
             <div class="field full js-custom-amount" hidden>
               <label for="s_amount">Amount you'd like to give (UGX)</label>

@@ -313,8 +313,28 @@ function receipt_pdf(array $p): string
             ['Sponsor', $d['is_anonymous'] ? $d['donor_name'] . ' (listed as anonymous)' : $d['donor_name']],
             ['Organisation', $d['organization'] ?: '—'],
             ['Innovators sponsored', $d['children'] ? (string) $d['children'] : 'General support'],
-            ['Pledged amount', format_ugx($d['amount'], $cur)],
         ];
+        if ($d['children']) {
+            // "Paying for": as many rows as the names need (up to 9, so the receipt stays on one page)
+            $people = donation_people($d) ?: [donation_people_label($d)];
+            $lines = [[]];
+            foreach ($people as $person) {
+                $current = implode(', ', end($lines));
+                if ($current !== '' && $pdf->textWidth($current . ', ' . $person, 10.5, true) > 325) {
+                    $lines[] = [];
+                }
+                $lines[count($lines) - 1][] = $person;
+            }
+            if (count($lines) > 9) {
+                $lines = array_slice($lines, 0, 8);
+                $shown = array_sum(array_map('count', $lines));
+                $lines[] = ['…and ' . (count($people) - $shown) . ' more (full list in your email)'];
+            }
+            foreach ($lines as $i => $names) {
+                $rows[] = [$i === 0 ? 'Paying for' : '', implode(', ', $names) . ($i < count($lines) - 1 && !str_starts_with($lines[$i + 1][0], '…') ? ',' : '')];
+            }
+        }
+        $rows[] = ['Pledged amount', format_ugx($d['amount'], $cur)];
         foreach ($rows as $i => [$label, $val]) {
             $pdf->fill($i % 2 ? [255, 255, 255] : $soft);
             $pdf->rect(36, $y, 523, 26);
