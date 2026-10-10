@@ -196,7 +196,7 @@ function tpl_admin_volunteer(array $v): array
             '📞 Phone' => "<a href='" . e(tel_link($v['phone'])) . "' style='color:#0F2557;font-weight:700;'>" . e($v['phone']) . "</a> · <a href='https://wa.me/" . e(intl_digits($v['phone'])) . "' style='color:#128C7E;font-weight:700;'>WhatsApp</a>",
             '📍 Based in' => $v['location'] . ($v['nationality'] ? ' · ' . $v['nationality'] : ''),
             '🎯 Fields' => str_replace(',', ', ', (string) $v['fields']),
-            '🎓 Qualification' => $v['qualification'] . ' in ' . $v['course'] . ' — ' . $v['institution'] . ' (' . $v['grad_year'] . ')',
+            '🎓 Qualification' => $v['qualification'] . ' · ' . $v['course'] . ' — ' . $v['institution'] . ' (' . $v['grad_year'] . ')',
             '💼 Experience' => $v['experience'] . ($v['job_role'] ? ' · ' . $v['job_role'] : ''),
             '📅 Availability' => volunteer_availability_options()[$v['availability']] ?? $v['availability'],
             '🔗 LinkedIn / portfolio' => $v['portfolio_url'] ?? '',
