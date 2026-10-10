@@ -63,6 +63,21 @@ if (($_GET['export'] ?? '') === '1') {
 /* ---------- Bulk status / settings ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
+    // Thank one applicant (the row / page button): emails them; the browser opens WhatsApp
+    if (($_POST['action'] ?? '') === 'thank_one') {
+        $v = find_volunteer((int) ($_POST['id'] ?? 0));
+        if (!$v) {
+            json_response(['ok' => false, 'message' => 'Volunteer not found.'], 404);
+        }
+        $ok = send_volunteer_thanks($v, $err);
+        json_response(['ok' => true, 'emailed' => $ok, 'message' => $ok ? 'Thank-you emailed to ' . $v['email'] . '.' . mail_note() : 'The thank-you email was not sent: ' . $err]);
+    }
+    if (($_POST['action'] ?? '') === 'thanks_message') {
+        $msg = trim((string) ($_POST['volunteer_thanks_message'] ?? ''));
+        setting_set('volunteer_thanks_message', $msg === trim(volunteer_thanks_default()) ? '' : mb_substr($msg, 0, 2000));
+        flash('Thank-you message saved.');
+        redirect('volunteers.php#thanks');
+    }
     $back = 'volunteers.php' . (!empty($_POST['return']) && str_starts_with((string) $_POST['return'], '?') ? $_POST['return'] : '');
     if (($_POST['action'] ?? '') === 'open') {
         setting_set('volunteers_open', !empty($_POST['volunteers_open']) ? '1' : '0');
@@ -71,6 +86,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
     $to = (string) ($_POST['bulk_action'] ?? '');
+    if ($ids && $to === 'thank') {
+        $sent = 0;
+        foreach ($ids as $id) {
+            if ($v = find_volunteer($id)) {
+                $sent += send_volunteer_thanks($v) ? 1 : 0;
+            }
+        }
+        flash('Thank-you emailed to ' . $sent . ' volunteer' . ($sent === 1 ? '' : 's') . '.' . mail_note());
+        redirect($back);
+    }
     if (!$ids || !isset($statuses[$to])) {
         flash('Select at least one volunteer and a status.', 'error');
         redirect($back);
@@ -124,6 +149,14 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
   </section>
 </div>
 
+<section class="card" id="thanks">
+  <div class="card-head"><h3><i class="fa-solid fa-hands-praying"></i> Thank-you message</h3><span class="muted small">sent by email and WhatsApp with the Thank button</span></div>
+  <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="thanks_message">
+    <label>Message from Moses Komakech, Head of Comms <small class="muted">use {full_name}, {first_name}, {reference}, {fields}</small><textarea name="volunteer_thanks_message" rows="9"><?= e(trim((string) setting('volunteer_thanks_message')) ?: volunteer_thanks_default()) ?></textarea></label>
+    <div><button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save message</button></div>
+  </form>
+</section>
+
 <div class="tabs big">
   <a href="<?= e($url(['status' => null, 'page' => null])) ?>" class="<?= $f['status'] === '' ? 'active' : '' ?>">All <em><?= number_format($all) ?></em></a>
   <?php foreach ($statuses as $k => $label): ?><a href="<?= e($url(['status' => $k, 'page' => null])) ?>" class="<?= $f['status'] === $k ? 'active' : '' ?>"><?= e($label) ?> <em><?= number_format((int) ($counts[$k] ?? 0)) ?></em></a><?php endforeach; ?>
@@ -144,8 +177,9 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
     <h3><?= number_format($total) ?> volunteer<?= $total === 1 ? '' : 's' ?></h3>
     <div class="bulk">
       <select name="bulk_action" id="bulkAction">
-        <option value="">Mark selected as…</option>
-        <?php foreach ($statuses as $k => $label): ?><option value="<?= e($k) ?>"><?= e($label) ?></option><?php endforeach; ?>
+        <option value="">Choose an action…</option>
+        <option value="thank">Send the thank-you email</option>
+        <?php foreach ($statuses as $k => $label): ?><option value="<?= e($k) ?>">Mark as: <?= e($label) ?></option><?php endforeach; ?>
       </select>
       <button class="btn btn-primary btn-sm" type="submit" id="bulkApply" disabled>Apply</button>
       <a href="<?= e($url(['export' => 1, 'page' => null])) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> Export</a>
@@ -168,8 +202,10 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
           <td><span class="badge <?= $badge[$v['status']] ?? '' ?>"><?= e($statuses[$v['status']] ?? $v['status']) ?></span></td>
           <td class="nowrap muted"><?= e(date('j M, g:i a', strtotime($v['created_at']))) ?></td>
           <td class="nowrap row-actions">
+            <button type="button" class="btn btn-sm btn-ticket js-vol-thank<?= $v['thanked_at'] ? ' done' : '' ?>" data-id="<?= (int) $v['id'] ?>" data-wa="<?= e(volunteer_whatsapp_thanks_link($v)) ?>" title="Emails the thank-you from Moses Komakech and opens WhatsApp with it typed"><i class="fa-solid fa-hands-praying"></i> <?= $v['thanked_at'] ? 'Thanked' : 'Thank' ?></button>
             <?php if (volunteer_cv_path($v)): ?><a class="btn btn-light btn-sm" href="volunteers.php?cv=<?= (int) $v['id'] ?>"><i class="fa-solid fa-file-arrow-down"></i> CV</a><?php endif; ?>
             <a class="btn btn-light btn-sm" href="volunteer.php?id=<?= (int) $v['id'] ?>"><i class="fa-regular fa-eye"></i> View</a>
+            <?php if ($v['thanked_at']): ?><small class="block muted reminded-note">Thanked <?= e(time_ago($v['thanked_at'])) ?></small><?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>

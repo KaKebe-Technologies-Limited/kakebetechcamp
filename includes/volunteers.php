@@ -116,6 +116,59 @@ function volunteer_cv_name(array $v): string
     return $slug . '-CV.' . strtolower(pathinfo((string) $v['cv_file'], PATHINFO_EXTENSION));
 }
 
+/** Default thank-you from the Head of Comms (Admin → Volunteer trainers can change it). */
+function volunteer_thanks_default(): string
+{
+    return "Dear {full_name},\n\n"
+        . "Thank you for applying to volunteer as a trainer at Kakebe Tech Camp 2026, and for your interest in sharing your skills with young innovators from across Uganda. 🙏\n\n"
+        . "We have received your application ({reference}). Our team will carefully review it and get back to you soon.\n\n"
+        . "Warm regards,\n"
+        . "Moses Komakech\n"
+        . "Head of Comms, Kakebe Tech Camp";
+}
+
+/** The thank-you message for one applicant, with their full name and details filled in. */
+function volunteer_thanks_message(array $v): string
+{
+    $tpl = trim((string) setting('volunteer_thanks_message')) ?: volunteer_thanks_default();
+    return strtr($tpl, [
+        '{full_name}'  => trim($v['full_name']),
+        '{first_name}' => explode(' ', trim($v['full_name']))[0],
+        '{reference}'  => $v['reference'],
+        '{fields}'     => str_replace(',', ', ', (string) $v['fields']),
+        '{camp_dates}' => camp()['dates'],
+    ]);
+}
+
+/** WhatsApp chat with the applicant, the thank-you already typed. */
+function volunteer_whatsapp_thanks_link(array $v): string
+{
+    return 'https://wa.me/' . intl_digits((string) $v['phone']) . '?text=' . rawurlencode(volunteer_thanks_message($v));
+}
+
+/** One-click link in the team email that sends the thank-you email. */
+function volunteer_thanks_url(array $v): string
+{
+    return base_url('api/volunteer-thanks.php?id=' . (int) $v['id'] . '&t=' . sign('volunteer-thanks', (string) $v['id']));
+}
+
+function tpl_volunteer_thanks(array $v): array
+{
+    $paragraphs = array_map(fn($p) => '<p>' . nl2br(e($p)) . '</p>', preg_split('/\R{2,}/', volunteer_thanks_message($v)));
+    return ['Thank you for applying to volunteer — Kakebe Tech Camp 2026', kt_email('Volunteer Trainers', implode('', $paragraphs), 'Thank you for your interest in training at Kakebe Tech Camp 2026')];
+}
+
+/** Email the thank-you to the applicant and note when it was sent. */
+function send_volunteer_thanks(array $v, ?string &$error = null): bool
+{
+    [$s, $h] = tpl_volunteer_thanks($v);
+    $ok = send_mail($v['email'], $s, $h, setting('contact_email') ?: null, $error);
+    if ($ok) {
+        db()->prepare('UPDATE volunteers SET thanked_at = ? WHERE id = ?')->execute([now(), $v['id']]);
+    }
+    return $ok;
+}
+
 /** Thank-you email to the applicant. */
 function tpl_volunteer_received(array $v): array
 {
@@ -150,6 +203,10 @@ function tpl_admin_volunteer(array $v): array
             '🤝 Recommended by' => $v['referred_by'] ?? '',
             '💬 About them' => $v['bio'],
         ], '', ['📞 Phone'])
+        . '<p style="text-align:center;font-weight:700;margin:22px 0 0;">Thank ' . first_name($v['full_name']) . ' for applying (from Moses Komakech, Head of Comms):</p>'
+        . kt_btn('💬 Thank on WhatsApp', volunteer_whatsapp_thanks_link($v), 'whatsapp')
+        . kt_btn('✉️ Send the thank-you email', volunteer_thanks_url($v))
+        . "<p style='text-align:center;font-size:13px;color:#6B7390;margin-top:-12px;'>WhatsApp opens with the message already typed — just press send. The email button sends it straight to their inbox.</p>"
         . kt_btn('Open in control panel', base_url('admin/volunteer.php?id=' . (int) $v['id']), 'navy');
     return ['🧑‍🏫 Volunteer trainer application — ' . $v['full_name'] . ' (' . $v['reference'] . ')', kt_email('Volunteer Trainers', $inner)];
 }

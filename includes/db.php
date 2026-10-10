@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 19;
+const SCHEMA_VERSION = 20;
 
 function db(): PDO
 {
@@ -103,6 +103,10 @@ function migrate(PDO $pdo): void
     if ($version >= 1 && !column_exists($pdo, 'donations', 'beneficiaries')) {
         // v16: the names of the people a sponsor pays for
         $pdo->exec('ALTER TABLE donations ADD COLUMN beneficiaries TEXT NULL AFTER children');
+    }
+    if ($version >= 19 && !column_exists($pdo, 'volunteers', 'thanked_at')) {
+        // v20: when the volunteer applicant was thanked (email / WhatsApp from Moses)
+        $pdo->exec('ALTER TABLE volunteers ADD COLUMN thanked_at DATETIME NULL AFTER status');
     }
     if ($version >= 12 && !column_exists($pdo, 'mentorship_registrations', 'referred_by')) {
         // v15: who recommended them for the Mentorship Program & DBIP
@@ -508,6 +512,7 @@ function schema_statements(): array
             cv_file       VARCHAR(80) NOT NULL,
             cv_size       INT UNSIGNED NOT NULL DEFAULT 0,
             status        VARCHAR(16) NOT NULL DEFAULT 'new',
+            thanked_at    DATETIME NULL,
             admin_notes   TEXT NULL,
             ip            VARCHAR(45) NULL,
             created_at    DATETIME NOT NULL,

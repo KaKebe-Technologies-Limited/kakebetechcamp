@@ -40,6 +40,7 @@ admin_header($v['full_name'], 'volunteers', 'Volunteer trainer application ' . $
 <section class="card vol-head">
   <div class="person"><span class="av ini"><?= e(initials($v['full_name'])) ?></span><div><b><?= e($v['full_name']) ?></b><small><?= e($v['reference']) ?> · <span class="badge <?= $badge[$v['status']] ?? '' ?>"><?= e($statuses[$v['status']] ?? $v['status']) ?></span></small></div></div>
   <div class="actions">
+    <button type="button" class="btn btn-sm btn-ticket js-vol-thank<?= $v['thanked_at'] ? ' done' : '' ?>" data-id="<?= (int) $v['id'] ?>" data-wa="<?= e(volunteer_whatsapp_thanks_link($v)) ?>" title="Emails the thank-you from Moses Komakech and opens WhatsApp with it typed"><i class="fa-solid fa-hands-praying"></i> <?= $v['thanked_at'] ? 'Thanked · send again' : 'Thank for applying' ?></button>
     <?php if ($cv): ?>
       <?php if (str_ends_with($v['cv_file'], '.pdf')): ?><a class="btn btn-light btn-sm" href="volunteers.php?cv=<?= (int) $v['id'] ?>&amp;view=1" target="_blank"><i class="fa-regular fa-eye"></i> View CV</a><?php endif; ?>
       <a class="btn btn-primary btn-sm" href="volunteers.php?cv=<?= (int) $v['id'] ?>"><i class="fa-solid fa-file-arrow-down"></i> Download CV</a>
@@ -47,6 +48,7 @@ admin_header($v['full_name'], 'volunteers', 'Volunteer trainer application ' . $
     <a class="btn btn-light btn-sm" href="mailto:<?= e($v['email']) ?>"><i class="fa-regular fa-envelope"></i> Email</a>
     <a class="btn btn-light btn-sm" href="<?= e(tel_link($v['phone'])) ?>"><i class="fa-solid fa-phone"></i> Call</a>
     <a class="btn btn-light btn-sm" href="<?= e($wa) ?>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+    <?php if ($v['thanked_at']): ?><small class="muted ticket-sent"><i class="fa-solid fa-check"></i> Thanked <?= e(time_ago($v['thanked_at'])) ?></small><?php endif; ?>
   </div>
 </section>
 

@@ -148,6 +148,35 @@
     }
   }));
 
+  // Thank a volunteer applicant: emails them and opens WhatsApp with the message typed
+  $$(".js-vol-thank").forEach((btn) => btn.addEventListener("click", async () => {
+    const label = btn.innerHTML;
+    if (btn.dataset.wa) window.open(btn.dataset.wa, "_blank", "noopener"); // must happen inside the click, or browsers block it
+    btn.disabled = true;
+    btn.innerHTML = "<i class=\"fa-solid fa-spinner fa-spin\"></i> Sending…";
+    try {
+      const fd = new FormData();
+      fd.set("action", "thank_one");
+      fd.set("id", btn.dataset.id);
+      fd.set("csrf", ($("input[name=csrf]") || {}).value || "");
+      const res = await fetch("volunteers.php", { method: "POST", body: fd, credentials: "same-origin", headers: { "X-Requested-With": "fetch" } });
+      const json = await res.json();
+      if (json.ok && json.emailed) {
+        btn.innerHTML = "<i class=\"fa-solid fa-check\"></i> Thanked";
+        btn.classList.add("done");
+        btn.title = json.message;
+      } else {
+        btn.innerHTML = label;
+        alert(json.message || "The thank-you email could not be sent.");
+      }
+    } catch (_) {
+      btn.innerHTML = label;
+      alert("The thank-you email was not sent (network or session problem). Refresh the page and try again.");
+    } finally {
+      btn.disabled = false;
+    }
+  }));
+
   // Email one participant their ticket (card + PDF)
   $$(".js-ticket").forEach((btn) => btn.addEventListener("click", async () => {
     const label = btn.innerHTML;
