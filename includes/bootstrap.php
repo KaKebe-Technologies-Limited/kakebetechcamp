@@ -76,6 +76,7 @@ require ROOT . '/includes/pesapal.php';
 require ROOT . '/includes/spreadsheet.php';
 require ROOT . '/includes/marketing.php';
 require ROOT . '/includes/mentorship.php';
+require ROOT . '/includes/volunteers.php';
 require ROOT . '/includes/google.php';
 require ROOT . '/includes/analytics.php';
 require ROOT . '/includes/traffic.php';

@@ -191,7 +191,7 @@ function traffic_top(string $what, int $days, int $limit = 8): array
 function traffic_page_name(string $path): string
 {
     $names = [
-        '/' => 'Home page', '/mentorship' => 'Mentorship registration', '/mentorship.php' => 'Mentorship registration', '/pay.php' => 'My registration / pay', '/flyer.php' => 'Flyer maker',
+        '/' => 'Home page', '/mentorship' => 'Mentorship registration', '/volunteers' => 'Volunteer trainers', '/volunteers.php' => 'Volunteer trainers', '/mentorship.php' => 'Mentorship registration', '/pay.php' => 'My registration / pay', '/flyer.php' => 'Flyer maker',
         '/ticket.php' => 'Camp ticket', '/receipt.php' => 'Receipt', '/payment-return.php' => 'Payment result', '/portal/' => 'Participant portal: home',
         '/portal/login.php' => 'Participant portal: log in', '/portal/profile.php' => 'Participant portal: profile', '/api/mk-unsubscribe.php' => 'Email unsubscribe',
     ];

@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 18;
+const SCHEMA_VERSION = 19;
 
 function db(): PDO
 {
@@ -481,6 +481,39 @@ function schema_statements(): array
             created_at DATETIME NOT NULL,
             KEY idx_type_time (type, created_at),
             KEY idx_time (created_at)
+        ) $t",
+
+        // v19: volunteer trainers (applications with a CV)
+        "CREATE TABLE IF NOT EXISTS volunteers (
+            id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            reference     VARCHAR(20) NULL UNIQUE,
+            full_name     VARCHAR(150) NOT NULL,
+            email         VARCHAR(190) NOT NULL UNIQUE,
+            phone         VARCHAR(40) NOT NULL,
+            gender        VARCHAR(30) NULL,
+            dob           DATE NOT NULL,
+            nationality   VARCHAR(80) NULL,
+            location      VARCHAR(120) NOT NULL,
+            qualification VARCHAR(60) NOT NULL,
+            course        VARCHAR(150) NOT NULL,
+            institution   VARCHAR(150) NOT NULL,
+            grad_year     SMALLINT UNSIGNED NOT NULL,
+            fields        VARCHAR(255) NOT NULL,
+            experience    VARCHAR(40) NOT NULL,
+            job_role      VARCHAR(150) NULL,
+            portfolio_url VARCHAR(255) NULL,
+            bio           TEXT NOT NULL,
+            availability  VARCHAR(10) NOT NULL,
+            referred_by   VARCHAR(150) NULL,
+            cv_file       VARCHAR(80) NOT NULL,
+            cv_size       INT UNSIGNED NOT NULL DEFAULT 0,
+            status        VARCHAR(16) NOT NULL DEFAULT 'new',
+            admin_notes   TEXT NULL,
+            ip            VARCHAR(45) NULL,
+            created_at    DATETIME NOT NULL,
+            updated_at    DATETIME NULL,
+            KEY idx_status (status),
+            KEY idx_ip (ip, created_at)
         ) $t",
 
         // v14: "I will be there" flyers people made — kept so the team can reuse them

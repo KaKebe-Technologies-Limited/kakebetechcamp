@@ -349,3 +349,22 @@ b.ok, .ok-text { color: var(--green); }
 .photo-reminder > div { flex: 1 1 260px; min-width: 0; }
 .photo-reminder b { color: var(--ink); }
 .photo-reminder p { margin: 4px 0 0; font-size: 14px; }
+
+/* Volunteer trainers */
+.vol-fields { max-width: 1140px; margin: 0 auto 26px; padding: 18px 22px; background: #fff; border: 1px solid var(--line); border-radius: 22px; text-align: center; }
+.vol-fields > p { margin: 0 0 12px; font-size: 12.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.vol-fields > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.vol-fields span { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-weight: 700; font-size: 14px; color: var(--ink); }
+.vol-fields i { color: var(--red); }
+.vol-form { max-width: 880px; }
+.vol-step { display: flex; align-items: center; gap: 10px; margin: 26px 0 14px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 17px; }
+.vol-step:first-of-type { border-top: 0; padding-top: 0; margin-top: 18px; }
+.vol-step span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--navy); color: #fff; font-size: 13px; font-weight: 800; }
+.cv-drop { display: flex !important; align-items: center; gap: 12px; padding: 16px 18px; border: 2px dashed var(--line); border-radius: 14px; background: var(--soft); cursor: pointer; font-weight: 600 !important; color: var(--body) !important; transition: border-color .2s, background .2s; }
+.cv-drop:hover { border-color: var(--red); }
+.cv-drop i { font-size: 22px; color: var(--red); }
+.cv-drop.picked { border-color: var(--green); background: var(--green-50); color: var(--ink) !important; }
+.cv-drop.picked i { color: var(--green); }
+.cv-drop.too-big { border-color: #E5484D; background: #FFF7F7; }
+#v_cv { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.field.invalid .cv-drop { border-color: #E5484D; }

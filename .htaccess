@@ -15,6 +15,15 @@ DirectoryIndex index.php
   RewriteCond %{REQUEST_URI} ^(.*)/mentorship\.php$
   RewriteRule ^mentorship\.php$ %1/mentorship [R=301,L,QSA]
   RewriteRule ^mentorship$ mentorship.php [L,QSA]
+
+  # Short link for volunteer trainers: /volunteers
+  RewriteCond %{REQUEST_URI} ^(.*)/volunteers/$
+  RewriteRule ^volunteers/$ %1/volunteers [R=301,L]
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} \s[^?\s]*/volunteers\.php[\s?]
+  RewriteCond %{REQUEST_URI} ^(.*)/volunteers\.php$
+  RewriteRule ^volunteers\.php$ %1/volunteers [R=301,L,QSA]
+  RewriteRule ^volunteers$ volunteers.php [L,QSA]
 </IfModule>
 
 <IfModule mod_headers.c>

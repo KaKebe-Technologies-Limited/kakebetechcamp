@@ -317,6 +317,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     $pending = (int) db()->query("SELECT COUNT(*) FROM registrations WHERE status = 'review'")->fetchColumn();
     $unread = (int) db()->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
     $pendingPay = (int) db()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
+    $newVolunteers = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE status = 'new'")->fetchColumn();
     $groups = [
         'Overview' => [
             'dashboard' => ['index.php', 'fa-gauge-high', 'Dashboard', 0],
@@ -327,6 +328,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'mentorship'    => ['mentorship.php', 'fa-handshake-angle', 'Mentorship & DBIP', 0],
             'flyers'        => ['flyers.php', 'fa-image-portrait', '“I will be there” flyers', 0],
             'verify'        => ['verify.php', 'fa-qrcode', 'Verify tickets', 0],
+            'volunteers'    => ['volunteers.php', 'fa-person-chalkboard', 'Volunteer trainers', $newVolunteers],
             'messages'      => ['messages.php', 'fa-envelope', 'Messages', $unread],
         ],
         'Finance' => [

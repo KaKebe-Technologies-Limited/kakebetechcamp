@@ -698,3 +698,12 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
   .verify-grid { grid-template-columns: 1fr; }
   .verify-banner b { font-size: 18px; }
 }
+
+/* ---------- Volunteer trainers ---------- */
+.vol-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.vol-head .person b { font-size: 20px; }
+.vol-head .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.vol-tags { margin-bottom: 10px; }
+.sub-title { font-size: 15px; margin: 18px 0 8px; }
+.vol-bio { margin: 0; white-space: normal; line-height: 1.65; }
+.vol-status { display: flex; flex-wrap: wrap; gap: 8px; }
