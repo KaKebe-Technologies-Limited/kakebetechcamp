@@ -117,7 +117,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
   <section class="card">
     <div class="card-head"><h3><i class="fa-solid fa-share-nodes"></i> Share &amp; settings</h3></div>
     <div class="copy-field"><input type="text" value="<?= e(base_url('volunteers')) ?>" readonly onclick="this.select()"><a class="btn btn-light btn-sm" href="<?= e(base_url('volunteers')) ?>" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i></a></div>
-    <p class="small muted">Requirements on the page: ages 22 – 40, at least a Bachelor's degree in the field, CV attached. Accommodation, travel and allowances are provided.</p>
+    <p class="small muted">Requirements on the page: ages 22 – 40, at least a Diploma in the field, CV attached. Accommodation, travel and allowances are provided.</p>
     <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="open">
       <label class="switch"><input type="checkbox" name="volunteers_open" value="1" <?= $open ? 'checked' : '' ?> onchange="this.form.submit()"><span class="slider"></span> Applications are open</label>
     </form>

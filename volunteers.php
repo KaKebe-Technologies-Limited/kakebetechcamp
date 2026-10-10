@@ -1,7 +1,7 @@
 <?php
 /**
  * Volunteer trainers — apply to train campers at Kakebe Tech Camp 2026 (short link: /volunteers).
- * Ages 22–40, at least a Bachelor's degree in the field, CV required. Accommodation, travel and allowances provided.
+ * Ages 22–40, at least a Diploma in the field, CV required. Accommodation, travel and allowances provided.
  */
 require __DIR__ . '/includes/bootstrap.php';
 require __DIR__ . '/includes/app_layout.php';
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['location'] = 'Tell us where you are based.';
         }
         if (!in_array($o['qualification'], volunteer_qualifications(), true)) {
-            $errors['qualification'] = "A Bachelor's degree or higher is required.";
+            $errors['qualification'] = 'A Diploma or higher is required.';
         }
         if (mb_strlen($o['course']) < 3) {
             $errors['course'] = 'Enter the course or field you studied.';
@@ -171,7 +171,7 @@ $image = base_url('assets/img/volunteers.jpg') . '?v=' . filemtime(__DIR__ . '/a
 $open = setting('volunteers_open', '1') === '1';
 
 app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [] : [
-    'description' => 'Share your expertise with young innovators at Kakebe Tech Camp 2026 in Kitgum (' . camp()['dates_short'] . '). Volunteer trainers aged 22–40 with a Bachelor\'s degree or higher. Accommodation, travel and allowances provided.',
+    'description' => 'Share your expertise with young innovators at Kakebe Tech Camp 2026 in Kitgum (' . camp()['dates_short'] . '). Volunteer trainers aged 22–40 with a Diploma or degree. Accommodation, travel and allowances provided.',
     'canonical'   => base_url('volunteers'),
     'image'       => $image,
     'image_size'  => [1200, 630],
@@ -203,7 +203,7 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
       <li><i class="fa-solid fa-hotel"></i><span><b>Accommodation, travel and allowances</b> are provided</span></li>
       <li><i class="fa-solid fa-heart"></i><span>Above all, it's a chance to <b>offer your skills</b> to the next generation</span></li>
       <li><i class="fa-solid fa-user-check"></i><span>Aged <b>22 – 40</b>, ready to train during the camp</span></li>
-      <li><i class="fa-solid fa-graduation-cap"></i><span>At least a <b>Bachelor's degree</b> in your field of expertise</span></li>
+      <li><i class="fa-solid fa-graduation-cap"></i><span>At least a <b>Diploma or degree</b> in your field of expertise</span></li>
     </ul>
     <a href="#apply" class="btn btn-primary">Apply to volunteer <i class="fa-solid fa-arrow-down"></i></a>
   </div>
@@ -244,7 +244,7 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
 
     <h3 class="vol-step"><span>2</span> Academic background</h3>
     <div class="row-2">
-      <div class="field<?= $inv('qualification') ?>"><label for="v_qual">Highest qualification</label><select id="v_qual" name="qualification" required><option value="">Select…</option><?php foreach (volunteer_qualifications() as $q): ?><option<?= $sel('qualification', $q) ?>><?= e($q) ?></option><?php endforeach; ?></select><span class="hint">A Bachelor's degree is the minimum.</span><?= $err('qualification') ?></div>
+      <div class="field<?= $inv('qualification') ?>"><label for="v_qual">Highest qualification</label><select id="v_qual" name="qualification" required><option value="">Select…</option><?php foreach (volunteer_qualifications() as $q): ?><option<?= $sel('qualification', $q) ?>><?= e($q) ?></option><?php endforeach; ?></select><span class="hint">A Diploma is the minimum.</span><?= $err('qualification') ?></div>
       <div class="field<?= $inv('course') ?>"><label for="v_course">Course / field of study</label><input id="v_course" name="course" value="<?= $val('course') ?>" placeholder="e.g. BSc Computer Science" required><?= $err('course') ?></div>
     </div>
     <div class="row-2">
@@ -280,7 +280,7 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
       <?= $err('cv') ?>
     </div>
     <div class="field<?= $inv('commit') ?>">
-      <label class="commit"><input type="checkbox" name="commit" value="1" <?= !empty($old['commit']) ? 'checked' : '' ?>><span>I am <b>between 22 and 40 years old</b>, I hold <b>at least a Bachelor's degree</b> in my field of expertise, and I am <b>ready to offer my skills</b> during the camp trainings. The details I've given are true.</span></label>
+      <label class="commit"><input type="checkbox" name="commit" value="1" <?= !empty($old['commit']) ? 'checked' : '' ?>><span>I am <b>between 22 and 40 years old</b>, I hold <b>at least a Diploma</b> in my field of expertise, and I am <b>ready to offer my skills</b> during the camp trainings. The details I've given are true.</span></label>
       <?= $err('commit') ?>
     </div>
     <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-paper-plane"></i> Submit my application</button>

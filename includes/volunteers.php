@@ -1,6 +1,6 @@
 <?php
 /**
- * Volunteer trainers for Kakebe Tech Camp: people aged 22–40 with at least a Bachelor's degree who offer their
+ * Volunteer trainers for Kakebe Tech Camp: people aged 22–40 with at least a Diploma who offer their
  * expertise during the camp trainings. Volunteers receive accommodation, travel and allowances.
  * Applications (with a CV) come from /volunteers and are reviewed in Admin → Volunteer trainers.
  */
@@ -19,10 +19,10 @@ function volunteer_fields(): array
     ];
 }
 
-/** Highest qualifications accepted (a Bachelor's degree is the minimum). */
+/** Highest qualifications accepted (a Diploma is the minimum). */
 function volunteer_qualifications(): array
 {
-    return ["Bachelor's degree", 'Postgraduate diploma', "Master's degree", 'PhD / Doctorate'];
+    return ['Diploma', "Bachelor's degree", 'Postgraduate diploma', "Master's degree", 'PhD / Doctorate'];
 }
 
 function volunteer_experience_options(): array
