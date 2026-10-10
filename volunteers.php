@@ -168,6 +168,7 @@ $err = fn(string $k) => '<span class="err">' . e($errors[$k] ?? '') . '</span>';
 $inv = fn(string $k) => isset($errors[$k]) ? ' invalid' : '';
 $sel = fn(string $k, string $v) => ($old[$k] ?? '') === $v ? ' selected' : '';
 $image = base_url('assets/img/volunteers.jpg') . '?v=' . filemtime(__DIR__ . '/assets/img/volunteers.jpg');
+$heroImage = 'assets/img/volunteers-hero.jpg?v=' . filemtime(__DIR__ . '/assets/img/volunteers-hero.jpg');
 $open = setting('volunteers_open', '1') === '1';
 
 app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [] : [
@@ -175,7 +176,7 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
     'canonical'   => base_url('volunteers'),
     'image'       => $image,
     'image_size'  => [1200, 630],
-    'image_alt'   => 'Kakebe Tech Camp trainers',
+    'image_alt'   => 'A trainer speaking at a Kakebe partner event',
 ]);
 ?>
 <?php if ($done): ?>
@@ -191,7 +192,7 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
 <?php else: ?>
 <section class="mh">
   <div class="mh-media">
-    <img src="<?= e($image) ?>" alt="Kakebe Tech Camp trainers" width="1200" height="630" fetchpriority="high">
+    <img class="vol-hero-img" src="<?= e($heroImage) ?>" alt="A trainer speaking at a Kakebe partner event" width="1000" height="1050" fetchpriority="high">
     <span class="mh-badge"><i class="fa-solid fa-hand-holding-heart"></i> Volunteer</span>
   </div>
   <div class="mh-body">

@@ -368,3 +368,4 @@ b.ok, .ok-text { color: var(--green); }
 .cv-drop.too-big { border-color: #E5484D; background: #FFF7F7; }
 #v_cv { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .field.invalid .cv-drop { border-color: #E5484D; }
+.mh-media img.vol-hero-img { object-position: 50% 42%; }
