@@ -353,6 +353,32 @@ function recompute_donation(int $id): void
     }
 }
 
+/**
+ * Check pending Mobile Money / card payments with the providers, a few at a time and at most every 3 minutes.
+ * Called in the background by website visits and the control panel, so payments are confirmed (and receipts and
+ * team emails sent) even when the payer closed the page and no server cron job is set up.
+ */
+function auto_sync_pending(int $max = 5): int
+{
+    $pdo = db();
+    $pdo->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('auto_sync_at', '0')");
+    $claim = $pdo->prepare("UPDATE settings SET svalue = ? WHERE skey = 'auto_sync_at' AND CAST(svalue AS UNSIGNED) < ?");
+    $claim->execute([(string) time(), time() - 180]);
+    if ($claim->rowCount() === 0) {
+        return 0;   // another visit checked recently
+    }
+    $ids = $pdo->prepare("SELECT id FROM payments WHERE status = 'pending' AND provider IN ('iotec', 'pesapal') AND created_at BETWEEN ? AND ? ORDER BY created_at DESC LIMIT " . (int) $max);
+    $ids->execute([date('Y-m-d H:i:s', strtotime('-3 days')), date('Y-m-d H:i:s', time() - 60)]);
+    $n = 0;
+    foreach ($ids->fetchAll(PDO::FETCH_COLUMN) as $id) {
+        sync_payment((int) $id, true);
+        $n++;
+    }
+    $pdo->prepare("UPDATE payments SET status = 'failed', message = 'Expired — no confirmation from the payment provider' WHERE status = 'pending' AND provider IN ('iotec','pesapal') AND created_at < ?")
+        ->execute([date('Y-m-d H:i:s', strtotime('-3 days'))]);
+    return $n;
+}
+
 /** Names of the people a sponsor paid for (empty when they gave generally or let Kakebe choose). */
 function donation_people(array $d): array
 {
@@ -394,7 +420,7 @@ function send_payment_emails(array $p, bool $emailPayer = true): void
                 [$s, $h] = tpl_donation_thanks($d, $p);
                 $ok = send_mail($d['email'], $s, $h, setting('contact_email') ?: null, $err, $attach);
             }
-            [$s2, $h2] = tpl_admin_payment($p, null, $d);
+            [$s2, $h2] = tpl_admin_sponsorship_paid($d, $p);
             notify_team('payment', $s2, $h2, $d['email'], $attach);
         }
         if (!empty($ok)) {

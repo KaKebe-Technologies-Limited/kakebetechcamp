@@ -585,3 +585,28 @@
 .choose-check { margin-top: 10px !important; font-size: 13.5px; }
 .field .stepper input, .field .stepper input:focus { width: 64px; height: auto; margin: 0; padding: 10px 4px; border: 0; border-inline: 1.5px solid var(--line); border-radius: 0; background: #fff; box-shadow: none; text-align: center; font-size: 18px; font-weight: 800; }
 .field .stepper input:focus-visible { box-shadow: inset 0 0 0 2px rgba(225, 29, 42, .3); }
+
+/* Sponsor section — clean layout */
+.sp-covers-title { margin: 22px 0 10px; font-size: 12.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.sp-covers { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sp-covers li { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.sp-covers i { width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center; border-radius: 11px; background: var(--red-50); color: var(--red); font-size: 15px; }
+.sp-covers b { display: block; color: var(--ink); font-size: 14.5px; }
+.sp-covers span { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.sp-head { margin-bottom: 6px; }
+.sp-head h3 { margin-bottom: 2px; }
+.sp-head p { margin: 0; color: var(--muted); font-size: 14.5px; }
+.sp-step { display: flex; align-items: center; gap: 10px; margin: 22px 0 12px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+.sp-head + .sp-step { border-top: 0; padding-top: 4px; margin-top: 14px; }
+.sp-step span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--navy); color: #fff; font-size: 12px; letter-spacing: 0; }
+.sponsor-card .give-mode { margin-bottom: 14px; }
+.sponsor-card .field { margin-bottom: 14px; }
+.sp-more { margin: 0 0 12px; }
+.sp-more summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--red); padding: 4px 0; }
+.sp-more summary::-webkit-details-marker { display: none; }
+.sp-more summary i { font-size: 12px; transition: transform .2s; }
+.sp-more[open] summary i { transform: rotate(45deg); }
+.sp-more summary .opt { color: var(--muted); font-weight: 600; }
+.sp-more .form-grid { margin-top: 10px; }
+.sponsor-card .secure i { margin-right: 4px; }
+@media (max-width: 600px) { .sp-covers { grid-template-columns: 1fr; } }

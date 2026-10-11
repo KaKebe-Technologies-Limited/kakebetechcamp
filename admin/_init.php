@@ -412,6 +412,7 @@ function admin_footer(array $js = []): void
   </main>
 </div>
 <script src="assets/admin.js?v=<?= filemtime(__DIR__ . '/assets/admin.js') ?>"></script>
+<script>try { navigator.sendBeacon && navigator.sendBeacon('../api/sync.php'); } catch (e) {}</script>
 <?php foreach ($js as $src): ?><script src="<?= e(str_starts_with($src, 'https://') ? $src : 'assets/' . $src . '?v=' . filemtime(__DIR__ . '/assets/' . $src)) ?>"<?= str_starts_with($src, 'https://') ? ' referrerpolicy="no-referrer"' : '' ?>></script>
 <?php endforeach; ?>
 </body>

@@ -24,6 +24,7 @@ function traffic_tag(): string
           else { fetch(api, { method: 'POST', body: body, keepalive: true }); }
         };
         send({ t: 'view', r: document.referrer, u: new URLSearchParams(location.search).get('utm_source') || '' });
+        try { if (!sessionStorage.getItem('kt_sync') && navigator.sendBeacon) { sessionStorage.setItem('kt_sync', '1'); navigator.sendBeacon(api.replace('track.php', 'sync.php')); } } catch (e) {}
         document.addEventListener('click', function (e) {
           var el = e.target.closest && e.target.closest('a, button');
           if (!el) return;

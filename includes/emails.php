@@ -268,6 +268,50 @@ function tpl_donation_thanks(array $d, array $p): array
     return ['❤️ Thank you for sponsoring Kakebe Tech Camp 2026', kt_email('Sponsorship Receipt', $inner)];
 }
 
+/** Details of a sponsorship for the team emails. */
+function sponsorship_rows(array $d, array $p): array
+{
+    $method = (payment_methods()[$p['method']] ?? $p['method']);
+    if ($p['method'] === 'mobile_money' && $p['payer_phone']) {
+        $method .= ' · ' . $p['payer_phone'];
+    }
+    return [
+        '🆔 Reference' => $d['reference'],
+        '👤 Sponsor' => $d['donor_name'] . ($d['is_anonymous'] ? ' (wants to stay anonymous)' : ''),
+        '🏢 Organisation' => $d['organization'],
+        '📧 Email' => $d['email'],
+        '📞 Phone' => $d['phone'],
+        '🌟 Gift' => (int) $d['children'] ? (int) $d['children'] . ' innovator' . ((int) $d['children'] === 1 ? '' : 's') . ' × ' . format_ugx(fees()['sponsor_child']) : 'Any amount (general support)',
+        '👥 Paying for' => (int) $d['children'] ? donation_people_label($d) : '',
+        '💰 Amount' => format_ugx($d['amount']) . ' (about $' . number_format(approx_usd((int) $d['amount'])) . ')',
+        '💳 Method' => $method,
+        '💬 Message' => $d['message'],
+    ];
+}
+
+/** A sponsor has started a payment on the website (before it is confirmed). */
+function tpl_admin_sponsorship_started(array $d, array $p): array
+{
+    $inner = '<p><strong>Hi Team,</strong></p><p>A sponsor has just started a sponsorship on the website. 🤝 We will email you again as soon as the payment is confirmed.</p>'
+        . kt_detail(sponsorship_rows($d, $p))
+        . kt_btn('Open sponsorships', base_url('admin/sponsors.php'), 'navy');
+    return ['🤝 New sponsorship started — ' . format_ugx($d['amount']) . ' by ' . $d['donor_name'] . ' (awaiting payment)', kt_email('Sponsorship Started', $inner, $d['donor_name'] . ' started a sponsorship of ' . format_ugx($d['amount']))];
+}
+
+/** A sponsorship payment went through (Mobile Money or card). The receipt PDF is attached. */
+function tpl_admin_sponsorship_paid(array $d, array $p): array
+{
+    $rows = sponsorship_rows($d, $p);
+    $rows['💳 Method'] = (payment_methods()[$p['method']] ?? $p['method']) . ' · ' . payment_channel_detail($p);
+    $rows['🧾 Receipt'] = receipt_no($p);
+    $rows['🔗 Transaction'] = payment_reference($p);
+    $inner = '<p><strong>Hi Team,</strong></p><p>Great news — a sponsorship payment has been received. 🎉 The receipt is attached.</p>'
+        . kt_detail(['✅ Received' => format_ugx($p['amount'], $p['currency']) . ' · ' . date('D, j M Y · g:i A', strtotime($p['completed_at'] ?: $p['created_at']))], 'green')
+        . kt_detail($rows)
+        . kt_btn('Open sponsorships', base_url('admin/sponsors.php'), 'navy');
+    return ['✅ Sponsorship received — ' . format_ugx($p['amount'], $p['currency']) . ' from ' . $d['donor_name'] . ' (' . (payment_methods()[$p['method']] ?? $p['method']) . ')', kt_email('Sponsorship Received', $inner)];
+}
+
 function tpl_admin_donation_pledge(array $d): array
 {
     $inner = '<p><strong>Hi Team,</strong></p><p>A new sponsor has started a pledge on the website.</p>'

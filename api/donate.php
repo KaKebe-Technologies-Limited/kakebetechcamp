@@ -71,6 +71,11 @@ $p = create_payment([
     'payer_name' => $name, 'payer_phone' => $method === 'mobile_money' ? $payPhone : $phone, 'payer_email' => $email,
 ]);
 $res = start_payment($p);
+if (!empty($res['ok'])) {
+    $d = db()->query('SELECT * FROM donations WHERE id = ' . $did)->fetch();
+    [$s, $h] = tpl_admin_sponsorship_started($d, payment_find((int) $p['id']));
+    notify_team('payment', $s, $h, $email);
+}
 $res['payment'] = payment_public(payment_find((int) $p['id']));
 $res['token'] = sign('payment', (string) $p['id']);
 $res['reference'] = $ref;
