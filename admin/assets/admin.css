@@ -707,3 +707,23 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .sub-title { font-size: 15px; margin: 18px 0 8px; }
 .vol-bio { margin: 0; white-space: normal; line-height: 1.65; }
 .vol-status { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Registrations per day / per hour */
+.reg-kpis { gap: 10px; margin-bottom: 18px; }
+.reg-kpis > div { padding: 12px 14px; }
+.reg-kpis small { font-size: 11.5px; letter-spacing: .03em; white-space: nowrap; }
+.reg-kpis b { font-size: 24px; }
+.reg-kpis b.sm { font-size: 17px; white-space: nowrap; line-height: 36px; }
+.chart.hours { gap: 4px; }
+.chart.hours small { white-space: nowrap; }
+.chart.hours .chart-col.now i:not(.zero) { background: linear-gradient(180deg, var(--navy), #3A5BA8); }
+.chart.hours .chart-col.now i.zero { background: #C9D3EA !important; }
+
+/* Email health strip */
+.mail-health { margin-bottom: 24px; }
+.mail-health .ga-strip { margin-bottom: 0; }
+.mail-health .ga-strip b em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--muted); }
+.mh-warn .ga-strip { border-color: #F3D9A4; background: #FFFBF1; }
+.mh-bad .ga-strip { border-color: #F5B5B5; background: #FFF6F6; }
+.mh-note { margin: 10px 4px 0; font-size: 13.5px; color: #9A2B2B; }
+.mh-note i { margin-right: 4px; }

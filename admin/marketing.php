@@ -63,7 +63,7 @@ admin_header('Email campaigns', 'campaigns', 'Compose rich emails and send them 
 
 <div class="kpis">
   <a class="kpi" href="marketing-contacts.php?status=valid"><span class="kpi-icon blue"><i class="fa-solid fa-address-book"></i></span><div><small>Ready to receive</small><b><?= number_format($contacts['valid']) ?></b><em><?= number_format($contacts['invalid']) ?> filtered out · <?= number_format($contacts['unsubscribed']) ?> unsubscribed</em></div></a>
-  <div class="kpi"><span class="kpi-icon amber"><i class="fa-solid fa-gauge-high"></i></span><div><small>Sent in 24 hours</small><b><?= number_format($sent24) ?></b><em>of <?= number_format($cfg['daily_limit']) ?> allowed · <?= number_format(max(0, $cfg['daily_limit'] - $sent24)) ?> left</em></div></div>
+  <div class="kpi"><span class="kpi-icon amber"><i class="fa-solid fa-gauge-high"></i></span><div><small>Sent in 24 hours</small><b><?= number_format($sent24) ?></b><em>of <?= number_format($cfg['daily_limit']) ?> allowed · <?= number_format(mk_daily_left()) ?> left</em></div></div>
   <div class="kpi"><span class="kpi-icon green"><i class="fa-solid fa-paper-plane"></i></span><div><small>Emails sent</small><b><?= number_format((int) $totals['sent']) ?></b><em>across <?= count($campaigns) ?> campaign<?= count($campaigns) === 1 ? '' : 's' ?></em></div></div>
   <div class="kpi"><span class="kpi-icon navy"><i class="fa-solid fa-check-double mk-blue"></i></span><div><small>Opened</small><b><?= number_format((int) $totals['opened']) ?></b><em><?= $openRate ?>% open rate</em></div></div>
 </div>

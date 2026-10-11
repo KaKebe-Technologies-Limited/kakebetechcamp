@@ -56,14 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $r = $stmt->fetch();
             $code = (string) random_int(100000, 999999);
             db()->prepare('INSERT INTO login_codes (registration_id, code_hash, expires_at, ip, created_at) VALUES (?, ?, ?, ?, ?)')
-                ->execute([$r['id'] ?? 0, $r ? password_hash($code, PASSWORD_DEFAULT) : '-', date('Y-m-d H:i:s', time() + 600), $ip, now()]);
+                ->execute([$r['id'] ?? 0, $r ? password_hash($code, PASSWORD_DEFAULT) : '-', date('Y-m-d H:i:s', time() + 900), $ip, now()]);
             if ($r) {
                 [$s, $h] = tpl_login_code($r, $code);
                 send_mail($r['email'], $s, $h);
             }
             $_SESSION['login_email'] = $email;
             $step = 'code';
-            $info = 'If ' . $email . ' is registered, we have sent a 6-digit code to it. It expires in 10 minutes.';
+            $info = 'If ' . $email . ' is registered, we have sent a 6-digit code to it. It expires in 15 minutes.';
         }
     } elseif ($action === 'verify') {
         $mode = 'code';

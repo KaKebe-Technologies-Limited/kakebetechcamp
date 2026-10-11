@@ -394,6 +394,20 @@ function mk_sent_last_24h(): int
     return (int) db()->query("SELECT COUNT(*) FROM mk_sends WHERE status = 'sent' AND sent_at > '" . date('Y-m-d H:i:s', time() - 86400) . "'")->fetchColumn();
 }
 
+/**
+ * Campaign emails that can still go out today. When campaigns use the website's own email account (no MK_SMTP_*),
+ * the website's emails count against the same daily limit and the last 100 places are kept for sign-up links,
+ * login codes and receipts — so a big campaign never stops people from registering.
+ */
+function mk_daily_left(): int
+{
+    $left = mk_settings()['daily_limit'] - mk_sent_last_24h();
+    if (env('MK_SMTP_HOST') === '') {
+        $left -= email_people_24h() + 100;
+    }
+    return max(0, $left);
+}
+
 /** The people a campaign goes to: valid contacts (in its list, if one is chosen). */
 function mk_audience_count(array $c): int
 {
@@ -434,10 +448,12 @@ function mk_send_chunk(array $c, int $batch, int $max = 10): array
 {
     $pdo = db();
     $limit = mk_settings()['daily_limit'];
-    $left = max(0, $limit - mk_sent_last_24h());
+    $left = mk_daily_left();
     $out = ['sent' => 0, 'failed' => 0, 'error' => null, 'daily_left' => $left];
     if ($left === 0) {
-        $out['error'] = "The daily sending limit ($limit emails in 24 hours) has been reached. Continue tomorrow, or raise the limit if your email service allows more.";
+        $out['error'] = env('MK_SMTP_HOST') === ''
+            ? "Paused for today: the daily limit ($limit emails in 24 hours) is shared with the website's own emails, and the last 100 places are kept for sign-up links, login codes and receipts. Continue tomorrow."
+            : "The daily sending limit ($limit emails in 24 hours) has been reached. Continue tomorrow, or raise the limit if your email service allows more.";
         return $out + mk_batch_progress((int) $c['id'], $batch);
     }
     $rows = $pdo->prepare("SELECT s.*, ct.name, ct.status contact_status FROM mk_sends s JOIN mk_contacts ct ON ct.id = s.contact_id WHERE s.campaign_id = ? AND s.batch = ? AND s.status = 'queued' ORDER BY s.id LIMIT " . min($max, $left));
@@ -498,7 +514,7 @@ function mk_send_chunk(array $c, int $batch, int $max = 10): array
     if ($left === 0) {
         $pdo->prepare("UPDATE mk_campaigns SET status = 'sent', finished_at = COALESCE(finished_at, ?) WHERE id = ?")->execute([now(), $c['id']]);
     }
-    $out['daily_left'] = max(0, $limit - mk_sent_last_24h());
+    $out['daily_left'] = mk_daily_left();
     return $out + mk_batch_progress((int) $c['id'], $batch);
 }
 

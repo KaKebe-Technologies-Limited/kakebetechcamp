@@ -8,6 +8,7 @@ $counts = array_column(q('SELECT status, COUNT(*) c FROM email_log GROUP BY stat
 
 admin_header('Email log', 'emails', 'Every notification the system has sent (latest 300)');
 ?>
+<?= email_health_strip() ?>
 <div class="tabs big">
   <a href="emails.php" class="<?= $status === '' ? 'active' : '' ?>">All <em><?= array_sum($counts) ?></em></a>
   <a href="emails.php?status=sent" class="<?= $status === 'sent' ? 'active' : '' ?>">Sent <em><?= (int) ($counts['sent'] ?? 0) ?></em></a>
@@ -18,7 +19,7 @@ admin_header('Email log', 'emails', 'Every notification the system has sent (lat
   <?php if ($list): ?>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
+      <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th><th title="How long the email server took to accept the email">Time</th></tr></thead>
       <tbody>
       <?php foreach ($list as $l): ?>
         <tr>
@@ -26,6 +27,7 @@ admin_header('Email log', 'emails', 'Every notification the system has sent (lat
           <td><?= e($l['recipient']) ?></td>
           <td><?= e($l['subject']) ?><?php if ($l['error']): ?><small class="block err-text"><?= e($l['error']) ?></small><?php endif; ?></td>
           <td><span class="badge <?= $l['status'] === 'sent' ? 'st-confirmed' : ($l['status'] === 'logged' ? 'st-waitlisted' : 'st-cancelled') ?>"><?= e(ucfirst($l['status'])) ?></span></td>
+          <td class="nowrap muted"><?= $l['duration_ms'] === null ? '—' : e(number_format($l['duration_ms'] / 1000, 1)) . ' s' ?></td>
         </tr>
       <?php endforeach; ?>
       </tbody>

@@ -334,7 +334,7 @@ function tpl_login_code(array $r, string $code): array
 {
     $inner = '<p><strong>Hi ' . first_name($r['full_name']) . ',</strong></p><p>Use this code to log in to your Kakebe Tech Camp participant portal:</p>'
         . "<div class='ref'><small>YOUR LOGIN CODE</small><b style='letter-spacing:8px;'>" . e($code) . '</b></div>'
-        . '<p>The code expires in 10 minutes. If you did not request it, you can ignore this email.</p>';
+        . '<p>The code expires in 15 minutes. If you did not request it, you can ignore this email.</p>';
     return ['🔐 Your login code: ' . $code, kt_email('Portal Login', $inner, 'Your code is ' . $code)];
 }
 

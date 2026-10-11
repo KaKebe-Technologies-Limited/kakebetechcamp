@@ -25,6 +25,15 @@ $seatsTaken = seats_taken();
 $capPct     = min(100, round($seatsTaken / $capacity * 100));
 
 $regSeries = days_series('SELECT DATE(created_at) d, COUNT(*) v FROM registrations WHERE created_at >= ? GROUP BY DATE(created_at)');
+// Registrations per day and per hour
+$yesterday = (int) $one('SELECT COUNT(*) FROM registrations WHERE created_at >= ? AND created_at < ?', [date('Y-m-d 00:00:00', strtotime('-1 day')), date('Y-m-d 00:00:00')]);
+$prevWeek  = (int) $one('SELECT COUNT(*) FROM registrations WHERE created_at >= ? AND created_at < ?', [date('Y-m-d 00:00:00', strtotime('-13 days')), date('Y-m-d 00:00:00', strtotime('-6 days'))]);
+$byHour    = fn(string $from) => array_map('intval', array_column($all('SELECT HOUR(created_at) h, COUNT(*) c FROM registrations WHERE created_at >= ? GROUP BY HOUR(created_at)', [$from]), 'c', 'h'));
+$hoursToday = $byHour(date('Y-m-d 00:00:00'));
+$hours30    = $byHour(date('Y-m-d 00:00:00', strtotime('-29 days')));
+$peakHour   = $hours30 ? (int) array_search(max($hours30), $hours30, true) : null;
+$peakDay    = $all('SELECT DATE(created_at) d, COUNT(*) c FROM registrations GROUP BY DATE(created_at) ORDER BY c DESC, d DESC LIMIT 1')[0] ?? null;
+$linksToday = (int) $one('SELECT COUNT(DISTINCT email) FROM email_verifications WHERE created_at >= ?', [date('Y-m-d 00:00:00')]);
 $paySeries = days_series("SELECT DATE(completed_at) d, SUM(amount) v FROM payments WHERE status = 'success' AND completed_at >= ? GROUP BY DATE(completed_at)");
 
 $sizes = array_fill_keys(jersey_sizes(), 0);
@@ -99,6 +108,8 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
 
 <?= traffic_section(7) ?>
 
+<?= email_health_strip() ?>
+
 <?php if (ga_connected() && ($ga = ga_summary(7))): $gaNow = ga_realtime_users(); ?>
 <a class="card ga-strip" href="analytics.php?days=7">
   <span class="ga-strip-title"><i class="fa-brands fa-google"></i> Google Analytics — last 7 days</span>
@@ -112,8 +123,20 @@ admin_header('Dashboard', 'dashboard', 'Kakebe Tech Camp 2026 · ' . camp()['dat
 
 <div class="grid-3-1">
   <div class="card">
-    <div class="card-head"><h3><i class="fa-solid fa-chart-column"></i> Registrations — last 30 days</h3><span class="muted"><?= array_sum($regSeries) ?> total</span></div>
-    <?= bar_chart($regSeries) ?>
+    <div class="card-head"><h3><i class="fa-solid fa-chart-column"></i> Registrations — per day &amp; per hour</h3><span class="muted"><?= number_format(array_sum($regSeries)) ?> in the last 30 days</span></div>
+    <div class="traffic-kpis reg-kpis">
+      <div><small>Today</small><b><?= $today ?></b><em><?= $linksToday ?> sign-up link<?= $linksToday === 1 ? '' : 's' ?> emailed</em></div>
+      <div><small>Yesterday</small><b><?= $yesterday ?></b><em><?= e(date('D j M', strtotime('-1 day'))) ?></em></div>
+      <div><small>Last 7 days</small><b><?= $week ?></b><?= traffic_delta($week, $prevWeek) ?><em>vs the 7 days before</em></div>
+      <div><small>Avg per day</small><b><?= number_format(array_sum($regSeries) / 30, 1) ?></b><em><?= $peakDay ? 'best day ' . e(date('j M', strtotime($peakDay['d']))) . ' · ' . (int) $peakDay['c'] : 'last 30 days' ?></em></div>
+      <div><small>Busiest hour</small><b class="sm"><?= $peakHour === null ? '—' : e(hour_range($peakHour)) ?></b><em>most sign-ups, last 30 days</em></div>
+    </div>
+    <div class="traffic-chart" data-tabs>
+      <div class="tabs traffic-tabs"><a href="#" class="active" data-tab="rDay">Per day</a><a href="#" data-tab="rToday">Per hour · today</a><a href="#" data-tab="rHours">Per hour · last 30 days</a></div>
+      <div data-panel="rDay"><?= bar_chart($regSeries) ?></div>
+      <div data-panel="rToday" hidden><?= hour_chart($hoursToday, 'registrations', (int) date('G')) ?></div>
+      <div data-panel="rHours" hidden><?= hour_chart($hours30) ?></div>
+    </div>
   </div>
   <div class="card capacity-card">
     <div class="card-head"><h3><i class="fa-solid fa-campground"></i> Camp capacity</h3></div>

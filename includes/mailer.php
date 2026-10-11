@@ -319,6 +319,7 @@ function send_mail($to, string $subject, string $html, ?string $replyTo = null, 
     $text = html_to_text($html);
     $error = null;
     $status = 'sent';
+    $started = microtime(true);
 
     if ($transport === 'smtp') {
         $mailer = new SmtpMailer(smtp_config());
@@ -338,13 +339,21 @@ function send_mail($to, string $subject, string $html, ?string $replyTo = null, 
         $status = 'logged';
     }
 
+    $ms = $status === 'logged' ? null : (int) round((microtime(true) - $started) * 1000);
     try {
-        db()->prepare('INSERT INTO email_log (recipient, subject, status, error, created_at) VALUES (?, ?, ?, ?, ?)')
-            ->execute([substr(implode(', ', $list) . ($cc ? ' (cc: ' . implode(', ', $cc) . ')' : ''), 0, 255), substr($subject, 0, 255), $ok ? $status : 'failed', $error, now()]);
+        db()->prepare('INSERT INTO email_log (recipient, subject, recipients, status, duration_ms, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            ->execute([substr(implode(', ', $list) . ($cc ? ' (cc: ' . implode(', ', $cc) . ')' : ''), 0, 255), substr($subject, 0, 255), count($list) + count($cc), $ok ? $status : 'failed', $ms, $error, now()]);
     } catch (Throwable $ignored) {
     }
 
     return $ok;
+}
+
+/** People the website's own emails reached in the last 24 hours (each To and Cc address counts, as Gmail counts them). */
+function email_people_24h(): int
+{
+    return (int) db()->query("SELECT COALESCE(SUM(COALESCE(recipients, 1 + LENGTH(recipient) - LENGTH(REPLACE(recipient, ',', '')))), 0)
+        FROM email_log WHERE status = 'sent' AND created_at > '" . date('Y-m-d H:i:s', time() - 86400) . "'")->fetchColumn();
 }
 
 /** Parse "a@x.com, b@y.com" (or an array) into a clean, unique, lower-case list of valid emails. */

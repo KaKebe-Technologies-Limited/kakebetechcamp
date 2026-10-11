@@ -72,7 +72,7 @@ $notQueued = (int) q('SELECT COUNT(*) FROM mk_contacts ct' . ($c['list_id'] ? ' 
     . " WHERE ct.status = 'valid' AND NOT EXISTS (SELECT 1 FROM mk_sends s WHERE s.campaign_id = ? AND s.contact_id = ct.id)", [$id])->fetchColumn();
 $groups = q("SELECT batch, COUNT(*) total, SUM(status = 'sent') sent, SUM(status = 'queued') queued, SUM(status = 'failed') failed, SUM(opened_at IS NOT NULL) opened, MAX(sent_at) last_sent
     FROM mk_sends WHERE campaign_id = ? GROUP BY batch ORDER BY batch", [$id])->fetchAll();
-$dailyLeft = max(0, $cfg['daily_limit'] - mk_sent_last_24h());
+$dailyLeft = mk_daily_left();
 $ready = trim((string) $c['subject']) !== '' && trim((string) $c['body']) !== '';
 [, $previewHtml] = mk_render($c, ['name' => $admin['name']]);
 
@@ -250,7 +250,7 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
           <form method="post" class="inline-form" data-confirm="Remove the <?= number_format($stats['queued']) ?> emails that have not been sent yet from the queue?"><?= csrf_field() ?><input type="hidden" name="action" value="cancel"><input type="hidden" name="id" value="<?= $id ?>"><button class="btn btn-light btn-sm" type="submit"><i class="fa-solid fa-ban"></i> Cancel unsent</button></form>
           <?php endif; ?>
         </div>
-        <p class="small muted">Groups send about 10 emails at a time. The daily limit (<?= number_format($cfg['daily_limit']) ?>) pauses sending automatically — continue the next day.</p>
+        <p class="small muted">Groups send about 10 emails at a time. The daily limit (<?= number_format($cfg['daily_limit']) ?>) pauses sending automatically — continue the next day.<?php if (env('MK_SMTP_HOST') === ''): ?> Campaigns use the website's own email account, so its emails count too and the last 100 places are kept for sign-up links and login codes.<?php endif; ?></p>
       <?php endif; ?>
     </section>
   </div>

@@ -281,6 +281,73 @@ function bar_chart(array $series, string $suffix = '', string $class = ''): stri
     return $html . '</div>';
 }
 
+/** "8pm–9pm" */
+function hour_range(int $h): string
+{
+    return date('ga', mktime($h, 0, 0)) . '–' . date('ga', mktime($h + 1, 0, 0));
+}
+
+/** 24 bars, one per hour of the day (midnight first); $now marks the current hour. */
+function hour_chart(array $byHour, string $what = 'registrations', int $now = -1): string
+{
+    $max = max(1, max($byHour ?: [0]));
+    $html = '<div class="chart hours">';
+    for ($h = 0; $h < 24; $h++) {
+        $v = (int) ($byHour[$h] ?? 0);
+        $html .= '<div class="chart-col' . ($h === $now ? ' now' : '') . '" title="' . e(hour_range($h)) . ': ' . $v . ' ' . e($what) . ($h === $now ? ' (this hour)' : '') . '">'
+            . '<span class="chart-val">' . ($v ?: '') . '</span>'
+            . '<i style="height:' . max(2, round($v / $max * 100)) . '%" class="' . ($v ? '' : 'zero') . '"></i>'
+            . '<small>' . ($h % 3 === 0 ? date('ga', mktime($h, 0, 0)) : '&nbsp;') . '</small></div>';
+    }
+    return $html . '</div>';
+}
+
+/** Email sending in the last 24 hours: emails sent and failed, time the mail server took, use of Gmail's daily limit. */
+function email_health(): array
+{
+    $since = date('Y-m-d H:i:s', time() - 86400);
+    $st = q("SELECT COALESCE(SUM(status = 'sent'), 0) sent, COALESCE(SUM(status = 'failed'), 0) failed, AVG(CASE WHEN status = 'sent' THEN duration_ms END) avg_ms
+        FROM email_log WHERE created_at > ?", [$since])->fetch();
+    $cfg = smtp_config();
+    $campaigns = env('MK_SMTP_HOST') === '' ? mk_sent_last_24h() : 0;   // campaigns sent through the same account
+    $gmail = stripos((string) $cfg['host'], 'gmail.com') !== false;
+    return [
+        'sent'      => (int) $st['sent'],
+        'failed'    => (int) $st['failed'],
+        'avg_ms'    => $st['avg_ms'] === null ? null : (int) $st['avg_ms'],
+        'last_fail' => q("SELECT error, created_at FROM email_log WHERE status = 'failed' AND created_at > ? ORDER BY id DESC LIMIT 1", [$since])->fetch() ?: null,
+        'campaigns' => $campaigns,
+        'people'    => email_people_24h() + $campaigns,
+        // Gmail: about 500 people a day for a free account, 2,000 for Google Workspace
+        'limit'     => $gmail ? (str_ends_with(strtolower((string) $cfg['user']), '@gmail.com') ? 500 : 2000) : 0,
+    ];
+}
+
+function email_health_strip(): string
+{
+    if (setting('mail_transport', 'log') === 'log') {
+        return '';
+    }
+    $h = email_health();
+    $pct = $h['limit'] ? (int) round($h['people'] / $h['limit'] * 100) : 0;
+    $level = $h['failed'] || $pct >= 90 ? 'bad' : ($pct >= 70 ? 'warn' : 'ok');
+    ob_start(); ?>
+    <div class="mail-health mh-<?= $level ?>">
+      <a class="card ga-strip" href="emails.php">
+        <span class="ga-strip-title"><i class="fa-solid fa-paper-plane"></i> Emails — last 24 hours</span>
+        <span><small>Sent</small><b><?= number_format($h['sent']) ?></b></span>
+        <?php if ($h['campaigns']): ?><span><small>Campaign emails</small><b><?= number_format($h['campaigns']) ?></b></span><?php endif; ?>
+        <span><small>Failed</small><b<?= $h['failed'] ? ' class="due"' : '' ?>><?= number_format($h['failed']) ?></b></span>
+        <span title="How long the email server took to accept each email from the website. Delivery to the inbox normally follows within seconds."><small>Time to send</small><b><?= $h['avg_ms'] === null ? '—' : number_format($h['avg_ms'] / 1000, 1) . ' s' ?></b></span>
+        <?php if ($h['limit']): ?><span title="Gmail lets one account email about <?= number_format($h['limit']) ?> people a day — every To and Cc address counts, campaign emails too."><small>Gmail daily limit</small><b><?= number_format($h['people']) ?><em> / <?= number_format($h['limit']) ?></em></b></span><?php endif; ?>
+        <span class="link">Email log →</span>
+      </a>
+      <?php if ($h['last_fail']): ?><p class="mh-note"><i class="fa-solid fa-triangle-exclamation"></i> Last failure <?= e(time_ago($h['last_fail']['created_at'])) ?>: <?= e(mb_strimwidth((string) $h['last_fail']['error'], 0, 220, '…')) ?></p><?php endif; ?>
+      <?php if ($pct >= 70): ?><p class="mh-note"><i class="fa-solid fa-gauge-high"></i> The Gmail account has used <?= $pct ?>% of its daily limit. When it is full, Gmail holds back or refuses emails — sign-up links and login codes included — for up to 24 hours.</p><?php endif; ?>
+    </div>
+    <?php return (string) ob_get_clean();
+}
+
 function days_series(string $sql, int $days = 30): array
 {
     $series = [];

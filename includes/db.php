@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 20;
+const SCHEMA_VERSION = 21;
 
 function db(): PDO
 {
@@ -107,6 +107,10 @@ function migrate(PDO $pdo): void
     if ($version >= 19 && !column_exists($pdo, 'volunteers', 'thanked_at')) {
         // v20: when the volunteer applicant was thanked (email / WhatsApp from Moses)
         $pdo->exec('ALTER TABLE volunteers ADD COLUMN thanked_at DATETIME NULL AFTER status');
+    }
+    if ($version >= 1 && !column_exists($pdo, 'email_log', 'duration_ms')) {
+        // v21: how many people each email went to, and how long the mail server took to accept it
+        $pdo->exec('ALTER TABLE email_log ADD COLUMN recipients SMALLINT UNSIGNED NULL AFTER subject, ADD COLUMN duration_ms INT UNSIGNED NULL AFTER status');
     }
     if ($version >= 12 && !column_exists($pdo, 'mentorship_registrations', 'referred_by')) {
         // v15: who recommended them for the Mentorship Program & DBIP
@@ -370,11 +374,13 @@ function schema_statements(): array
         ) $t",
 
         "CREATE TABLE IF NOT EXISTS email_log (
-            id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            recipient  VARCHAR(255) NOT NULL,
-            subject    VARCHAR(255) NOT NULL,
-            status     VARCHAR(20) NOT NULL,
-            error      TEXT NULL,
+            id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            recipient   VARCHAR(255) NOT NULL,
+            subject     VARCHAR(255) NOT NULL,
+            recipients  SMALLINT UNSIGNED NULL,
+            status      VARCHAR(20) NOT NULL,
+            duration_ms INT UNSIGNED NULL,
+            error       TEXT NULL,
             created_at DATETIME NOT NULL
         ) $t",
 
