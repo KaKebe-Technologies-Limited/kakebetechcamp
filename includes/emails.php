@@ -308,8 +308,80 @@ function tpl_admin_sponsorship_paid(array $d, array $p): array
     $inner = '<p><strong>Hi Team,</strong></p><p>Great news — a sponsorship payment has been received. 🎉 The receipt is attached.</p>'
         . kt_detail(['✅ Received' => format_ugx($p['amount'], $p['currency']) . ' · ' . date('D, j M Y · g:i A', strtotime($p['completed_at'] ?: $p['created_at']))], 'green')
         . kt_detail($rows)
+        . '<p style="text-align:center;font-weight:700;margin:22px 0 0;">Thank ' . e(explode(' ', trim($d['donor_name']))[0]) . ' for their support:</p>'
+        . kt_btn('💛 Send the thank-you email', sponsor_thanks_url($d))
         . kt_btn('Open sponsorships', base_url('admin/sponsors.php'), 'navy');
     return ['✅ Sponsorship received — ' . format_ugx($p['amount'], $p['currency']) . ' from ' . $d['donor_name'] . ' (' . (payment_methods()[$p['method']] ?? $p['method']) . ')', kt_email('Sponsorship Received', $inner)];
+}
+
+/** Default thank-you to sponsors (Admin → Sponsorships can change it). */
+function sponsor_thanks_default(): string
+{
+    return "Dear {first_name},\n\n"
+        . "On behalf of everyone at Kakebe Tech Camp 2026, thank you. Your generous support truly touched our hearts. 🙏\n\n"
+        . "{gift_line}\n\n"
+        . "For so many young people in our communities, a place at camp is something they could never have reached on their own. Because of you, young innovators will spend ten days in Kitgum ({camp_dates}) learning AI, software, content creation, entrepreneurship, robotics and gaming — building real projects with mentors, making friends from across Uganda, and going home with the skills and confidence to lead change in their communities. For some of them, this will be the moment their future started to look different.\n\n"
+        . "To our team, your gift is far more than funding. It is a vote of confidence in the young people of Northern Uganda and in the work we pour our hearts into every day. It reminds us why we started, and it inspires us to make this camp the very best it can be.\n\n"
+        . "We will share stories and photos from the camp so you can see the difference you have made. Until then, please know that you are now part of the Kakebe Tech Camp family — and we are deeply grateful to have you with us.\n\n"
+        . "With heartfelt gratitude,\n"
+        . "The Kakebe Tech Camp 2026 Team\n"
+        . "Kakebe Technologies Limited";
+}
+
+/** "Your gift of UGX 300,000 gives 2 young innovators — Akello Grace and Okello Brian — a full place at …" */
+function sponsor_gift_line(array $d): string
+{
+    $amount = format_ugx((int) $d['amount_paid'] ?: (int) $d['amount']);
+    $n = (int) $d['children'];
+    if (!$n) {
+        return "Your gift of $amount goes straight to helping young innovators who could not otherwise afford it take their place at Kakebe Tech Camp 2026.";
+    }
+    $who = $n === 1 ? 'one young innovator' : "$n young innovators";
+    $names = donation_people($d);
+    if ($names) {
+        $last = array_pop($names);
+        $who .= ' — ' . ($names ? implode(', ', $names) . ' and ' . $last : $last) . ' —';
+    } else {
+        $who .= ' who could not otherwise afford it';
+    }
+    return "Your gift of $amount gives $who a full place at Kakebe Tech Camp 2026: training, accommodation and meals, the " . fees()['park_name'] . ' experience and their camp sportswear.';
+}
+
+/** The thank-you for one sponsor, with their name and gift filled in. */
+function sponsor_thanks_message(array $d): string
+{
+    $tpl = trim((string) setting('sponsor_thanks_message')) ?: sponsor_thanks_default();
+    return strtr($tpl, [
+        '{full_name}'  => trim($d['donor_name']),
+        '{first_name}' => explode(' ', trim($d['donor_name']))[0],
+        '{gift_line}'  => sponsor_gift_line($d),
+        '{amount}'     => format_ugx((int) $d['amount_paid'] ?: (int) $d['amount']),
+        '{reference}'  => (string) $d['reference'],
+        '{camp_dates}' => camp()['dates'],
+    ]);
+}
+
+function tpl_sponsor_thanks(array $d): array
+{
+    $paragraphs = array_map(fn($p) => '<p>' . nl2br(e($p)) . '</p>', preg_split('/\R{2,}/', sponsor_thanks_message($d)));
+    return ['💛 Thank you for sponsoring a young innovator — Kakebe Tech Camp 2026', kt_email('Thank You', implode('', $paragraphs), 'Thank you for your generous support of Kakebe Tech Camp 2026')];
+}
+
+/** Email the thank-you to the sponsor and note when it was sent. */
+function send_sponsor_thanks(array $d, ?string &$error = null): bool
+{
+    [$s, $h] = tpl_sponsor_thanks($d);
+    $ok = send_mail($d['email'], $s, $h, setting('contact_email') ?: null, $error);
+    if ($ok) {
+        db()->prepare('UPDATE donations SET thanked_at = ? WHERE id = ?')->execute([now(), $d['id']]);
+    }
+    return $ok;
+}
+
+/** One-click link in the team email that sends the thank-you email. */
+function sponsor_thanks_url(array $d): string
+{
+    return base_url('api/sponsor-thanks.php?id=' . (int) $d['id'] . '&t=' . sign('sponsor-thanks', (string) $d['id']));
 }
 
 function tpl_admin_donation_pledge(array $d): array

@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 21;
+const SCHEMA_VERSION = 22;
 
 function db(): PDO
 {
@@ -107,6 +107,10 @@ function migrate(PDO $pdo): void
     if ($version >= 19 && !column_exists($pdo, 'volunteers', 'thanked_at')) {
         // v20: when the volunteer applicant was thanked (email / WhatsApp from Moses)
         $pdo->exec('ALTER TABLE volunteers ADD COLUMN thanked_at DATETIME NULL AFTER status');
+    }
+    if ($version >= 1 && !column_exists($pdo, 'donations', 'thanked_at')) {
+        // v22: when the sponsor was sent the thank-you message
+        $pdo->exec('ALTER TABLE donations ADD COLUMN thanked_at DATETIME NULL AFTER status');
     }
     if ($version >= 1 && !column_exists($pdo, 'email_log', 'duration_ms')) {
         // v21: how many people each email went to, and how long the mail server took to accept it
@@ -292,6 +296,7 @@ function schema_statements(): array
             message      TEXT NULL,
             is_anonymous TINYINT(1) NOT NULL DEFAULT 0,
             status       VARCHAR(20) NOT NULL DEFAULT 'pending',
+            thanked_at   DATETIME NULL,
             ip           VARCHAR(45) NULL,
             created_at   DATETIME NOT NULL,
             paid_at      DATETIME NULL,

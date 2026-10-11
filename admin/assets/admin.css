@@ -727,3 +727,6 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .mh-bad .ga-strip { border-color: #F5B5B5; background: #FFF6F6; }
 .mh-note { margin: 10px 4px 0; font-size: 13.5px; color: #9A2B2B; }
 .mh-note i { margin-right: 4px; }
+
+/* Sponsor thank-you */
+.thank-all { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }

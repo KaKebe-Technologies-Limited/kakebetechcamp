@@ -2,6 +2,14 @@
 require __DIR__ . '/_init.php';
 $admin = require_admin();
 
+// Preview of the thank-you email (latest paid sponsor, or an example)
+if (isset($_GET['preview_thanks'])) {
+    $d = q("SELECT * FROM donations WHERE status = 'paid' ORDER BY id DESC LIMIT 1")->fetch()
+        ?: ['id' => 0, 'donor_name' => 'Grace Akello', 'email' => '', 'children' => 2, 'beneficiaries' => json_encode(['Okello Brian', 'Atim Sarah']), 'amount' => 300000, 'amount_paid' => 300000, 'reference' => 'SPN26-0000'];
+    echo tpl_sponsor_thanks($d)[1];
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $d = q('SELECT * FROM donations WHERE id = ?', [(int) ($_POST['id'] ?? 0)])->fetch();
@@ -48,6 +56,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash($ok ? 'Thank-you email & receipt sent to ' . $d['email'] . '.' . mail_note() : 'Email failed: ' . $err, $ok ? 'success' : 'error');
             }
             break;
+        case 'thank':
+            if ($d && $d['status'] === 'paid') {
+                $ok = send_sponsor_thanks($d, $err);
+                flash($ok ? 'Thank-you emailed to ' . $d['donor_name'] . ' (' . $d['email'] . ').' . mail_note() : 'The thank-you email was not sent: ' . $err, $ok ? 'success' : 'error');
+            }
+            break;
+        case 'thank_all':
+            // One thank-you per sponsor (email address) who has paid and not been thanked yet
+            $sent = 0;
+            $failed = 0;
+            $done = [];
+            foreach (q("SELECT * FROM donations WHERE status = 'paid' AND thanked_at IS NULL ORDER BY id DESC")->fetchAll() as $row) {
+                if (isset($done[$row['email']])) {
+                    continue;
+                }
+                $done[$row['email']] = true;
+                if (send_sponsor_thanks($row)) {
+                    $sent++;
+                    q("UPDATE donations SET thanked_at = ? WHERE email = ? AND status = 'paid' AND thanked_at IS NULL", [now(), $row['email']]);
+                } else {
+                    $failed++;
+                }
+            }
+            flash("Thank-you emailed to $sent sponsor" . ($sent === 1 ? '' : 's') . '.' . ($failed ? " $failed could not be sent — see the Email log." : '') . mail_note(), $failed ? 'error' : 'success');
+            break;
+        case 'thanks_message':
+            $msg = trim((string) ($_POST['sponsor_thanks_message'] ?? ''));
+            setting_set('sponsor_thanks_message', $msg === trim(sponsor_thanks_default()) ? '' : mb_substr($msg, 0, 4000));
+            flash('Thank-you message saved.');
+            redirect('sponsors.php#thanks');
         case 'recheck':
             foreach (q("SELECT id FROM payments WHERE donation_id = ? AND status = 'pending'", [(int) $d['id']])->fetchAll(PDO::FETCH_COLUMN) as $pid) {
                 sync_payment((int) $pid, true);
@@ -81,6 +119,7 @@ if ($status) {
 }
 $w = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 $list = q("SELECT * FROM donations $w ORDER BY id DESC LIMIT 300", $params)->fetchAll();
+$toThank = (int) q("SELECT COUNT(DISTINCT email) FROM donations WHERE status = 'paid' AND thanked_at IS NULL")->fetchColumn();
 $tot = q("SELECT COUNT(*) n, COALESCE(SUM(amount_paid),0) paid, COALESCE(SUM(CASE WHEN status='paid' THEN children ELSE 0 END),0) kids, COUNT(DISTINCT CASE WHEN status='paid' THEN email END) donors FROM donations")->fetch();
 
 $sponsorRows = q("SELECT s.*, (SELECT COUNT(*) FROM registrations r WHERE r.sponsor_id = s.id AND r.status <> 'cancelled') AS linked,
@@ -167,6 +206,20 @@ admin_header('Sponsorships', 'sponsors', 'Sponsors, sponsored participants and s
   <div class="kpi"><span class="kpi-icon blue"><i class="fa-solid fa-list"></i></span><div><small>All pledges</small><b><?= (int) $tot['n'] ?></b><em>including unpaid</em></div></div>
 </div>
 
+<section class="card" id="thanks">
+  <div class="card-head"><h3><i class="fa-regular fa-heart"></i> Thank-you message for sponsors</h3><a class="link" href="sponsors.php?preview_thanks=1" target="_blank">Preview the email →</a></div>
+  <p class="small muted">Sent by email when you click <b>Thank</b> next to a paid sponsorship below, or <b>Send the thank-you email</b> in the team's "Sponsorship received" email.</p>
+  <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="thanks_message">
+    <label>Message <small class="muted">use {first_name}, {full_name}, {gift_line} (what their gift covers and who it is for), {amount}, {camp_dates}</small><textarea name="sponsor_thanks_message" rows="14"><?= e(trim((string) setting('sponsor_thanks_message')) ?: sponsor_thanks_default()) ?></textarea></label>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save message</button></div>
+  </form>
+  <?php if ($toThank): ?>
+  <form method="post" class="thank-all" data-confirm="Email the thank-you message to <?= $toThank ?> sponsor<?= $toThank === 1 ? '' : 's' ?> who <?= $toThank === 1 ? 'has' : 'have' ?> paid and not been thanked yet?"><?= csrf_field() ?><input type="hidden" name="action" value="thank_all">
+    <button class="btn btn-navy btn-sm" type="submit"><i class="fa-solid fa-heart"></i> Thank all <?= $toThank ?> sponsor<?= $toThank === 1 ? '' : 's' ?> not yet thanked</button>
+  </form>
+  <?php endif; ?>
+</section>
+
 <form class="card filters" method="get">
   <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" value="<?= e($qStr) ?>" placeholder="Name, email, phone, organisation, reference…"></div>
   <select name="status"><option value="">Any status</option><?php foreach (['paid' => 'Paid', 'pending' => 'Pending', 'failed' => 'Failed'] as $k => $l): ?><option value="<?= $k ?>" <?= $status === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
@@ -192,6 +245,7 @@ admin_header('Sponsorships', 'sponsors', 'Sponsors, sponsored participants and s
           <td class="nowrap muted"><?= e(date('j M Y', strtotime($d['created_at']))) ?></td>
           <td class="nowrap actions">
             <?php if ($d['status'] === 'paid'): ?>
+              <form method="post" class="inline" data-confirm="Email the thank-you message to <?= e($d['donor_name']) ?> (<?= e($d['email']) ?>)?"><?= csrf_field() ?><input type="hidden" name="action" value="thank"><input type="hidden" name="id" value="<?= (int) $d['id'] ?>"><button class="btn btn-sm <?= $d['thanked_at'] ? 'btn-light' : 'btn-primary' ?>" title="<?= $d['thanked_at'] ? 'Thanked ' . e(time_ago($d['thanked_at'])) . ' — click to send again' : 'Email the thank-you message' ?>"><i class="fa-<?= $d['thanked_at'] ? 'solid fa-check' : 'regular fa-heart' ?>"></i> <?= $d['thanked_at'] ? 'Thanked' : 'Thank' ?></button></form>
               <form method="post" class="inline" data-confirm="Resend thank-you email and receipt to <?= e($d['email']) ?>?"><?= csrf_field() ?><input type="hidden" name="action" value="resend"><input type="hidden" name="id" value="<?= (int) $d['id'] ?>"><button class="icon-btn" title="Resend receipt"><i class="fa-solid fa-paper-plane"></i></button></form>
             <?php else: ?>
               <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="recheck"><input type="hidden" name="id" value="<?= (int) $d['id'] ?>"><button class="icon-btn" title="Re-check payment"><i class="fa-solid fa-rotate"></i></button></form>
