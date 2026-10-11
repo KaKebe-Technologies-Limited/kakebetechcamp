@@ -339,7 +339,7 @@ function camp(): array
 /** Strictly camp_capacity participants: every registration that is not cancelled (or waitlisted) takes a seat. */
 function seat_capacity(): int
 {
-    return max(1, (int) setting('camp_capacity', 300));
+    return max(1, (int) setting('camp_capacity', 800));
 }
 
 function seats_taken(): int

@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 22;
+const SCHEMA_VERSION = 23;
 
 function db(): PDO
 {
@@ -107,6 +107,10 @@ function migrate(PDO $pdo): void
     if ($version >= 19 && !column_exists($pdo, 'volunteers', 'thanked_at')) {
         // v20: when the volunteer applicant was thanked (email / WhatsApp from Moses)
         $pdo->exec('ALTER TABLE volunteers ADD COLUMN thanked_at DATETIME NULL AFTER status');
+    }
+    if ($version >= 1 && $version < 23) {
+        // v23: the camp now gathers 800 young people (was 300)
+        $pdo->exec("UPDATE settings SET svalue = '800' WHERE skey = 'camp_capacity' AND svalue = '300'");
     }
     if ($version >= 1 && !column_exists($pdo, 'donations', 'thanked_at')) {
         // v22: when the sponsor was sent the thank-you message
@@ -561,7 +565,7 @@ function default_settings(): array
         'park_name'              => 'Aruu Falls',
         'sponsor_child_amount'   => '150000',
         'usd_rate'               => '3750',
-        'camp_capacity'          => '300',
+        'camp_capacity'          => '800',
         'notify_emails'          => env('MAIL_NOTIFY', 'info@kakebetechcamp.com'),
         'notify_registration_cc' => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',
         'notify_payment_cc'      => 'sedricksedu2@gmail.com, komabono1998@gmail.com, jeromeoscar2002@gmail.com, derricklamarh@gmail.com',

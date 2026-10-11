@@ -121,7 +121,7 @@ $details = [
             ['fa-location-dot', 'Where', 'Kitgum, Northern Uganda — residential camp'],
             ['fa-users', 'Who', 'Young people aged 14 – 30 from across Uganda'],
         ],
-        'output' => '300 young people aged 14 to 30 trained in AI and Software Development, Content Creation, Entrepreneurship, Video Gaming, Robotics and Digital Marketing. Participants build market-ready innovations and present them at Demo Day.',
+        'output' => '800 young people aged 14 to 30 trained in AI and Software Development, Content Creation, Entrepreneurship, Video Gaming, Robotics and Digital Marketing. Participants build market-ready innovations and present them at Demo Day.',
         'expect' => ['Hands-on training and expert-led sessions', 'Hackathons and networking', 'Accommodation, meals, camp materials and a free camp shirt', 'Certificate of completion', 'Free Mentorship & Digital Bridge Internship (Oct – Nov)'],
     ],
 ];
@@ -374,7 +374,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <?php if ($regFull): ?><div class="fee-badge"><span>All</span><b><?= $seatCap ?><small>SEATS TAKEN</small></b><em>Registration full</em></div>
       <?php else: ?><div class="fee-badge"><span>Only</span><b class="js-seats-left"><?= $seatsLeft ?></b><small class="fb-sub">SEATS LEFT</small><em>of <?= $seatCap ?> · Kitgum</em></div><?php endif; ?>
       <div class="float-card fc-1"><div><b>10 Days</b><small>14 – 23 December</small></div></div>
-      <div class="float-card fc-2"><div><b>Ages 14 – 30</b><small>300 young innovators</small></div></div>
+      <div class="float-card fc-2"><div><b>Ages 14 – 30</b><small>800 young innovators</small></div></div>
     </div>
   </div>
 
@@ -431,7 +431,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container">
     <div class="about-copy reveal">
       <h2>About Kakebe Tech Camp 2026</h2>
-      <p>From <?= e($c['dates']) ?>, Kakebe Tech Camp brings 300 young people aged 14 to 30 from across Uganda to Kitgum for ten days of living, learning and building together. Each camper follows two of six learning tracks — AI and software development, content creation, entrepreneurship, video gaming, robotics and digital marketing — taught in small groups by people who practise these skills every day. Mornings are hands-on workshops; afternoons turn into studio time where ideas become prototypes, videos, games and business plans.</p>
+      <p>From <?= e($c['dates']) ?>, Kakebe Tech Camp brings together 800 young people aged 14 to 30 from across Uganda in Kitgum for ten days of living, learning and building side by side. Each camper follows two of six learning tracks — AI and software development, content creation, entrepreneurship, video gaming, robotics and digital marketing — taught in small groups by people who practise these skills every day. Mornings are hands-on workshops; afternoons turn into studio time where ideas become prototypes, videos, games and business plans.</p>
       <p>As the days go on, campers form teams around real problems in their communities, test their solutions through hackathons and expert feedback, and close the camp by presenting their work at Demo Day before judges, partners and guests. Between sessions there is sport, networking and an optional visit to Aruu Falls. Every camper is also enrolled in the free Mentorship Program and Digital Bridge Internship, which run before the camp from October to November — online and in person in Lira, Gulu and Kitgum — so they arrive prepared and leave with skills, a certificate and a network that lasts well beyond December.</p>
       <a href="#register" class="btn btn-white">Register for the camp <i class="fa-solid fa-arrow-right"></i></a>
     </div>
@@ -443,7 +443,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
   <div class="container">
     <div class="section-head center reveal">
       <h2 class="title">Six tracks. Ten days. <span class="hl">Endless possibilities.</span></h2>
-      <p>Pick up to two learning tracks. 300 young people from across Uganda learn, build market-ready innovations and present them at Demo Day.</p>
+      <p>Pick up to two learning tracks. 800 young people from across Uganda gather to learn, build market-ready innovations and present them at Demo Day.</p>
     </div>
     <div class="track-grid six">
       <?php foreach ($tracks as $i => [$icon, $title, $desc]): ?>
@@ -498,7 +498,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       </div>
       <div class="stats-grid">
         <div class="stat"><b data-count="500" data-suffix="+">0</b><span>Youth &amp; community members</span></div>
-        <div class="stat"><b data-count="300">0</b><span>Tech Camp participants</span></div>
+        <div class="stat"><b data-count="800">0</b><span>Tech Camp participants</span></div>
         <div class="stat"><b data-count="100" data-suffix="+">0</b><span>Youth mentored</span></div>
         <div class="stat"><b data-count="100">0</b><span>Interns placed</span></div>
         <div class="stat"><b data-count="1000" data-suffix="+">0</b><span>Trees planted</span></div>

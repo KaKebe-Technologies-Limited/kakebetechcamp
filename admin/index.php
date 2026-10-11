@@ -20,7 +20,7 @@ $parkCount  = (int) $one("SELECT COUNT(*) FROM registrations WHERE park_visit = 
 $pendingPay = (int) $one("SELECT COUNT(*) FROM payments WHERE status = 'pending'");
 $unread     = (int) $one('SELECT COUNT(*) FROM messages WHERE is_read = 0');
 $testMoney  = (int) $one("SELECT COUNT(*) FROM payments WHERE status = 'success' AND currency <> 'UGX'");
-$capacity   = max(1, (int) setting('camp_capacity', 300));
+$capacity   = max(1, (int) setting('camp_capacity', 800));
 $seatsTaken = seats_taken();
 $capPct     = min(100, round($seatsTaken / $capacity * 100));
 
