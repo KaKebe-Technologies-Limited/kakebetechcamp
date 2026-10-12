@@ -333,6 +333,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
     <?php foreach (array_merge($navLeft, $navRight) as [$href, $label]): ?><li><a href="<?= $href ?>" data-nav><?= $label ?></a></li><?php endforeach; ?>
     <li><a href="mentorship"><i class="fa-solid fa-people-arrows"></i> Free mentorship &amp; DBIP</a></li>
     <li><a href="volunteers"><i class="fa-solid fa-person-chalkboard"></i> Volunteer as a trainer</a></li>
+    <li><a href="partner"><i class="fa-solid fa-handshake"></i> Partner with us</a></li>
     <li><a href="pay.php"><i class="fa-solid fa-id-badge"></i> My registration</a></li>
     <li><a href="portal/<?= $me ? '' : 'login.php' ?>"><i class="fa-solid fa-user"></i> Participant portal</a></li>
   </ul>
@@ -1051,6 +1052,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <li><a href="#sponsor">Sponsor an innovator</a></li>
         <li><a href="mentorship">Mentorship &amp; DBIP</a></li>
         <li><a href="volunteers">Volunteer as a trainer</a></li>
+        <li><a href="partner">Partner with us</a></li>
       </ul>
     </div>
     <div>

@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 23;
+const SCHEMA_VERSION = 24;
 
 function db(): PDO
 {
@@ -532,6 +532,32 @@ function schema_statements(): array
             ip            VARCHAR(45) NULL,
             created_at    DATETIME NOT NULL,
             updated_at    DATETIME NULL,
+            KEY idx_status (status),
+            KEY idx_ip (ip, created_at)
+        ) $t",
+
+        // v24: organisations and people who want to partner with the camp (/partner)
+        "CREATE TABLE IF NOT EXISTS partners (
+            id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            reference    VARCHAR(20) NULL UNIQUE,
+            organization VARCHAR(150) NOT NULL,
+            org_type     VARCHAR(60) NOT NULL,
+            contact_name VARCHAR(150) NOT NULL,
+            job_title    VARCHAR(120) NULL,
+            email        VARCHAR(190) NOT NULL,
+            phone        VARCHAR(40) NOT NULL,
+            location     VARCHAR(120) NOT NULL,
+            website      VARCHAR(255) NULL,
+            ways         VARCHAR(500) NOT NULL,
+            contribution TEXT NOT NULL,
+            budget       VARCHAR(60) NULL,
+            contact_pref VARCHAR(60) NULL,
+            referred_by  VARCHAR(150) NULL,
+            status       VARCHAR(16) NOT NULL DEFAULT 'new',
+            admin_notes  TEXT NULL,
+            ip           VARCHAR(45) NULL,
+            created_at   DATETIME NOT NULL,
+            updated_at   DATETIME NULL,
             KEY idx_status (status),
             KEY idx_ip (ip, created_at)
         ) $t",

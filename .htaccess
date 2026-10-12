@@ -24,6 +24,14 @@ DirectoryIndex index.php
   RewriteCond %{REQUEST_URI} ^(.*)/volunteers\.php$
   RewriteRule ^volunteers\.php$ %1/volunteers [R=301,L,QSA]
   RewriteRule ^volunteers$ volunteers.php [L,QSA]
+
+  # Short link for partners: /partner
+  RewriteCond %{REQUEST_URI} ^(.*)/partner/$
+  RewriteRule ^partner/$ %1/partner [R=301,L]
+  RewriteCond %{THE_REQUEST} \s[^?\s]*/partner\.php[\s?]
+  RewriteCond %{REQUEST_URI} ^(.*)/partner\.php$
+  RewriteRule ^partner\.php$ %1/partner [R=301,L,QSA]
+  RewriteRule ^partner$ partner.php [L,QSA]
 </IfModule>
 
 <IfModule mod_headers.c>

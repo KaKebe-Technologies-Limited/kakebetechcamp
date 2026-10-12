@@ -385,6 +385,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     $unread = (int) db()->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
     $pendingPay = (int) db()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
     $newVolunteers = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE status = 'new'")->fetchColumn();
+    $newPartners = (int) db()->query("SELECT COUNT(*) FROM partners WHERE status = 'new'")->fetchColumn();
     $groups = [
         'Overview' => [
             'dashboard' => ['index.php', 'fa-gauge-high', 'Dashboard', 0],
@@ -403,6 +404,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'take'     => ['take-payment.php', 'fa-hand-holding-dollar', 'Take a payment', 0],
             'payments' => ['payments.php', 'fa-money-bill-transfer', 'Payments', $pendingPay],
             'sponsors' => ['sponsors.php', 'fa-hand-holding-heart', 'Sponsorships', 0],
+            'partners' => ['partners.php', 'fa-handshake', 'Partners', $newPartners],
         ],
         'Marketing' => [
             'campaigns' => ['marketing.php', 'fa-bullhorn', 'Email campaigns', 0],
