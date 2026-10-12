@@ -734,3 +734,8 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 /* Add website registrants to email contacts */
 .mk-sync { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 .mk-sync p { margin: 0 0 8px; }
+
+/* Campaign daily-limit reserve */
+.mk-reserve { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.mk-reserve p { margin: 0 0 10px; }
+.mk-reserve.blocked { border-color: #F3D9A4; background: #FFFBF1; }

@@ -458,10 +458,22 @@ function mk_sent_last_24h(): int
 function mk_daily_left(): int
 {
     $left = mk_settings()['daily_limit'] - mk_sent_last_24h();
-    if (env('MK_SMTP_HOST') === '') {
+    if (mk_shares_site_account() && setting('mk_keep_reserve', '1') === '1') {
         $left -= email_people_24h() + 100;
     }
     return max(0, $left);
+}
+
+/** Campaigns go through the website's own email account (no separate MK_SMTP_* service). */
+function mk_shares_site_account(): bool
+{
+    return env('MK_SMTP_HOST') === '';
+}
+
+/** The email server says the account's daily sending limit is reached (Gmail: 550 5.4.5 / 421 4.7.x rate limits). */
+function mk_is_quota_error(string $error): bool
+{
+    return (bool) preg_match('/5\.4\.5|4\.7\.28|4\.7\.0 .*(limit|rate)|sending limit|daily user|quota|too many (messages|emails)|rate limit/i', $error);
 }
 
 /** The people a campaign goes to: valid contacts (in its list, if one is chosen). */
@@ -507,8 +519,8 @@ function mk_send_chunk(array $c, int $batch, int $max = 10): array
     $left = mk_daily_left();
     $out = ['sent' => 0, 'failed' => 0, 'error' => null, 'daily_left' => $left];
     if ($left === 0) {
-        $out['error'] = env('MK_SMTP_HOST') === ''
-            ? "Paused for today: the daily limit ($limit emails in 24 hours) is shared with the website's own emails, and the last 100 places are kept for sign-up links, login codes and receipts. Continue tomorrow."
+        $out['error'] = mk_shares_site_account() && setting('mk_keep_reserve', '1') === '1'
+            ? "Paused: the daily limit ($limit emails in 24 hours) is shared with the website's own emails, and the last 100 places are kept for sign-up links, login codes and receipts. To send now, press \"Use the reserved places\" on the campaign page — or continue tomorrow."
             : "The daily sending limit ($limit emails in 24 hours) has been reached. Continue tomorrow, or raise the limit if your email service allows more.";
         return $out + mk_batch_progress((int) $c['id'], $batch);
     }
@@ -542,6 +554,11 @@ function mk_send_chunk(array $c, int $batch, int $max = 10): array
             }
             $ok = $mailer->deliver($s['email'], $subject, $html, $text, $replyTo, $headers);
             $error = $ok ? null : $mailer->error;
+            if (!$ok && mk_is_quota_error((string) $error)) {
+                // The account is full for today: keep this person (and the rest) queued and stop
+                $out['error'] = 'Gmail says the account has reached its daily sending limit, so sending has stopped. The rest stay queued — continue in a few hours or tomorrow. (' . mb_substr((string) $error, 0, 160) . ')';
+                break;
+            }
         } elseif ($transport === 'mail') {
             $cfg = mk_smtp_config();
             $raw = build_mime_message($cfg['from_email'] ?: ('no-reply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost')), $cfg['from_name'], [$s['email']], $subject, $html, $text, $replyTo, false, [], [], $headers);

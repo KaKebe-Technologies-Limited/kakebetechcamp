@@ -46,6 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect($self . '#sending');
     }
 
+    if ($action === 'reserve') {
+        setting_set('mk_keep_reserve', !empty($_POST['keep']) ? '1' : '0');
+        flash(!empty($_POST['keep']) ? 'The last 100 places a day are kept for sign-up links and login codes again.' : 'Campaigns can now use all of the daily limit, including the places kept for sign-up links and login codes. Switch it back on after this send.');
+        redirect($self . '#sending');
+    }
+
     if ($action === 'retry') {
         $n = q("UPDATE mk_sends s JOIN mk_contacts ct ON ct.id = s.contact_id SET s.status = 'queued', s.error = NULL WHERE s.campaign_id = ? AND s.status = 'failed' AND ct.status = 'valid'", [$id])->rowCount();
         q("UPDATE mk_campaigns SET status = 'ready', finished_at = NULL WHERE id = ? AND status = 'sent'", [$id]);
@@ -250,7 +256,15 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
           <form method="post" class="inline-form" data-confirm="Remove the <?= number_format($stats['queued']) ?> emails that have not been sent yet from the queue?"><?= csrf_field() ?><input type="hidden" name="action" value="cancel"><input type="hidden" name="id" value="<?= $id ?>"><button class="btn btn-light btn-sm" type="submit"><i class="fa-solid fa-ban"></i> Cancel unsent</button></form>
           <?php endif; ?>
         </div>
-        <p class="small muted">Groups send about 10 emails at a time. The daily limit (<?= number_format($cfg['daily_limit']) ?>) pauses sending automatically — continue the next day.<?php if (env('MK_SMTP_HOST') === ''): ?> Campaigns use the website's own email account, so its emails count too and the last 100 places are kept for sign-up links and login codes.<?php endif; ?></p>
+        <p class="small muted">Groups send about 10 emails at a time. The daily limit (<?= number_format($cfg['daily_limit']) ?>) pauses sending automatically — continue the next day.</p>
+        <?php if (mk_shares_site_account()): $keep = setting('mk_keep_reserve', '1') === '1'; $site24 = email_people_24h(); ?>
+        <div class="mk-reserve<?= $keep && !$dailyLeft ? ' blocked' : '' ?>">
+          <p class="small">Campaigns use the website's Gmail account. In the last 24 hours it emailed <b><?= number_format($site24) ?></b> people from the website (sign-up links, receipts, team alerts) and <b><?= number_format(mk_sent_last_24h()) ?></b> campaign emails, out of about <?= number_format($cfg['daily_limit']) ?> a day.<?= $keep ? ' The last <b>100</b> places are kept for sign-up links and login codes.' : ' <b>The places kept for sign-up links are in use</b> — switch the reserve back on after this send.' ?></p>
+          <form method="post" class="inline-form"<?= $keep ? ' data-confirm="Let this campaign use the 100 places kept for sign-up links and login codes? If Gmail reaches its limit, sending stops by itself and the rest stay queued."' : '' ?>><?= csrf_field() ?><input type="hidden" name="action" value="reserve"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="keep" value="<?= $keep ? '0' : '1' ?>">
+            <button class="btn btn-sm <?= $keep ? 'btn-navy' : 'btn-light' ?>" type="submit"><i class="fa-solid <?= $keep ? 'fa-unlock' : 'fa-lock' ?>"></i> <?= $keep ? 'Use the reserved places and send now' : 'Keep 100 places for sign-up emails again' ?></button>
+          </form>
+        </div>
+        <?php endif; ?>
       <?php endif; ?>
     </section>
   </div>
