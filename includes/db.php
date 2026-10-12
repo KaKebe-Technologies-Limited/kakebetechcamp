@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 24;
+const SCHEMA_VERSION = 25;
 
 function db(): PDO
 {
@@ -533,6 +533,16 @@ function schema_statements(): array
             created_at    DATETIME NOT NULL,
             updated_at    DATETIME NULL,
             KEY idx_status (status),
+            KEY idx_ip (ip, created_at)
+        ) $t",
+
+        // v25: quick attendance (/attendance) — a name and the time it was entered
+        "CREATE TABLE IF NOT EXISTS attendance (
+            id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            full_name  VARCHAR(150) NOT NULL,
+            ip         VARCHAR(45) NULL,
+            created_at DATETIME NOT NULL,
+            KEY idx_created (created_at),
             KEY idx_ip (ip, created_at)
         ) $t",
 
