@@ -193,6 +193,62 @@ function mk_check_domains(int $max = 25): array
     return ['checked' => count($domains), 'bad' => $bad, 'left' => $left];
 }
 
+/** The id of the list with this name (created if missing). */
+function mk_list_id(string $name): int
+{
+    $st = db()->prepare('SELECT id FROM mk_lists WHERE name = ? ORDER BY id LIMIT 1');
+    $st->execute([$name]);
+    if ($id = (int) $st->fetchColumn()) {
+        return $id;
+    }
+    db()->prepare('INSERT INTO mk_lists (name, created_at) VALUES (?, ?)')->execute([$name, now()]);
+    return (int) db()->lastInsertId();
+}
+
+/**
+ * Copy the people who registered on the website into the email contacts, in three lists:
+ * Tech Camp participants, Mentorship & DBIP, and everyone registered (both together).
+ * Safe to run again: new people are added and names filled in; unsubscribed people stay unsubscribed.
+ */
+function mk_sync_website_people(): array
+{
+    $pdo = db();
+    $sources = [
+        'Website · Tech Camp participants' => "SELECT email, full_name FROM registrations WHERE status <> 'cancelled'",
+        'Website · Mentorship & DBIP'      => "SELECT email, full_name FROM mentorship_registrations WHERE status NOT IN ('cancelled', 'withdrawn')",
+    ];
+    $everyone = mk_list_id('Website · Everyone registered');
+    $ins = $pdo->prepare('INSERT IGNORE INTO mk_contacts (email, name, status, reason, domain, token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    $name = $pdo->prepare("UPDATE mk_contacts SET name = ? WHERE email = ? AND (name IS NULL OR name = '')");
+    $find = $pdo->prepare('SELECT id FROM mk_contacts WHERE email = ?');
+    $link = $pdo->prepare('INSERT IGNORE INTO mk_list_contacts (list_id, contact_id) VALUES (?, ?)');
+    $out = ['added' => 0, 'people' => 0, 'list_id' => $everyone];
+    $seen = [];
+    foreach ($sources as $listName => $sql) {
+        $lid = mk_list_id($listName);
+        foreach ($pdo->query($sql)->fetchAll() as $row) {
+            [$email, $status, $reason] = mk_check_email((string) $row['email']);
+            if ($status === 'skip') {
+                continue;
+            }
+            $full = mb_substr(trim((string) $row['full_name']), 0, 150);
+            $ins->execute([$email, $full ?: null, $status, $reason, substr((string) strrchr($email, '@'), 1), mk_token(), now()]);
+            $out['added'] += $ins->rowCount();
+            if ($full !== '') {
+                $name->execute([$full, $email]);
+            }
+            $find->execute([$email]);
+            $cid = (int) $find->fetchColumn();
+            $link->execute([$lid, $cid]);
+            $link->execute([$everyone, $cid]);
+            $seen[$email] = true;
+        }
+    }
+    $out['people'] = count($seen);
+    mk_mark_known_domains();
+    return $out;
+}
+
 function mk_contact_stats(?int $listId = null): array
 {
     $join = $listId ? ' JOIN mk_list_contacts lc ON lc.contact_id = c.id AND lc.list_id = ' . (int) $listId : '';

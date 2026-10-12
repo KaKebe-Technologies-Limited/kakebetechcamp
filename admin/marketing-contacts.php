@@ -79,6 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('marketing-contacts.php?list=' . $listId);
     }
 
+    if ($action === 'sync_website') {
+        $r = mk_sync_website_people();
+        flash(number_format($r['people']) . ' people who registered on the website are in your contacts (' . number_format($r['added']) . ' new), in the lists "Website · Tech Camp participants", "Website · Mentorship & DBIP" and "Website · Everyone registered".');
+        redirect('marketing-contacts.php?list=' . $r['list_id']);
+    }
     if ($action === 'add') {
         [$email, $status, $reason] = mk_check_email((string) ($_POST['email'] ?? ''));
         if ($status !== 'valid') {
@@ -228,6 +233,10 @@ admin_header('Email contacts', 'contacts', number_format(mk_contact_stats()['tot
         <label id="mkListName">New list name <input type="text" name="list_name" maxlength="120" placeholder="e.g. Gulu university students"></label>
       </div>
       <div><button class="btn btn-primary" type="submit"><i class="fa-solid fa-file-import"></i> Import</button> <span class="small muted" id="mkImportNote" hidden><span class="spinner dark"></span> Reading the file — large files take a minute…</span></div>
+    </form>
+    <form method="post" class="mk-sync"><?= csrf_field() ?><input type="hidden" name="action" value="sync_website">
+      <p class="small muted">Or add everyone who registered on the website — Tech Camp participants and Mentorship &amp; DBIP — with their names. Run it again any time to add new registrations.</p>
+      <button class="btn btn-navy btn-sm" type="submit"><i class="fa-solid fa-users"></i> Add website registrants</button>
     </form>
   </section>
 

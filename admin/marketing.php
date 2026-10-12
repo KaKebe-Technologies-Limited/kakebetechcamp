@@ -2,6 +2,27 @@
 require __DIR__ . '/_init.php';
 $admin = require_admin();
 
+// One-off (12 Oct 2026): the info session invitation, ready to edit and send to everyone registered on the website.
+// Created the first time this page is opened that day; the flag stops it being created twice.
+if (date('Y-m-d') <= '2026-10-12' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_info_session', '1')") === 1) {
+    $sync = mk_sync_website_people();
+    $meet = 'https://meet.google.com/ssd-qjsd-tfi';
+    $body = '<p>Dear {first_name},</p>'
+        . '<p>Thank you for registering with us — for <strong>Kakebe Tech Camp 2026</strong> in Kitgum, the <strong>Mentorship Program</strong> or the <strong>Digital Bridge Internship Program (DBIP)</strong>. We are truly glad to have you on this journey with us. 🙏</p>'
+        . '<p>We would love you to join our <strong>Kakebe Tech Camp Info Session tonight</strong> — a Spotlight Initiative session on Digital Skilling for Youth through Mentorship, the Digital Bridge Internship Program and Kakebe Tech Camp in Kitgum (14th – 23rd December).</p>'
+        . '<ul><li>🗓️ <strong>Today, Monday 12 October</strong></li><li>⏰ <strong>8:00 – 9:00 PM (EAT)</strong></li><li>💻 <strong>Google Meet:</strong> <a href="' . $meet . '">meet.google.com/ssd-qjsd-tfi</a></li></ul>'
+        . '<p>Come with your questions — we will walk you through the camp, the weekly mentorship sessions, the internship opportunities with mentors, companies and development partners, and how to make the most of them.</p>'
+        . '<p>The session is open to everyone, so please share this invitation with your friends!</p>'
+        . '<p>See you tonight,<br><strong>The Kakebe Tech Camp 2026 Team</strong></p>'
+        . '<p>#KakebeTechCamp2026 #SpotlightInitiative</p>';
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Info session — tonight, Mon 12 Oct, 8 PM',
+        '{first_name}, join the Kakebe Tech Camp Info Session TONIGHT at 8 PM',
+        'Spotlight Initiative session on digital skilling · Google Meet · 8:00 – 9:00 PM (EAT)',
+        mk_clean_body($body), 'Join on Google Meet', $meet, $sync['list_id'], $admin['id'], now(), now(),
+    ]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $action = (string) ($_POST['action'] ?? '');

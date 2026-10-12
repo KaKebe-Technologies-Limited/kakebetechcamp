@@ -730,3 +730,7 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 
 /* Sponsor thank-you */
 .thank-all { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* Add website registrants to email contacts */
+.mk-sync { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.mk-sync p { margin: 0 0 8px; }
