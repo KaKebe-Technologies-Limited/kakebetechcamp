@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 25;
+const SCHEMA_VERSION = 26;
 
 function db(): PDO
 {
@@ -107,6 +107,11 @@ function migrate(PDO $pdo): void
     if ($version >= 19 && !column_exists($pdo, 'volunteers', 'thanked_at')) {
         // v20: when the volunteer applicant was thanked (email / WhatsApp from Moses)
         $pdo->exec('ALTER TABLE volunteers ADD COLUMN thanked_at DATETIME NULL AFTER status');
+    }
+    if ($version < 26) {
+        // v26: attendance opens from Admin → Attendance; on this update it is open for one more hour
+        $pdo->prepare("INSERT IGNORE INTO settings (skey, svalue) VALUES ('attendance_open_until', ?), ('attendance_opened_at', ?)")
+            ->execute([date('Y-m-d H:i:s', time() + 3600), date('Y-m-d 00:00:00')]);
     }
     if ($version >= 1 && $version < 23) {
         // v23: the camp now gathers 800 young people (was 300)

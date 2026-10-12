@@ -739,3 +739,13 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .mk-reserve { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
 .mk-reserve p { margin: 0 0 10px; }
 .mk-reserve.blocked { border-color: #F3D9A4; background: #FFFBF1; }
+
+/* Attendance open / closed switch */
+.att-switch { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; }
+.att-switch h3 { display: flex; align-items: center; gap: 10px; }
+.att-switch.on { border-color: #A7E3C3; background: #F3FBF6; }
+.att-switch.on h3 i { color: var(--green); }
+.att-switch.off h3 i { color: var(--red); }
+.att-switch p { margin: 4px 0 0; }
+.att-switch .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.att-ip { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding-top: 12px; border-top: 1px solid var(--line); }

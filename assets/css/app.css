@@ -397,12 +397,6 @@ b.ok, .ok-text { color: var(--green); }
 .att-done > i { font-size: 26px; color: var(--green); }
 .att-done b { display: block; color: var(--ink); font-size: 16px; }
 .att-done span { font-size: 14px; color: var(--body); }
-.att-rows { display: grid; gap: 8px; }
-.att-row { display: flex; align-items: center; gap: 8px; }
-.att-row > span { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--red-50); color: var(--red); font-size: 12px; font-weight: 800; }
-.att-row input { flex: 1; min-width: 0; }
-.att-x { flex-shrink: 0; width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--soft); color: var(--muted); cursor: pointer; }
-.att-x:hover { color: var(--red); }
-.att-add { margin-top: 10px; }
-.att-done ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: 14px; }
-.att-done li b { display: inline; font-size: 14px; }
+.att-until { display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 6px 14px; border-radius: 999px; background: var(--green-50); color: var(--green); font-weight: 700; font-size: 14px; }
+.att-until b { color: var(--green); }
+.att-closed { margin-top: 18px; text-align: left; }

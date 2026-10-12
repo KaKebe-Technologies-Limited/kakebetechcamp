@@ -348,6 +348,13 @@ function email_health_strip(): string
     <?php return (string) ob_get_clean();
 }
 
+/** "1 h 25 min" until attendance closes. */
+function attendance_time_left(): string
+{
+    $m = max(0, (int) ceil((attendance_open_until() - time()) / 60));
+    return ($m >= 60 ? intdiv($m, 60) . ' h ' : '') . ($m % 60) . ' min';
+}
+
 function days_series(string $sql, int $days = 30): array
 {
     $series = [];

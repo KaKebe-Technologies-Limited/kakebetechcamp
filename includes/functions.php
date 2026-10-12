@@ -253,6 +253,23 @@ function receipt_url(array $p): string
     return base_url('receipt.php?id=' . (int) $p['id'] . '&t=' . sign('receipt', (string) $p['id']));
 }
 
+/* ---------- Attendance window (Admin → Attendance opens it for 2 hours at a time) ---------- */
+
+function attendance_open_until(): int
+{
+    return (int) strtotime((string) setting('attendance_open_until')) ?: 0;
+}
+
+function attendance_opened_at(): string
+{
+    return (string) setting('attendance_opened_at') ?: date('Y-m-d 00:00:00');
+}
+
+function attendance_is_open(): bool
+{
+    return attendance_open_until() > time();
+}
+
 function too_many(string $table, string $ip, int $minutes, int $max): bool
 {
     $allowed = ['registrations', 'messages', 'login_attempts', 'payments', 'donations', 'login_codes', 'email_verifications', 'mentorship_registrations', 'flyers', 'volunteers', 'partners', 'attendance'];
