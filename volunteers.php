@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_valid($_POST['csrf'] ?? null)) {
         $errors['form'] = 'Your session expired. Please submit the form again.';
     } elseif (setting('volunteers_open', '1') !== '1') {
-        $errors['form'] = 'Volunteer applications are closed at the moment.';
+        $errors['form'] = 'Volunteer applications are now closed.';
     } else {
         // Spam traps: hidden field + a minimum time on the page
         $renderedAt = (int) ($_SESSION['volunteer_rendered_at'] ?? 0);
@@ -196,7 +196,7 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
     <span class="mh-badge"><i class="fa-solid fa-hand-holding-heart"></i> Volunteer</span>
   </div>
   <div class="mh-body">
-    <span class="ment-kicker"><i class="fa-solid fa-person-chalkboard"></i> Trainers wanted</span>
+    <span class="ment-kicker<?= $open ? '' : ' closed' ?>"><i class="fa-solid <?= $open ? 'fa-person-chalkboard' : 'fa-lock' ?>"></i> <?= $open ? 'Trainers wanted' : 'Applications closed' ?></span>
     <h1>Volunteer as a trainer</h1>
     <p class="mh-sub">Kakebe Tech Camp 2026 · <?= e(camp()['dates_short']) ?> · Kitgum</p>
     <p>Share your expertise with young innovators from across Uganda. We are looking for skilled professionals to lead hands-on training sessions during the camp.</p>
@@ -206,7 +206,8 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
       <li><i class="fa-solid fa-user-check"></i><span>Aged <b>22 – 40</b>, ready to train during the camp</span></li>
       <li><i class="fa-solid fa-graduation-cap"></i><span>At least a <b>Diploma or degree</b> in your field of expertise</span></li>
     </ul>
-    <a href="#apply" class="btn btn-primary">Apply to volunteer <i class="fa-solid fa-arrow-down"></i></a>
+    <?php if ($open): ?><a href="#apply" class="btn btn-primary">Apply to volunteer <i class="fa-solid fa-arrow-down"></i></a>
+    <?php else: ?><a href="./#register" class="btn btn-primary">Register for the camp <i class="fa-solid fa-arrow-right"></i></a><?php endif; ?>
   </div>
 </section>
 
@@ -218,10 +219,20 @@ app_header('Volunteer as a trainer — Kakebe Tech Camp 2026', '', '', $done ? [
 </section>
 
 <section class="app-card ment-form vol-form" id="apply">
-  <h2>Apply to volunteer</h2>
   <?php if (!$open): ?>
-    <div class="notice warn"><i class="fa-solid fa-circle-info"></i><span>Volunteer applications are closed at the moment. Message us on <a href="<?= e(whatsapp_link('Hello, I would like to volunteer as a trainer at Kakebe Tech Camp 2026.')) ?>" target="_blank" rel="noopener">WhatsApp</a> to be told when they open.</span></div>
+    <div class="vol-closed">
+      <div class="card-icon"><i class="fa-solid fa-heart"></i></div>
+      <h2>Volunteer applications are now closed</h2>
+      <p>Thank you so much for your interest in volunteering at Kakebe Tech Camp 2026. Because of the very high number of applications we received, we have now <b>closed volunteer registration</b>. We are sorry for any inconvenience this may cause.</p>
+      <p>You can still be part of the camp! <b>Register as a participant</b> and join hundreds of young innovators in Kitgum (<?= e(camp()['dates']) ?>) to learn, build and connect.</p>
+      <div class="btn-row center">
+        <a class="btn btn-primary" href="./#register"><i class="fa-solid fa-user-plus"></i> Register for the camp</a>
+        <a class="btn btn-ghost" href="<?= e(whatsapp_link('Hello, I have a question about Kakebe Tech Camp 2026.')) ?>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Ask us on WhatsApp</a>
+      </div>
+      <p class="muted small">If you have already applied, there is nothing more to do — our team is reviewing applications and will contact shortlisted volunteers.</p>
+    </div>
   <?php else: ?>
+  <h2>Apply to volunteer</h2>
   <p class="muted small">It takes about five minutes. Have your CV ready (PDF or Word, up to 5 MB).</p>
   <?php if (isset($errors['form'])): ?><div class="form-alert"><?= e($errors['form']) ?></div><?php elseif ($errors): ?><div class="form-alert">Please check the highlighted fields<?= !isset($errors['cv']) ? ' — and attach your CV again' : '' ?>.</div><?php endif; ?>
   <form method="post" action="volunteers#apply" enctype="multipart/form-data" id="volForm" novalidate>

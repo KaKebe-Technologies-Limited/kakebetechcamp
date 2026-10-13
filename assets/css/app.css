@@ -400,3 +400,11 @@ b.ok, .ok-text { color: var(--green); }
 .att-until { display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 6px 14px; border-radius: 999px; background: var(--green-50); color: var(--green); font-weight: 700; font-size: 14px; }
 .att-until b { color: var(--green); }
 .att-closed { margin-top: 18px; text-align: left; }
+
+/* Volunteer applications closed */
+.ment-kicker.closed { background: var(--red-50); color: var(--red); }
+.vol-closed { text-align: center; padding: 6px 0; }
+.vol-closed .card-icon { margin: 0 auto 12px; background: var(--red-50); color: var(--red); }
+.vol-closed h2 { margin-bottom: 10px; }
+.vol-closed p { max-width: 620px; margin-left: auto; margin-right: auto; }
+.vol-closed .btn-row { margin: 18px 0 14px; }
