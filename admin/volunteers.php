@@ -127,6 +127,16 @@ $badge = ['new' => 'st-booked', 'shortlisted' => 'st-pending', 'accepted' => 'st
 
 admin_header('Volunteer trainers', 'volunteers', 'People offering their expertise as trainers during Kakebe Tech Camp 2026');
 ?>
+<section class="card att-switch <?= $open ? 'on' : 'off' ?>">
+  <div>
+    <h3><i class="fa-solid <?= $open ? 'fa-lock-open' : 'fa-lock' ?>"></i> Volunteer applications are <?= $open ? 'OPEN' : 'CLOSED' ?></h3>
+    <p class="small muted"><?= $open ? 'People can apply at <a href="' . e(base_url('volunteers')) . '" target="_blank">/volunteers</a>.' : 'The page apologises (high numbers) and invites people to register for the camp instead.' ?></p>
+  </div>
+  <form method="post" class="inline"<?= $open ? ' data-confirm="Close volunteer applications? The page will show the apology and point people to camp registration."' : ' data-confirm="Open volunteer applications again?"' ?>><?= csrf_field() ?><input type="hidden" name="action" value="open"><?php if (!$open): ?><input type="hidden" name="volunteers_open" value="1"><?php endif; ?>
+    <button class="btn <?= $open ? 'btn-danger' : 'btn-primary' ?>" type="submit"><i class="fa-solid <?= $open ? 'fa-lock' : 'fa-lock-open' ?>"></i> <?= $open ? 'Close applications' : 'Open applications' ?></button>
+  </form>
+</section>
+
 <div class="kpis">
   <a class="kpi" href="volunteers.php"><span class="kpi-icon navy"><i class="fa-solid fa-person-chalkboard"></i></span><div><small>Applications</small><b><?= number_format($all) ?></b><em><?= number_format((int) ($counts['new'] ?? 0)) ?> new to review</em></div></a>
   <a class="kpi" href="volunteers.php?status=shortlisted"><span class="kpi-icon amber"><i class="fa-solid fa-list-check"></i></span><div><small>Shortlisted</small><b><?= number_format((int) ($counts['shortlisted'] ?? 0)) ?></b><em>to interview or confirm</em></div></a>
