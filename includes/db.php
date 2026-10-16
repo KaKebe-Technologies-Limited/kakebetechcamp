@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 27;
+const SCHEMA_VERSION = 28;
 
 function db(): PDO
 {
@@ -108,6 +108,17 @@ function migrate(PDO $pdo): void
         // v20: when the volunteer applicant was thanked (email / WhatsApp from Moses)
         $pdo->exec('ALTER TABLE volunteers ADD COLUMN thanked_at DATETIME NULL AFTER status');
     }
+    if ($version >= 1 && !column_exists($pdo, 'admins', 'role')) {
+        // v28: roles — the owner becomes team lead (admin); everyone else keeps the control panel as "team"
+        $pdo->exec("ALTER TABLE admins ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'team' AFTER password_hash");
+        $pdo->exec("UPDATE admins SET role = 'admin' WHERE email = 'ot.sedrick@gmail.com'");
+    }
+    if ((int) $pdo->query("SELECT COUNT(*) FROM admins WHERE role = 'admin'")->fetchColumn() === 0) {
+        $pdo->exec("UPDATE admins SET role = 'admin' ORDER BY id LIMIT 1");   // there is always a team lead
+    }
+    if ($version < 28) {
+        fin_seed_undp($pdo);   // the Kakebe x UNDP workplan and budget
+    }
     if ($version >= 1 && $version < 27) {
         // v27: volunteer applications closed (high numbers); reopen any time in Admin → Volunteer trainers
         $pdo->exec("INSERT INTO settings (skey, svalue) VALUES ('volunteers_open', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
@@ -204,6 +215,7 @@ function schema_statements(): array
             name          VARCHAR(120) NOT NULL,
             email         VARCHAR(190) NOT NULL UNIQUE,
             password_hash VARCHAR(255) NOT NULL,
+            role          VARCHAR(20) NOT NULL DEFAULT 'team',
             last_login_at DATETIME NULL,
             created_at    DATETIME NOT NULL
         ) $t",
@@ -543,6 +555,175 @@ function schema_statements(): array
             updated_at    DATETIME NULL,
             KEY idx_status (status),
             KEY idx_ip (ip, created_at)
+        ) $t",
+
+        // v28: project finance — workplan clusters and budget lines, funds received, expenses, requisitions, receipts
+        "CREATE TABLE IF NOT EXISTS fin_projects (
+            id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name           VARCHAR(200) NOT NULL,
+            donor          VARCHAR(120) NULL,
+            funding_source VARCHAR(160) NULL,
+            location       VARCHAR(120) NULL,
+            exchange_rate  DECIMAL(12,4) NOT NULL DEFAULT 3735.91,
+            starts_on      DATE NULL,
+            ends_on        DATE NULL,
+            outcome        TEXT NULL,
+            is_active      TINYINT(1) NOT NULL DEFAULT 1,
+            created_at     DATETIME NOT NULL
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_clusters (
+            id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            project_id      INT UNSIGNED NOT NULL,
+            code            VARCHAR(20) NOT NULL,
+            name            VARCHAR(200) NOT NULL,
+            description     TEXT NULL,
+            output          TEXT NULL,
+            months          VARCHAR(60) NULL,
+            responsible     VARCHAR(120) NULL,
+            budget_category VARCHAR(80) NULL,
+            target_label    VARCHAR(120) NULL,
+            target_value    INT UNSIGNED NULL,
+            reached         INT UNSIGNED NOT NULL DEFAULT 0,
+            progress        TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            sort            INT NOT NULL DEFAULT 0,
+            created_at      DATETIME NOT NULL,
+            KEY idx_project (project_id)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_lines (
+            id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            project_id  INT UNSIGNED NOT NULL,
+            cluster_id  INT UNSIGNED NOT NULL,
+            code        VARCHAR(20) NOT NULL,
+            item        VARCHAR(200) NOT NULL,
+            description TEXT NULL,
+            units       DECIMAL(12,2) NOT NULL DEFAULT 1,
+            unit_cost   INT UNSIGNED NOT NULL DEFAULT 0,
+            amount      INT UNSIGNED NOT NULL DEFAULT 0,
+            sort        INT NOT NULL DEFAULT 0,
+            created_at  DATETIME NOT NULL,
+            updated_at  DATETIME NULL,
+            KEY idx_cluster (cluster_id),
+            KEY idx_project (project_id)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_income (
+            id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            project_id  INT UNSIGNED NOT NULL,
+            received_on DATE NOT NULL,
+            source      VARCHAR(150) NOT NULL,
+            description VARCHAR(255) NULL,
+            amount      INT UNSIGNED NOT NULL,
+            method      VARCHAR(20) NULL,
+            reference   VARCHAR(120) NULL,
+            recorded_by INT UNSIGNED NULL,
+            created_at  DATETIME NOT NULL,
+            KEY idx_project (project_id)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_expenses (
+            id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            project_id     INT UNSIGNED NOT NULL,
+            line_id        INT UNSIGNED NOT NULL,
+            spent_on       DATE NOT NULL,
+            payee          VARCHAR(150) NOT NULL,
+            description    VARCHAR(500) NOT NULL,
+            amount         INT UNSIGNED NOT NULL,
+            method         VARCHAR(20) NULL,
+            reference      VARCHAR(120) NULL,
+            invoice_no     VARCHAR(80) NULL,
+            location       VARCHAR(150) NULL,
+            spent_by       VARCHAR(150) NULL,
+            requisition_id INT UNSIGNED NULL,
+            recorded_by    INT UNSIGNED NULL,
+            created_at     DATETIME NOT NULL,
+            KEY idx_project (project_id, spent_on),
+            KEY idx_line (line_id),
+            KEY idx_req (requisition_id)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_requisitions (
+            id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            project_id       INT UNSIGNED NOT NULL,
+            reference        VARCHAR(20) NULL UNIQUE,
+            requested_by     INT UNSIGNED NOT NULL,
+            title            VARCHAR(200) NOT NULL,
+            cluster_id       INT UNSIGNED NULL,
+            location         VARCHAR(150) NULL,
+            needed_on        DATE NULL,
+            justification    TEXT NULL,
+            total            INT UNSIGNED NOT NULL DEFAULT 0,
+            status           VARCHAR(16) NOT NULL DEFAULT 'submitted',
+            reviewed_by      INT UNSIGNED NULL,
+            reviewed_at      DATETIME NULL,
+            approved_by      INT UNSIGNED NULL,
+            approved_at      DATETIME NULL,
+            disbursed_by     INT UNSIGNED NULL,
+            disbursed_at     DATETIME NULL,
+            disbursed_amount INT UNSIGNED NULL,
+            disburse_method  VARCHAR(20) NULL,
+            disburse_ref     VARCHAR(120) NULL,
+            accounted_at     DATETIME NULL,
+            actual_total     INT UNSIGNED NULL,
+            accountability   TEXT NULL,
+            verified_by      INT UNSIGNED NULL,
+            verified_at      DATETIME NULL,
+            balance_note     VARCHAR(500) NULL,
+            created_at       DATETIME NOT NULL,
+            updated_at       DATETIME NULL,
+            KEY idx_project_status (project_id, status),
+            KEY idx_requester (requested_by)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_req_items (
+            id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            requisition_id INT UNSIGNED NOT NULL,
+            line_id        INT UNSIGNED NOT NULL,
+            description    VARCHAR(300) NOT NULL,
+            qty            DECIMAL(12,2) NOT NULL DEFAULT 1,
+            unit_cost      INT UNSIGNED NOT NULL DEFAULT 0,
+            amount         INT UNSIGNED NOT NULL DEFAULT 0,
+            actual_amount  INT UNSIGNED NULL,
+            payee          VARCHAR(150) NULL,
+            KEY idx_req (requisition_id),
+            KEY idx_line (line_id)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_files (
+            id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            owner_type    VARCHAR(20) NOT NULL,
+            owner_id      INT UNSIGNED NOT NULL,
+            file          VARCHAR(80) NOT NULL,
+            original_name VARCHAR(200) NOT NULL,
+            size          INT UNSIGNED NOT NULL DEFAULT 0,
+            uploaded_by   INT UNSIGNED NULL,
+            created_at    DATETIME NOT NULL,
+            KEY idx_owner (owner_type, owner_id)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_log (
+            id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            project_id INT UNSIGNED NOT NULL,
+            entity     VARCHAR(20) NOT NULL,
+            entity_id  INT UNSIGNED NOT NULL,
+            action     VARCHAR(40) NOT NULL,
+            comment    TEXT NULL,
+            admin_id   INT UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            KEY idx_entity (entity, entity_id),
+            KEY idx_project (project_id, created_at)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS fin_updates (
+            id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            cluster_id INT UNSIGNED NOT NULL,
+            progress   TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            reached    INT UNSIGNED NULL,
+            note       TEXT NULL,
+            admin_id   INT UNSIGNED NULL,
+            created_at DATETIME NOT NULL,
+            KEY idx_cluster (cluster_id, created_at)
         ) $t",
 
         // v25: quick attendance (/attendance) — a name and the time it was entered

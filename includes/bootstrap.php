@@ -78,6 +78,7 @@ require ROOT . '/includes/marketing.php';
 require ROOT . '/includes/mentorship.php';
 require ROOT . '/includes/volunteers.php';
 require ROOT . '/includes/partners.php';
+require ROOT . '/includes/finance.php';
 require ROOT . '/includes/google.php';
 require ROOT . '/includes/analytics.php';
 require ROOT . '/includes/traffic.php';

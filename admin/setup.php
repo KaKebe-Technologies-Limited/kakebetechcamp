@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($pass !== $pass2) $errors[] = 'Passwords do not match.';
 
     if (!$errors) {
-        db()->prepare('INSERT INTO admins (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
+        db()->prepare("INSERT INTO admins (name, email, password_hash, role, created_at) VALUES (?, ?, ?, 'admin', ?)")
             ->execute([$name, $email, password_hash($pass, PASSWORD_DEFAULT), now()]);
         session_regenerate_id(true);
         $_SESSION['admin_id'] = (int) db()->lastInsertId();
