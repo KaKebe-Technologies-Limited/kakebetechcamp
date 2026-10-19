@@ -19,8 +19,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($cta !== '' && !preg_match('~^https?://~i', $cta)) {
             $cta = 'https://' . ltrim($cta, '/');
         }
-        $listId = (int) ($_POST['list_id'] ?? 0);
-        $listId = $listId && q('SELECT id FROM mk_lists WHERE id = ?', [$listId])->fetchColumn() ? $listId : null;
+        // Audience: several lists (or all contacts) plus people picked one by one
+        $chosenLists = array_map('strval', (array) ($_POST['lists'] ?? []));
+        if (in_array('*', $chosenLists, true)) {
+            $listIds = '*';
+        } else {
+            $ids = array_values(array_filter(array_map('intval', $chosenLists)));
+            $ids = $ids ? q('SELECT id FROM mk_lists WHERE id IN (' . implode(',', $ids) . ')')->fetchAll(PDO::FETCH_COLUMN) : [];
+            $listIds = implode(',', $ids);
+        }
+        $people = array_values(array_unique(array_filter(array_map('intval', (array) ($_POST['contacts'] ?? [])))));
+        $people = $people ? q('SELECT id FROM mk_contacts WHERE id IN (' . implode(',', $people) . ')')->fetchAll(PDO::FETCH_COLUMN) : [];
+        $listId = $listIds !== '*' && $listIds !== '' ? (int) explode(',', $listIds)[0] : null;
+        q('UPDATE mk_campaigns SET list_ids = ?, contact_ids = ? WHERE id = ?', [$listIds, implode(',', $people), $id]);
         q('UPDATE mk_campaigns SET name = ?, subject = ?, preheader = ?, body = ?, cta_label = ?, cta_url = ?, list_id = ?, updated_at = ? WHERE id = ?', [
             mb_substr(trim((string) ($_POST['name'] ?? '')) ?: $c['name'], 0, 150),
             mb_substr(trim((string) ($_POST['subject'] ?? '')), 0, 200),
@@ -32,6 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         flash('Campaign saved.');
         redirect($self);
+    }
+
+    if ($action === 'sync_website') {
+        $r = mk_sync_website_people();
+        flash('Website lists refreshed — ' . number_format($r['people']) . ' registered people (' . number_format($r['added']) . ' new). Tick the lists below and save.');
+        redirect($self . '#audience');
     }
 
     if ($action === 'queue') {
@@ -74,8 +91,10 @@ $lists = mk_lists();
 $allValid = mk_contact_stats()['valid'];
 $stats = mk_campaign_stats($id);
 $audience = mk_audience_count($c);
-$notQueued = (int) q('SELECT COUNT(*) FROM mk_contacts ct' . ($c['list_id'] ? ' JOIN mk_list_contacts lc ON lc.contact_id = ct.id AND lc.list_id = ' . (int) $c['list_id'] : '')
-    . " WHERE ct.status = 'valid' AND NOT EXISTS (SELECT 1 FROM mk_sends s WHERE s.campaign_id = ? AND s.contact_id = ct.id)", [$id])->fetchColumn();
+$notQueued = (int) q("SELECT COUNT(*) FROM mk_contacts c WHERE c.status = 'valid' AND " . mk_audience_where($c)
+    . ' AND NOT EXISTS (SELECT 1 FROM mk_sends s WHERE s.campaign_id = ? AND s.contact_id = c.id)', [$id])->fetchColumn();
+[$chosenLists, $chosenPeople] = mk_audience_choice($c);
+$pickedPeople = $chosenPeople ? q('SELECT id, name, email FROM mk_contacts WHERE id IN (' . implode(',', $chosenPeople) . ') ORDER BY name, email')->fetchAll() : [];
 $groups = q("SELECT batch, COUNT(*) total, SUM(status = 'sent') sent, SUM(status = 'queued') queued, SUM(status = 'failed') failed, SUM(opened_at IS NOT NULL) opened, MAX(sent_at) last_sent
     FROM mk_sends WHERE campaign_id = ? GROUP BY batch ORDER BY batch", [$id])->fetchAll();
 $dailyLeft = mk_daily_left();
@@ -160,14 +179,23 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
       </div>
     </div>
     <?php if ($stats['sent']): ?><p class="alert alert-info small"><i class="fa-solid fa-circle-info"></i><span><?= number_format($stats['sent']) ?> people already received this email. Changes you save now only apply to emails that have not been sent yet.</span></p><?php endif; ?>
-    <div class="row-2">
-      <label>Campaign name <small class="muted">only you see this</small><input type="text" name="name" value="<?= e($c['name']) ?>" maxlength="150" required></label>
-      <label>Send to
-        <select name="list_id">
-          <option value="0">All contacts (<?= number_format($allValid) ?> ready)</option>
-          <?php foreach ($lists as $l): ?><option value="<?= (int) $l['id'] ?>" <?= (int) $c['list_id'] === (int) $l['id'] ? 'selected' : '' ?>><?= e($l['name']) ?> (<?= number_format((int) $l['valid']) ?> ready)</option><?php endforeach; ?>
-        </select>
-      </label>
+    <label>Campaign name <small class="muted">only you see this</small><input type="text" name="name" value="<?= e($c['name']) ?>" maxlength="150" required></label>
+    <div class="mk-audience" id="audience">
+      <div class="mk-audience-head"><b><i class="fa-solid fa-users"></i> Send to</b><span class="small muted">tick as many lists as you like and/or add people by name — everyone gets their own copy, and nobody gets it twice</span></div>
+      <div class="mk-audience-lists">
+        <label class="mk-aud-opt all"><input type="checkbox" name="lists[]" value="*" class="js-aud-all"<?= $chosenLists === ['*'] ? ' checked' : '' ?>><span><b>All contacts</b><small><?= number_format($allValid) ?> ready</small></span></label>
+        <?php foreach ($lists as $l): ?>
+        <label class="mk-aud-opt<?= str_starts_with($l['name'], 'Website') ? ' web' : '' ?>"><input type="checkbox" name="lists[]" value="<?= (int) $l['id'] ?>" class="js-aud-list"<?= in_array((int) $l['id'], $chosenLists, true) ? ' checked' : '' ?>><span><b><?= e($l['name']) ?></b><small><?= number_format((int) $l['valid']) ?> ready</small></span></label>
+        <?php endforeach; ?>
+      </div>
+      <div class="mk-people">
+        <label class="small"><b>Add people one by one</b> <span class="muted">— type a name or email</span></label>
+        <div class="mk-people-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" class="js-people-q" placeholder="e.g. Akello or akello@gmail.com" autocomplete="off"><div class="mk-people-results js-people-results" hidden></div></div>
+        <div class="mk-people-chips js-people-chips">
+          <?php foreach ($pickedPeople as $p): ?><span class="mk-chip" data-id="<?= (int) $p['id'] ?>"><input type="hidden" name="contacts[]" value="<?= (int) $p['id'] ?>"><?= e($p['name'] ?: $p['email']) ?> <small><?= e($p['email']) ?></small><button type="button" class="js-chip-x" aria-label="Remove">×</button></span><?php endforeach; ?>
+        </div>
+      </div>
+      <p class="small muted mk-aud-foot">Website lists hold people who registered on the website: <b>Tech Camp participants</b> and <b>Mentorship &amp; DBIP</b> (one registration covers both programmes); <b>Everyone registered</b> is both together. <button type="submit" form="mkSyncForm" class="link-btn"><i class="fa-solid fa-rotate"></i> Refresh website lists</button> to add today's new registrations.</p>
     </div>
     <label>Subject line <small class="muted">what people see in their inbox · {first_name} adds their first name</small><input type="text" name="subject" value="<?= e($c['subject']) ?>" maxlength="200" placeholder="e.g. {first_name}, the Digital Bridge internship is open — apply by 20 October"></label>
     <label>Preview text <small class="muted">the grey line shown after the subject in Gmail (optional)</small><input type="text" name="preheader" value="<?= e((string) $c['preheader']) ?>" maxlength="200" placeholder="Free mentorship in Lira, Gulu, Kitgum and online — 2 minutes to apply"></label>
@@ -214,7 +242,7 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
       <?php if (!$ready): ?>
         <p class="muted small">Write and save the email first.</p>
       <?php elseif (!$stats['total']): ?>
-        <p class="small">This email will go to <b><?= number_format($audience) ?></b> <?= $c['list_id'] ? 'people in the chosen list' : 'contacts' ?> — each person gets their own copy.
+        <p class="small">This email will go to <b><?= number_format($audience) ?></b> <?= $audience === 1 ? 'person' : 'people' ?> (<?= e(mk_audience_label($c)) ?>) — each person gets their own copy.
           <?php if ($audience): ?>That's <b><?= (int) ceil($audience / $cfg['batch_size']) ?></b> group<?= ceil($audience / $cfg['batch_size']) == 1 ? '' : 's' ?> of up to <?= $cfg['batch_size'] ?>.<?php endif; ?></p>
         <?php if ($audience): ?>
           <form method="post" data-confirm="Prepare the send list for <?= number_format($audience) ?> people? Nothing is sent until you press Send on a group."><?= csrf_field() ?><input type="hidden" name="action" value="queue"><input type="hidden" name="id" value="<?= $id ?>">
@@ -317,4 +345,5 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
 </section>
 <?php endif; ?>
 <script>window.MK = { csrf: <?= json_encode(csrf_token()) ?>, api: 'marketing-api.php' };</script>
+<form method="post" id="mkSyncForm" hidden><?= csrf_field() ?><input type="hidden" name="action" value="sync_website"></form>
 <?php admin_footer(['https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js', 'marketing.js']);

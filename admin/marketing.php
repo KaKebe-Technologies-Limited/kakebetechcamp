@@ -34,11 +34,12 @@ if (date('Y-m-d') <= '2026-10-19' && db()->exec("INSERT IGNORE INTO settings (sk
         . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation and Oroma TV">'
         . '<p>See you tonight,<br><strong>Kakebe Technologies</strong><br>Kakebe Tech Camp 2026 Team</p>'
         . '<p><em>Be informed. Get inspired. Be part of the movement!</em></p>';
-    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+    $webLists = implode(',', [mk_list_id('Website · Tech Camp participants'), mk_list_id('Website · Mentorship & DBIP')]);
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
         'MentorMe360 Session 1 — tonight, Mon 19 Oct, 8 PM',
         '{first_name}, join tonight’s MentorMe360 mentorship session — 8 PM',
         'Sponsored by UNDP, the EU, the Spotlight Initiative, BetterLife and Oroma TV · every Monday, 8:00 – 9:00 PM',
-        mk_clean_body($body), 'Join on Google Meet', $meet, $sync['list_id'], $admin['id'], now(), now(),
+        mk_clean_body($body), 'Join on Google Meet', $meet, $sync['list_id'], $webLists, $admin['id'], now(), now(),
     ]);
 }
 
@@ -53,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'duplicate' && ($c = find_campaign((int) ($_POST['id'] ?? 0)))) {
-        q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [mb_substr('Copy of ' . $c['name'], 0, 150), $c['subject'], $c['preheader'], $c['body'], $c['cta_label'], $c['cta_url'], $c['list_id'], $admin['id'], now(), now()]);
+        q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, contact_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [mb_substr('Copy of ' . $c['name'], 0, 150), $c['subject'], $c['preheader'], $c['body'], $c['cta_label'], $c['cta_url'], $c['list_id'], $c['list_ids'], $c['contact_ids'], $admin['id'], now(), now()]);
         flash('Campaign copied — edit it and send it to a new audience.');
         redirect('marketing-campaign.php?id=' . (int) db()->lastInsertId());
     }
@@ -130,7 +131,7 @@ admin_header('Email campaigns', 'campaigns', 'Compose rich emails and send them 
         ?>
           <tr class="row-link" data-href="marketing-campaign.php?id=<?= (int) $c['id'] ?>">
             <td><b><?= e($c['name']) ?></b><small class="block muted"><?= e($c['subject'] ?: 'No subject yet') ?></small></td>
-            <td><?= e($c['list_name'] ?? 'All contacts') ?></td>
+            <td class="small"><?= e(mk_audience_label($c)) ?></td>
             <td><span class="badge <?= $cls ?>"><?= $label ?></span></td>
             <td class="nowrap"><b><?= number_format((int) $c['sent']) ?></b><?php if ($c['recipients']): ?> <span class="muted">/ <?= number_format((int) $c['recipients']) ?></span><?php endif; ?></td>
             <td class="nowrap"><?php if ($c['sent']): ?><i class="fa-solid fa-check-double mk-blue"></i> <b><?= number_format((int) $c['opened']) ?></b> <span class="muted"><?= $rate ?>%</span><?php else: ?><span class="muted">—</span><?php endif; ?></td>

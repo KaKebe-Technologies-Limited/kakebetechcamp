@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 31;
+const SCHEMA_VERSION = 32;
 
 function db(): PDO
 {
@@ -123,6 +123,10 @@ function migrate(PDO $pdo): void
         // v29: staff sign up themselves (role "pending" until the team lead gives access), signatures,
         // per-item explanations in accountability, approval adjustments and signed accountability PDFs
         $pdo->exec('ALTER TABLE admins ADD COLUMN phone VARCHAR(40) NULL AFTER role, ADD COLUMN job_title VARCHAR(120) NULL AFTER phone, ADD COLUMN signature_file VARCHAR(80) NULL AFTER job_title');
+    }
+    if ($version >= 1 && !column_exists($pdo, 'mk_campaigns', 'list_ids')) {
+        // v32: a campaign can go to several lists and to people picked one by one
+        $pdo->exec('ALTER TABLE mk_campaigns ADD COLUMN list_ids VARCHAR(500) NULL AFTER list_id, ADD COLUMN contact_ids MEDIUMTEXT NULL AFTER list_ids');
     }
     if ($version >= 1 && !column_exists($pdo, 'admins', 'features')) {
         // v30: which parts of the control panel each person can see (empty = the defaults for their role)
@@ -484,6 +488,8 @@ function schema_statements(): array
             cta_label   VARCHAR(80) NULL,
             cta_url     VARCHAR(500) NULL,
             list_id     INT UNSIGNED NULL,
+            list_ids    VARCHAR(500) NULL,
+            contact_ids MEDIUMTEXT NULL,
             status      VARCHAR(16) NOT NULL DEFAULT 'draft',
             created_by  INT UNSIGNED NULL,
             created_at  DATETIME NOT NULL,

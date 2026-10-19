@@ -22,6 +22,16 @@ if ($action === 'send') {
     json_response(['ok' => $res['error'] === null] + $res);
 }
 
+if ($action === 'search_contacts') {
+    $term = trim((string) ($_POST['q'] ?? ''));
+    if (mb_strlen($term) < 2) {
+        json_response(['ok' => true, 'people' => []]);
+    }
+    $like = '%' . $term . '%';
+    $rows = q("SELECT id, name, email FROM mk_contacts WHERE status = 'valid' AND (name LIKE ? OR email LIKE ?) ORDER BY name, email LIMIT 15", [$like, $like])->fetchAll();
+    json_response(['ok' => true, 'people' => array_map(fn($r) => ['id' => (int) $r['id'], 'name' => (string) $r['name'], 'email' => $r['email']], $rows)]);
+}
+
 if ($action === 'check_domains') {
     json_response(['ok' => true] + mk_check_domains(20));
 }

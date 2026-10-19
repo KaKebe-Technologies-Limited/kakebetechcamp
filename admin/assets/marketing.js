@@ -286,3 +286,57 @@
     });
   }
 })();
+
+/* Campaign audience: "All contacts" vs lists, and picking people one by one */
+(function () {
+  'use strict';
+  var box = document.querySelector('.mk-audience');
+  if (!box) return;
+  var all = box.querySelector('.js-aud-all');
+  var lists = Array.prototype.slice.call(box.querySelectorAll('.js-aud-list'));
+  if (all) {
+    all.addEventListener('change', function () { if (all.checked) lists.forEach(function (l) { l.checked = false; }); });
+    lists.forEach(function (l) { l.addEventListener('change', function () { if (l.checked) all.checked = false; }); });
+  }
+  var q = box.querySelector('.js-people-q');
+  var results = box.querySelector('.js-people-results');
+  var chips = box.querySelector('.js-people-chips');
+  var csrf = (document.querySelector('input[name="csrf"]') || {}).value || '';
+  var timer;
+  var esc = function (s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+  var have = function (id) { return !!chips.querySelector('.mk-chip[data-id="' + id + '"]'); };
+  var add = function (p) {
+    if (have(p.id)) return;
+    var span = document.createElement('span');
+    span.className = 'mk-chip';
+    span.dataset.id = p.id;
+    span.innerHTML = '<input type="hidden" name="contacts[]" value="' + p.id + '">' + esc(p.name || p.email) + ' <small>' + esc(p.email) + '</small><button type="button" class="js-chip-x" aria-label="Remove">×</button>';
+    chips.appendChild(span);
+  };
+  chips.addEventListener('click', function (e) { if (e.target.classList.contains('js-chip-x')) e.target.parentElement.remove(); });
+  q.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); var first = results.querySelector('button'); if (first) first.click(); } });
+  q.addEventListener('input', function () {
+    clearTimeout(timer);
+    var term = q.value.trim();
+    if (term.length < 2) { results.hidden = true; return; }
+    timer = setTimeout(function () {
+      var fd = new FormData();
+      fd.set('action', 'search_contacts');
+      fd.set('q', term);
+      fd.set('csrf', csrf);
+      fetch('marketing-api.php', { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+        results.innerHTML = '';
+        (j.people || []).forEach(function (p) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.innerHTML = '<b>' + esc(p.name || p.email) + '</b> <small>' + esc(p.email) + '</small>' + (have(p.id) ? ' <em>added</em>' : '');
+          b.addEventListener('click', function () { add(p); q.value = ''; results.hidden = true; q.focus(); });
+          results.appendChild(b);
+        });
+        if (!results.children.length) results.innerHTML = '<p>No contact found. Import them in Email contacts, or refresh the website lists.</p>';
+        results.hidden = false;
+      });
+    }, 250);
+  });
+  document.addEventListener('click', function (e) { if (!box.contains(e.target)) results.hidden = true; });
+})();

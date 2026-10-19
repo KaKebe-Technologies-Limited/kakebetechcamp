@@ -479,8 +479,48 @@ function mk_is_quota_error(string $error): bool
 /** The people a campaign goes to: valid contacts (in its list, if one is chosen). */
 function mk_audience_count(array $c): int
 {
-    $sql = "SELECT COUNT(*) FROM mk_contacts c" . ($c['list_id'] ? ' JOIN mk_list_contacts lc ON lc.contact_id = c.id AND lc.list_id = ' . (int) $c['list_id'] : '') . " WHERE c.status = 'valid'";
-    return (int) db()->query($sql)->fetchColumn();
+    return (int) db()->query("SELECT COUNT(*) FROM mk_contacts c WHERE c.status = 'valid' AND " . mk_audience_where($c))->fetchColumn();
+}
+
+/** Lists and people chosen for a campaign: [list ids or ['*'] for all contacts, contact ids]. */
+function mk_audience_choice(array $c): array
+{
+    if (($c['list_ids'] ?? null) === null) {   // campaigns from before several lists could be chosen
+        return [$c['list_id'] ? [(int) $c['list_id']] : ['*'], []];
+    }
+    $ints = fn($v) => array_values(array_unique(array_filter(array_map('intval', explode(',', (string) $v)))));
+    return [$c['list_ids'] === '*' ? ['*'] : $ints($c['list_ids']), $ints($c['contact_ids'] ?? '')];
+}
+
+/** SQL condition (on mk_contacts c) for the people a campaign goes to: anyone in a chosen list, or picked by name. */
+function mk_audience_where(array $c): string
+{
+    [$lists, $people] = mk_audience_choice($c);
+    if ($lists === ['*']) {
+        return '1 = 1';
+    }
+    $parts = [];
+    if ($lists) {
+        $parts[] = 'c.id IN (SELECT contact_id FROM mk_list_contacts WHERE list_id IN (' . implode(',', $lists) . '))';
+    }
+    if ($people) {
+        $parts[] = 'c.id IN (' . implode(',', $people) . ')';
+    }
+    return $parts ? '(' . implode(' OR ', $parts) . ')' : '0 = 1';
+}
+
+/** "Website · Tech Camp participants + Website · Mentorship & DBIP + 3 people" */
+function mk_audience_label(array $c): string
+{
+    [$lists, $people] = mk_audience_choice($c);
+    if ($lists === ['*']) {
+        return 'All contacts';
+    }
+    $names = $lists ? db()->query('SELECT name FROM mk_lists WHERE id IN (' . implode(',', $lists) . ') ORDER BY name')->fetchAll(PDO::FETCH_COLUMN) : [];
+    if ($people) {
+        $names[] = count($people) . ' ' . (count($people) === 1 ? 'person' : 'people') . ' picked';
+    }
+    return $names ? implode(' + ', $names) : 'Nobody chosen yet';
 }
 
 /** Put everyone in the audience into the send queue, numbered into groups of batch_size. Returns how many were added. */
@@ -489,8 +529,8 @@ function mk_queue(array $c): int
     $pdo = db();
     $size = mk_settings()['batch_size'];
     $existing = (int) $pdo->query('SELECT COUNT(*) FROM mk_sends WHERE campaign_id = ' . (int) $c['id'])->fetchColumn();
-    $sql = 'SELECT c.id, c.email FROM mk_contacts c' . ($c['list_id'] ? ' JOIN mk_list_contacts lc ON lc.contact_id = c.id AND lc.list_id = ' . (int) $c['list_id'] : '')
-        . " WHERE c.status = 'valid' AND NOT EXISTS (SELECT 1 FROM mk_sends s WHERE s.campaign_id = " . (int) $c['id'] . ' AND s.contact_id = c.id) ORDER BY c.id';
+    $sql = "SELECT c.id, c.email FROM mk_contacts c WHERE c.status = 'valid' AND " . mk_audience_where($c)
+        . ' AND NOT EXISTS (SELECT 1 FROM mk_sends s WHERE s.campaign_id = ' . (int) $c['id'] . ' AND s.contact_id = c.id) ORDER BY c.id';
     $rows = $pdo->query($sql)->fetchAll();
     $n = 0;
     foreach (array_chunk($rows, 400) as $chunk) {
