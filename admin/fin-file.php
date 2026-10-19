@@ -6,7 +6,7 @@ $admin = require_admin();
 $f = q('SELECT * FROM fin_files WHERE id = ?', [(int) ($_GET['id'] ?? 0)])->fetch();
 $allowed = false;
 if ($f) {
-    if (role_can($admin['role'], 'finance')) {
+    if (in_array('project_finance', admin_feature_list($admin), true)) {
         $allowed = true;
     } elseif (str_starts_with($f['owner_type'], 'req_')) {
         // Requisition documents: the requester, operations, finance and the team lead

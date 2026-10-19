@@ -14,9 +14,14 @@ $project = fin_project($pid);
 $own = (int) $r['requested_by'] === $me;
 $statuses = req_statuses();
 
-// Who can act now. Nobody reviews or approves their own requisition, except the team lead (there is no one above them).
-$canReview = $r['status'] === 'submitted' && role_can($role, 'review') && (!$own || $role === 'admin');
-$canApprove = in_array($r['status'], ['submitted', 'reviewed'], true) && role_can($role, 'approve');
+// Who can act now. Nobody approves their own requisition, except the team lead (there is no one above them).
+// One-step approval (default): operations or the team lead approves. Two steps: operations reviews, then the team lead approves.
+$refund = ($r['type'] ?? 'advance') === 'refund';
+$twoStep = req_approval_mode() === 'two_step';
+$notOwn = !$own || $role === 'admin';
+$canReview = $twoStep && $r['status'] === 'submitted' && $role === 'operations' && $notOwn;
+$canApprove = $notOwn && (($twoStep ? in_array($r['status'], ['submitted', 'reviewed'], true) && role_can($role, 'approve')
+    : in_array($r['status'], ['submitted', 'reviewed'], true) && role_can($role, 'review')));
 $canDisburse = $r['status'] === 'approved' && role_can($role, 'disburse');
 $canAccount = $r['status'] === 'disbursed' && ($own || role_can($role, 'disburse'));
 $canVerify = $r['status'] === 'accounted' && role_can($role, 'disburse');
@@ -87,9 +92,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             q("UPDATE fin_requisitions SET status = 'approved', approved_by = ?, approved_at = ?, sig_approver = ?, reviewed_by = COALESCE(reviewed_by, ?), reviewed_at = COALESCE(reviewed_at, ?), updated_at = ? WHERE id = ?", [$me, now(), signature_snapshot($me), $me, now(), now(), $r['id']]);
             fin_log($pid, 'requisition', (int) $r['id'], 'approved', ($skipped ? 'Reviewed and approved by the team lead. ' : '') . ($changes ? 'Adjusted to ' . ugx($newTotal) . ' (' . implode('; ', $changes) . ')' . ($adjustNote ? ' — ' . $adjustNote : '') . '. ' : '') . $comment, $me);
-            [$s, $h] = tpl_requisition($r, 'Requisition approved — please pay', 'The team lead has approved this requisition. Please pay ' . e(ugx($r['total'])) . ' to ' . e((string) $r['requester_name']) . '.');
+            $payTo = (string) q('SELECT phone FROM admins WHERE id = ?', [$r['requested_by']])->fetchColumn();
+            [$s, $h] = tpl_requisition($r, ($refund ? 'Refund approved' : 'Requisition approved') . ' — please pay', e($admin['name']) . ' (' . e(admin_role_label($role)) . ') has approved ' . ($refund ? 'this refund' : 'this requisition') . '. Please send ' . e(ugx($r['total'])) . ' to ' . e((string) $r['requester_name']) . ($payTo ? ' (' . e($payTo) . ')' : '') . '.');
             fin_notify_roles(['finance'], $s, $h, $me);
-            [$s2, $h2] = tpl_requisition($r, 'Your requisition is approved', ($changes ? 'The team lead adjusted the amount to <b>' . e(ugx($newTotal)) . '</b>' . ($adjustNote ? ': <i>' . e($adjustNote) . '</i>' : '') . '. ' : '') . 'Finance will now pay the money. Keep every receipt — you will attach them to your accountability.');
+            if ($role !== 'admin') {
+                [$s3, $h3] = tpl_requisition($r, ($refund ? 'Refund' : 'Requisition') . ' approved by operations', e($admin['name']) . ' approved it' . ($changes ? ' at ' . e(ugx($newTotal)) : '') . '. Finance has been asked to pay.');
+                fin_notify_roles(['admin'], $s3, $h3, $me);
+            }
+            [$s2, $h2] = tpl_requisition($r, $refund ? 'Your refund is approved' : 'Your requisition is approved', ($changes ? 'The team lead adjusted the amount to <b>' . e(ugx($newTotal)) . '</b>' . ($adjustNote ? ': <i>' . e($adjustNote) . '</i>' : '') . '. ' : '') . 'Finance will now pay the money. Keep every receipt — you will attach them to your accountability.');
             send_mail($requester, $s2, $h2);
             flash($r['reference'] . ' approved — finance has been told to pay.' . mail_note());
         }
@@ -100,12 +110,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $method = isset(fin_methods()[$_POST['method'] ?? '']) ? $_POST['method'] : 'cash';
         $ref = mb_substr(trim((string) ($_POST['reference'] ?? '')), 0, 120);
         $paidOn = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_POST['paid_on'] ?? '')) ? $_POST['paid_on'] . ' ' . date('H:i:s') : now();
-        q("UPDATE fin_requisitions SET status = 'disbursed', disbursed_by = ?, disbursed_at = ?, disbursed_amount = total, disburse_method = ?, disburse_ref = ?, sig_payer = ?, updated_at = ? WHERE id = ?", [$me, $paidOn, $method, $ref ?: null, signature_snapshot($me), now(), $r['id']]);
+        $sigPayer = signature_snapshot($me);
+        q("UPDATE fin_requisitions SET status = 'disbursed', disbursed_by = ?, disbursed_at = ?, disbursed_amount = total, disburse_method = ?, disburse_ref = ?, sig_payer = ?, updated_at = ? WHERE id = ?", [$me, $paidOn, $method, $ref ?: null, $sigPayer, now(), $r['id']]);
         [, $problems] = fin_store_files('proof', 'req_payment', (int) $r['id'], $me);
-        fin_log($pid, 'requisition', (int) $r['id'], 'paid', ugx($r['total']) . ' by ' . fin_methods()[$method] . ($ref ? ' · ref ' . $ref : '') . ($comment ? ' — ' . $comment : ''), $me);
-        [$s, $h] = tpl_requisition($r, 'Money sent — accountability due', 'Finance has paid ' . e(ugx($r['total'])) . ' (' . e(fin_methods()[$method]) . ($ref ? ', ref ' . e($ref) : '') . '). Within ' . req_accountability_days() . ' days, open the requisition and submit your accountability: what you actually spent on each item, with photos or scans of every receipt.');
-        send_mail($requester, $s, $h);
-        flash($r['reference'] . ' marked as paid.' . ($problems ? ' Some files were not attached: ' . implode('; ', $problems) : ''), $problems ? 'error' : 'success');
+        fin_log($pid, 'requisition', (int) $r['id'], $refund ? 'refunded' : 'paid', ugx($r['total']) . ' by ' . fin_methods()[$method] . ($ref ? ' · ref ' . $ref : '') . ($comment ? ' — ' . $comment : ''), $me);
+        if ($refund) {
+            // The receipts came with the request, so a paid refund is complete: record the spending on its budget lines
+            foreach (req_items((int) $r['id']) as $it) {
+                if ((int) $it['actual_amount'] > 0) {
+                    q('INSERT INTO fin_expenses (project_id, line_id, spent_on, payee, description, amount, method, reference, location, spent_by, requisition_id, recorded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                        $pid, $it['line_id'], date('Y-m-d', strtotime((string) ($r['accounted_at'] ?: now()))), $it['payee'] ?: (string) $r['requester_name'], mb_substr($it['description'] . ' — refund: ' . $r['title'], 0, 500), (int) $it['actual_amount'],
+                        $method, $r['reference'], $r['location'], (string) $r['requester_name'], $r['id'], $me, now(),
+                    ]);
+                }
+            }
+            q("UPDATE fin_requisitions SET status = 'closed', verified_by = ?, verified_at = ?, sig_verifier = ?, balance_note = ? WHERE id = ?", [$me, now(), $sigPayer, 'Refund paid in full', $r['id']]);
+        }
+        $proof = fin_file_attachments(fin_files('req_payment', (int) $r['id']));
+        $how = e(ugx($r['total'])) . ' (' . e(fin_methods()[$method]) . ($ref ? ', ref ' . e($ref) : '') . ')';
+        [$s, $h] = $refund
+            ? tpl_requisition($r, 'Your refund has been paid', 'Finance has sent your refund of ' . $how . '. The proof of payment is attached. This refund is now complete — thank you.')
+            : tpl_requisition($r, 'Money sent — accountability due', 'Finance has paid ' . $how . '. The proof of payment is attached. Within ' . req_accountability_days() . ' days, open the requisition and submit your accountability: what you actually spent on each item, with photos or scans of every receipt, and your signature.');
+        send_mail($requester, $s, $h, null, $mailErr, $proof);
+        [$s2, $h2] = tpl_requisition($r, $refund ? 'Refund paid' : 'Requisition paid', e($admin['name']) . ' (finance) has paid ' . $how . ' to ' . e((string) $r['requester_name']) . '. The proof of payment is attached.');
+        fin_notify_roles(['admin', 'operations'], $s2, $h2, $me, $proof);
+        flash($r['reference'] . ($refund ? ' refund paid and complete.' : ' marked as paid.') . ' The requester, team lead and operations have been emailed.' . ($problems ? ' Some files were not attached: ' . implode('; ', $problems) : ''), $problems ? 'error' : 'success');
         redirect($self);
     }
 
@@ -254,7 +283,8 @@ if (isset($_GET['print'])) {
 
 admin_header($r['reference'], 'requisitions', $r['title']);
 $st = $statuses[$r['status']] ?? [$r['status'], ''];
-$steps = ['submitted' => 'Requested', 'reviewed' => 'Reviewed', 'approved' => 'Approved', 'disbursed' => 'Paid', 'accounted' => 'Accountability', 'closed' => 'Verified'];
+$steps = $refund ? ['submitted' => 'Requested', 'approved' => 'Approved', 'closed' => 'Refunded']
+    : array_filter(['submitted' => 'Requested', 'reviewed' => $twoStep ? 'Reviewed' : null, 'approved' => 'Approved', 'disbursed' => 'Paid', 'accounted' => 'Accountability', 'closed' => 'Verified']);
 $order = array_keys($steps);
 $at = array_search($r['status'], $order, true);
 ?>
@@ -262,7 +292,7 @@ $at = array_search($r['status'], $order, true);
 
 <section class="card req-head">
   <div>
-    <h2><?= e($r['reference']) ?> <span class="badge <?= $st[1] ?>"><?= e($st[0]) ?></span><?php if (req_overdue($r)): ?> <span class="badge st-cancelled">Accountability overdue</span><?php endif; ?></h2>
+    <h2><?= e($r['reference']) ?> <?php if ($refund): ?><span class="badge st-waitlisted"><i class="fa-solid fa-rotate-left"></i> Refund</span> <?php endif; ?><span class="badge <?= $st[1] ?>"><?= e($st[0]) ?></span><?php if (req_overdue($r)): ?> <span class="badge st-cancelled">Accountability overdue</span><?php endif; ?></h2>
     <p class="muted"><?= e($r['title']) ?></p>
   </div>
   <div class="req-amt"><small>Requested</small><b><?= e(ugx($r['total'])) ?></b><?php if ($r['actual_total'] !== null): ?><small>Spent <?= e(ugx($r['actual_total'])) ?></small><?php endif; ?></div>
@@ -314,8 +344,9 @@ $at = array_search($r['status'], $order, true);
 
     <?php if ($canApprove): ?>
     <section class="card req-action">
-      <div class="card-head"><h3><i class="fa-solid fa-stamp"></i> Team lead approval</h3></div>
-      <?php if ($r['status'] === 'submitted'): ?><p class="small muted">Operations has not reviewed this yet. You can review and approve it in one step.</p><?php endif; ?>
+      <div class="card-head"><h3><i class="fa-solid fa-stamp"></i> <?= $refund ? 'Approve the refund' : 'Approve the requisition' ?></h3></div>
+      <?php if ($twoStep && $r['status'] === 'submitted'): ?><p class="small muted">Operations has not reviewed this yet. You can review and approve it in one step.</p><?php endif; ?>
+      <?php if ($refund): ?><p class="small"><i class="fa-solid fa-receipt"></i> This is a <b>refund</b> — the money was already spent. Check the receipts under Documents before approving.</p><?php endif; ?>
       <form method="post" class="stack js-adjust"><?= csrf_field() ?><input type="hidden" name="action" value="approve"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
         <p class="small muted">Approve as requested, or change a quantity or unit cost first (0 leaves an item out). The requester is told about any change.</p>
         <div class="table-wrap"><table class="table adjust-table">
@@ -335,7 +366,9 @@ $at = array_search($r['status'], $order, true);
 
     <?php if ($canDisburse): ?>
     <section class="card req-action">
-      <div class="card-head"><h3><i class="fa-solid fa-money-bill-transfer"></i> Pay the requisition</h3></div>
+      <div class="card-head"><h3><i class="fa-solid fa-money-bill-transfer"></i> <?= $refund ? 'Pay the refund' : 'Pay the requisition' ?></h3></div>
+      <?php $payTo = q('SELECT name, phone FROM admins WHERE id = ?', [$r['requested_by']])->fetch(); ?>
+      <p class="pay-to"><i class="fa-solid fa-user"></i> Send to <b><?= e((string) ($payTo['name'] ?? $r['requester_name'])) ?></b><?= !empty($payTo['phone']) ? ' · <b>' . e($payTo['phone']) . '</b>' : '' ?> · <?= e(ugx($r['total'])) ?></p>
       <form method="post" enctype="multipart/form-data" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="disburse"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
         <div class="row-3">
           <label>Amount<input type="text" value="<?= e(ugx($r['total'])) ?>" readonly></label>
@@ -343,7 +376,7 @@ $at = array_search($r['status'], $order, true);
           <label>Date paid<input type="date" name="paid_on" value="<?= date('Y-m-d') ?>"></label>
         </div>
         <label>Transaction reference <small class="muted">(MoMo / bank ref, cheque no.)</small><input type="text" name="reference" maxlength="120"></label>
-        <label>Proof of payment <small class="muted">(optional — screenshot or slip)</small><input type="file" name="proof[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"></label>
+        <label>Proof of payment <small class="muted">(screenshot or slip — emailed to the requester, team lead and operations)</small><input type="file" name="proof[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"></label>
         <label>Comment <small class="muted">(optional)</small><input type="text" name="comment" maxlength="300"></label>
         <div><button class="btn btn-primary" type="submit" data-confirm-click="Confirm you have paid <?= e(ugx($r['total'])) ?> to <?= e((string) $r['requester_name']) ?>?"><i class="fa-solid fa-check"></i> Mark as paid</button></div>
       </form>

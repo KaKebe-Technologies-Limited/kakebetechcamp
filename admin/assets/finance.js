@@ -68,6 +68,52 @@
     form.addEventListener('input', recalc);
   });
 
+  // New requisition: money for work, or a refund of money already spent
+  const reqForm = $('#reqForm');
+  if (reqForm) {
+    const syncType = () => {
+      const refund = ($('input[name="type"]:checked', reqForm) || {}).value === 'refund';
+      reqForm.classList.toggle('is-refund', refund);
+      $$('input[name="receipts[]"], input[name="confirm_sign"]', reqForm).forEach((el) => { el.required = refund; });
+    };
+    $$('input[name="type"]', reqForm).forEach((r) => r.addEventListener('change', syncType));
+    syncType();
+  }
+
+  // Team & access: ticking boxes to match the chosen role
+  $$('.js-access-form').forEach((form) => {
+    const roleSel = $('select[name="role"]', form);
+    const boxes = $$('input[name="features[]"]', form);
+    if (!roleSel) return;
+    const apply = (fromRole) => {
+      const opt = roleSel.selectedOptions[0];
+      const defaults = (opt.dataset.features || '').split(',');
+      const all = roleSel.value === 'admin';
+      boxes.forEach((b) => {
+        if (fromRole) b.checked = all || defaults.includes(b.value);
+        b.disabled = all;
+      });
+      const note = $('.js-role-note', form);
+      if (note) note.textContent = opt.dataset.desc || '';
+    };
+    roleSel.addEventListener('change', () => apply(true));
+    apply(false);
+  });
+
+  // Team & access: if the email is already registered, say so (the form then updates that person)
+  $$('.js-email-check').forEach((input) => {
+    const known = JSON.parse(input.dataset.known || '{}');
+    const msg = input.parentElement.querySelector('.js-email-msg');
+    const pass = input.form.querySelector('input[name="password"]');
+    const check = () => {
+      const who = known[input.value.trim().toLowerCase()];
+      msg.textContent = who ? 'Already registered (' + who + ') — saving updates their role and access. Leave the password empty to keep theirs.' : '';
+      if (pass) pass.required = !who;
+    };
+    input.addEventListener('input', check);
+    check();
+  });
+
   const table = $('#reqItems');
   if (!table) return;
   const body = $('tbody', table);

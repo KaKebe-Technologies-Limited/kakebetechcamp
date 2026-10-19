@@ -32,7 +32,7 @@ function current_admin(): ?array
             unset($_SESSION['admin_id'], $_SESSION['admin_seen']);
             return null;
         }
-        $admin = q('SELECT id, name, email, role FROM admins WHERE id = ?', [(int) $_SESSION['admin_id']])->fetch() ?: null;
+        $admin = q('SELECT id, name, email, role, features, phone FROM admins WHERE id = ?', [(int) $_SESSION['admin_id']])->fetch() ?: null;
         $_SESSION['admin_seen'] = time();
     }
     return $admin;
@@ -55,11 +55,42 @@ function require_admin(): array
         auth_footer();
         exit;
     }
-    // Field staff only see their requisitions (and can change their password and signature)
-    if (!role_can($admin['role'], 'panel') && !in_array(basename($_SERVER['SCRIPT_NAME']), ['requisitions.php', 'requisition.php', 'fin-file.php', 'users.php', 'signature.php', 'logout.php'], true)) {
-        redirect('requisitions.php');
+    // Each page belongs to a part of the system; people only open the parts the team lead gave them
+    $script = basename($_SERVER['SCRIPT_NAME']);
+    $feature = feature_for_page($script);
+    if ($feature && !in_array($feature, admin_feature_list($admin), true)) {
+        $home = admin_home($admin);
+        if (!$home) {
+            auth_header('No access yet');
+            echo '<h2>No access yet</h2><p>Your account has not been given any part of the system. Ask the team lead to give you access.</p><a class="btn btn-light btn-block" href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>';
+            auth_footer();
+            exit;
+        }
+        if ($script !== 'index.php') {
+            flash('You do not have access to that part of the system.', 'error');
+        }
+        redirect($home);
     }
     return $admin;
+}
+
+/** The first page this person can open. */
+function admin_home(array $admin): ?string
+{
+    $features = admin_feature_list($admin);
+    foreach (admin_features() as $key => $f) {
+        if (in_array($key, $features, true)) {
+            return $f[3][0];
+        }
+    }
+    return null;
+}
+
+/** Can the logged-in person see this part of the system? */
+function has_feature(string $feature): bool
+{
+    $a = current_admin();
+    return $a && in_array($feature, admin_feature_list($a), true);
 }
 
 /** Can the logged-in admin do this? (see role_can) */
@@ -69,15 +100,10 @@ function can(string $perm): bool
     return $a && role_can((string) $a['role'], $perm);
 }
 
-/** Project finance pages: team lead and finance only. */
+/** Project finance pages (access is checked by require_admin for the "Project finance" part of the system). */
 function require_finance(): array
 {
-    $admin = require_admin();
-    if (!role_can($admin['role'], 'finance')) {
-        flash('Project finance is only open to the team lead and finance.', 'error');
-        redirect(role_can($admin['role'], 'panel') ? 'index.php' : 'requisitions.php');
-    }
-    return $admin;
+    return require_admin();
 }
 
 function require_csrf(): void
@@ -428,6 +454,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     $waitStatuses = array_merge(role_can($role, 'review') ? ['submitted'] : [], role_can($role, 'approve') ? ['reviewed'] : [], role_can($role, 'disburse') ? ['approved', 'accounted'] : []);
     $reqWaiting = $waitStatuses ? (int) q('SELECT COUNT(*) FROM fin_requisitions WHERE status IN (' . implode(',', array_fill(0, count($waitStatuses), '?')) . ')', $waitStatuses)->fetchColumn() : 0;
     $reqWaiting += (int) q("SELECT COUNT(*) FROM fin_requisitions WHERE status = 'disbursed' AND requested_by = ?", [(int) ($admin['id'] ?? 0)])->fetchColumn();
+    $features = $admin ? admin_feature_list($admin) : [];
     $groups = [
         'Overview' => [
             'dashboard' => ['index.php', 'fa-gauge-high', 'Dashboard', 0],
@@ -453,7 +480,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'fin'          => ['fin.php', 'fa-scale-balanced', 'Finance dashboard', 0],
             'fin-budget'   => ['fin-budget.php', 'fa-list-check', 'Workplan & budget', 0],
             'requisitions' => ['requisitions.php', 'fa-file-signature', 'Requisitions', $reqWaiting],
-            'fin-expenses' => ['fin-expenses.php', 'fa-receipt', 'Expenses & receipts', 0],
+            'fin-expenses' => ['fin-expenses.php', 'fa-money-bill-wave', 'Spending & payments', 0],
             'fin-income'   => ['fin-income.php', 'fa-building-columns', 'Funds received', 0],
             'fin-reports'  => ['fin-reports.php', 'fa-file-invoice-dollar', 'Budget reports', 0],
         ],
@@ -467,15 +494,26 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
         'System' => [
             'emails'   => ['emails.php', 'fa-paper-plane', 'Email log', 0],
             'settings' => ['settings.php', 'fa-gear', 'Settings', 0],
-            'users'    => ['users.php', 'fa-user-shield', 'Admin users', 0],
+            'users'    => ['users.php', 'fa-user-shield', 'Team & access', 0],
         ],
     ];
-    if (!role_can($role, 'finance')) {
-        // Everyone else: just requisitions (and field staff see nothing else)
-        $groups['Project finance'] = ['requisitions' => ['requisitions.php', 'fa-file-signature', role_can($role, 'all_reqs') ? 'Requisitions' : 'My requisitions', $reqWaiting]];
+    if (!role_can($role, 'all_reqs')) {
+        $groups['Project finance']['requisitions'][2] = 'My requisitions';
     }
-    if (!role_can($role, 'panel')) {
-        $groups = ['Requisitions' => $groups['Project finance'], 'Account' => ['users' => ['users.php', 'fa-signature', 'My account & signature', 0]]];
+    // Keep only what this person can see
+    foreach ($groups as $g => $items) {
+        foreach ($items as $key => $item) {
+            $f = $key === 'users' ? null : feature_for_page($item[0]);
+            if (($key === 'users' && !role_can($role, 'users')) || ($f && !in_array($f, $features, true))) {
+                unset($groups[$g][$key]);
+            }
+        }
+        if (!$groups[$g]) {
+            unset($groups[$g]);
+        }
+    }
+    if (!role_can($role, 'users')) {
+        $groups['Account'] = ['users' => ['users.php', 'fa-signature', 'My account & signature', 0]];
     }
     $flash = flash();
     $sandbox = iotec()['sandbox'];
@@ -496,7 +534,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
 <body class="admin">
 <script>try { if (localStorage.getItem('kt_sb_mini') === '1') document.body.classList.add('sb-mini'); } catch (e) {}</script>
 <aside class="sidebar" id="sidebar">
-  <a href="index.php" class="sb-brand" title="Dashboard">
+  <a href="<?= e(($admin ? admin_home($admin) : null) ?: 'index.php') ?>" class="sb-brand" title="Home">
     <img class="sb-full-logo" src="../assets/img/techcamp-logo-email.png" alt="Kakebe Tech Camp 2026">
     <img class="sb-mini-logo" src="../assets/img/favicon.png" alt="Kakebe Tech Camp 2026">
     <span>Control Panel</span>
@@ -523,7 +561,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     <div class="tb-title"><h1><?= e($title) ?></h1><?php if ($subtitle): ?><p><?= e($subtitle) ?></p><?php endif; ?></div>
     <div class="tb-right">
       <?php if ($sandbox): ?><span class="mode-pill test" title="ioTec sandbox — no real money"><i class="fa-solid fa-flask"></i> Test payments</span><?php else: ?><span class="mode-pill live"><i class="fa-solid fa-bolt"></i> Live payments</span><?php endif; ?>
-      <?php if (role_can($role, 'panel')): ?><form action="registrations.php" method="get" class="tb-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" placeholder="Search participants…"></form><?php endif; ?>
+      <?php if (in_array('participants', $features, true)): ?><form action="registrations.php" method="get" class="tb-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" placeholder="Search participants…"></form><?php endif; ?>
       <div class="tb-user"><span class="tb-avatar"><?= e(mb_strtoupper(mb_substr($admin['name'] ?? 'A', 0, 1))) ?></span><span class="tb-name"><?= e($admin['name'] ?? '') ?><small><?= e(admin_role_label($role)) ?> · <?= e($admin['email'] ?? '') ?></small></span></div>
     </div>
   </header>

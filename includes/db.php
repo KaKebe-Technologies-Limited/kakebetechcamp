@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 29;
+const SCHEMA_VERSION = 30;
 
 function db(): PDO
 {
@@ -124,6 +124,15 @@ function migrate(PDO $pdo): void
         // per-item explanations in accountability, approval adjustments and signed accountability PDFs
         $pdo->exec('ALTER TABLE admins ADD COLUMN phone VARCHAR(40) NULL AFTER role, ADD COLUMN job_title VARCHAR(120) NULL AFTER phone, ADD COLUMN signature_file VARCHAR(80) NULL AFTER job_title');
     }
+    if ($version >= 1 && !column_exists($pdo, 'admins', 'features')) {
+        // v30: which parts of the control panel each person can see (empty = the defaults for their role)
+        $pdo->exec('ALTER TABLE admins ADD COLUMN features VARCHAR(500) NULL AFTER signature_file');
+    }
+    if ($version >= 28 && !column_exists($pdo, 'fin_requisitions', 'type')) {
+        // v30: refund requests (money already spent, receipts attached when asking) and the phone of people paid directly
+        $pdo->exec("ALTER TABLE fin_requisitions ADD COLUMN type VARCHAR(10) NOT NULL DEFAULT 'advance' AFTER requested_by");
+        $pdo->exec('ALTER TABLE fin_expenses ADD COLUMN payee_phone VARCHAR(40) NULL AFTER payee');
+    }
     if ($version >= 28 && !column_exists($pdo, 'fin_req_items', 'note')) {
         $pdo->exec('ALTER TABLE fin_req_items ADD COLUMN note VARCHAR(1000) NULL AFTER payee');
         $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
@@ -230,6 +239,7 @@ function schema_statements(): array
             phone         VARCHAR(40) NULL,
             job_title     VARCHAR(120) NULL,
             signature_file VARCHAR(80) NULL,
+            features      VARCHAR(500) NULL,
             last_login_at DATETIME NULL,
             created_at    DATETIME NOT NULL
         ) $t",
@@ -642,6 +652,7 @@ function schema_statements(): array
             line_id        INT UNSIGNED NOT NULL,
             spent_on       DATE NOT NULL,
             payee          VARCHAR(150) NOT NULL,
+            payee_phone    VARCHAR(40) NULL,
             description    VARCHAR(500) NOT NULL,
             amount         INT UNSIGNED NOT NULL,
             method         VARCHAR(20) NULL,
@@ -662,6 +673,7 @@ function schema_statements(): array
             project_id       INT UNSIGNED NOT NULL,
             reference        VARCHAR(20) NULL UNIQUE,
             requested_by     INT UNSIGNED NOT NULL,
+            type             VARCHAR(10) NOT NULL DEFAULT 'advance',
             title            VARCHAR(200) NOT NULL,
             cluster_id       INT UNSIGNED NULL,
             location         VARCHAR(150) NULL,

@@ -8,8 +8,13 @@ $clusters = fin_clusters($pid);
 $lines = fin_lines($pid);
 $lineById = array_column($lines, null, 'id');
 
+$canEdit = role_can($admin['role'], 'disburse');   // team lead and finance record and change money; others can look
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
+    if (!$canEdit && ($_POST['action'] ?? '') !== 'progress') {
+        flash('Only finance and the team lead can record or change money.', 'error');
+        redirect(basename($_SERVER['SCRIPT_NAME']));
+    }
     $action = (string) ($_POST['action'] ?? '');
     $str = static fn(string $k, int $max): string => mb_substr(trim(preg_replace('/\s+/u', ' ', (string) ($_POST[$k] ?? ''))), 0, $max);
 
@@ -23,20 +28,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('fin-expenses.php?new=1');
         }
         $method = isset(fin_methods()[$_POST['method'] ?? '']) ? $_POST['method'] : null;
-        $vals = [$lineId, $date, $str('payee', 150), $str('description', 500), $amount, $method, $str('reference', 120) ?: null, $str('invoice_no', 80) ?: null, $str('location', 150) ?: null, $str('spent_by', 150) ?: null];
+        $vals = [$lineId, $date, $str('payee', 150), $str('payee_phone', 40) ?: null, $str('description', 500), $amount, $method, $str('reference', 120) ?: null, $str('invoice_no', 80) ?: null, $str('location', 150) ?: null, $str('spent_by', 150) ?: null];
         if ($id) {
             $old = q('SELECT * FROM fin_expenses WHERE id = ? AND project_id = ? AND requisition_id IS NULL', [$id, $pid])->fetch();
             if (!$old) {
                 redirect('fin-expenses.php');
             }
-            q('UPDATE fin_expenses SET line_id = ?, spent_on = ?, payee = ?, description = ?, amount = ?, method = ?, reference = ?, invoice_no = ?, location = ?, spent_by = ? WHERE id = ?', array_merge($vals, [$id]));
+            q('UPDATE fin_expenses SET line_id = ?, spent_on = ?, payee = ?, payee_phone = ?, description = ?, amount = ?, method = ?, reference = ?, invoice_no = ?, location = ?, spent_by = ? WHERE id = ?', array_merge($vals, [$id]));
             fin_log($pid, 'expense', $id, 'edited', ugx($old['amount']) . ' → ' . ugx($amount) . ' · ' . $str('description', 200), $me);
         } else {
-            q('INSERT INTO fin_expenses (line_id, spent_on, payee, description, amount, method, reference, invoice_no, location, spent_by, project_id, recorded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', array_merge($vals, [$pid, $me, now()]));
+            q('INSERT INTO fin_expenses (line_id, spent_on, payee, payee_phone, description, amount, method, reference, invoice_no, location, spent_by, project_id, recorded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', array_merge($vals, [$pid, $me, now()]));
             $id = (int) db()->lastInsertId();
+            $isNew = true;
             fin_log($pid, 'expense', $id, 'recorded', ugx($amount) . ' to ' . $str('payee', 150) . ' on ' . $lineById[$lineId]['code'], $me);
         }
         [$saved, $problems] = fin_store_files('receipts', 'expense', $id, $me);
+        if (!empty($isNew)) {
+            // Tell the team lead and operations (and other finance staff), with the proof attached
+            $l = $lineById[$lineId];
+            $inner = '<p><strong>Hi team,</strong></p><p>' . e($admin['name']) . ' (finance) has paid money directly — no requisition was needed.</p>'
+                . kt_detail([
+                    '💸 Amount' => ugx($amount),
+                    '👤 Paid to' => $str('payee', 150) . ($str('payee_phone', 40) ? ' · ' . $str('payee_phone', 40) : ''),
+                    '📝 What for' => $str('description', 500),
+                    '📊 Budget line' => $l['code'] . ' ' . $l['item'] . ' (' . $l['cluster_code'] . ')',
+                    '💳 Paid by' => (fin_methods()[$method] ?? '') . ($str('reference', 120) ? ' · ref ' . $str('reference', 120) : ''),
+                    '📅 Date' => date('D j M Y', strtotime($date)),
+                    '📎 Proof' => $saved ? $saved . ' file' . ($saved === 1 ? '' : 's') . ' attached' : 'none attached yet',
+                ])
+                . kt_btn('Open spending & payments', base_url('admin/fin-expenses.php'), 'navy');
+            fin_notify_roles(['admin', 'operations', 'finance'], '💸 Paid ' . ugx($amount) . ' to ' . $str('payee', 150) . ' — ' . $l['code'], kt_email('Spending', $inner), $me, fin_file_attachments(fin_files('expense', $id)));
+        }
         flash('Expense saved' . ($saved ? ' with ' . $saved . ' file' . ($saved === 1 ? '' : 's') : (fin_files('expense', $id) ? '' : ' — remember to attach the receipt')) . '.' . ($problems ? ' Not attached: ' . implode('; ', $problems) : ''), $problems ? 'error' : 'success');
         redirect('fin-expenses.php');
     }
@@ -88,12 +110,12 @@ $edit = isset($_GET['edit']) ? q('SELECT * FROM fin_expenses WHERE id = ? AND pr
 $showForm = isset($_GET['new']) || $edit;
 $e0 = $edit ?: ['id' => 0, 'line_id' => $f['line'], 'spent_on' => date('Y-m-d'), 'payee' => '', 'description' => '', 'amount' => '', 'method' => 'mobile_money', 'reference' => '', 'invoice_no' => '', 'location' => '', 'spent_by' => ''];
 
-admin_header('Expenses & receipts', 'fin-expenses', 'Every payment and invoice, attached to its budget line — with receipts');
+admin_header('Spending & payments', 'fin-expenses', 'Every payment — direct spending by finance and verified requisitions — attached to its budget line, with proof');
 ?>
-<?php if ($showForm): ?>
+<?php if ($showForm && $canEdit): ?>
 <section class="card" id="form">
-  <div class="card-head"><h3><i class="fa-solid fa-receipt"></i> <?= $edit ? 'Edit expense' : 'Record a payment / invoice' ?></h3><a href="fin-expenses.php" class="link">Cancel</a></div>
-  <p class="small muted">Use this for payments made directly by finance (suppliers, invoices, salaries). Field spending comes in automatically when a requisition's accountability is verified.</p>
+  <div class="card-head"><h3><i class="fa-solid fa-money-bill-wave"></i> <?= $edit ? 'Edit payment' : 'Pay someone / record spending' ?></h3><a href="fin-expenses.php" class="link">Cancel</a></div>
+  <p class="small muted">For money finance pays directly, without a requisition — suppliers, invoices, salaries, facilitators, transport. Choose what it was for, attach the proof, and the team lead and operations are emailed. Field spending comes in automatically from requisitions.</p>
   <form method="post" enctype="multipart/form-data" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int) $e0['id'] ?>">
     <label>Budget line (what it was for)
       <select name="line_id" required><option value="">Choose…</option>
@@ -107,8 +129,9 @@ admin_header('Expenses & receipts', 'fin-expenses', 'Every payment and invoice, 
     </div>
     <div class="row-2">
       <label>Paid to (supplier / person)<input type="text" name="payee" value="<?= e($e0['payee']) ?>" maxlength="150" required></label>
-      <label>What for<input type="text" name="description" value="<?= e($e0['description']) ?>" maxlength="500" required></label>
+      <label>Their phone / account <small class="muted">(optional)</small><input type="text" name="payee_phone" value="<?= e((string) ($e0['payee_phone'] ?? '')) ?>" maxlength="40" placeholder="e.g. 0772 123 456"></label>
     </div>
+    <label>What for<input type="text" name="description" value="<?= e($e0['description']) ?>" maxlength="500" placeholder="e.g. Facilitation for 3 robotics trainers, camp day 2" required></label>
     <div class="row-2">
       <label>Invoice / receipt no. <small class="muted">(optional)</small><input type="text" name="invoice_no" value="<?= e((string) $e0['invoice_no']) ?>" maxlength="80"></label>
       <label>Transaction reference <small class="muted">(optional)</small><input type="text" name="reference" value="<?= e((string) $e0['reference']) ?>" maxlength="120"></label>
@@ -117,13 +140,13 @@ admin_header('Expenses & receipts', 'fin-expenses', 'Every payment and invoice, 
       <label>Where <small class="muted">(optional)</small><input type="text" name="location" value="<?= e((string) $e0['location']) ?>" maxlength="150"></label>
       <label>Spent / handled by <small class="muted">(optional)</small><input type="text" name="spent_by" value="<?= e((string) ($e0['spent_by'] ?: '')) ?>" maxlength="150" placeholder="<?= e($admin['name']) ?>"></label>
     </div>
-    <label>Receipt / invoice files <small class="muted">(photos or PDF, several at once)</small><input type="file" name="receipts[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.docx,.xlsx"></label>
+    <label>Proof of payment / receipt / invoice <small class="muted">(photos or PDF, several at once — sent with the email)</small><input type="file" name="receipts[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.docx,.xlsx"></label>
     <?php if ($edit && ($ef = fin_files('expense', (int) $edit['id']))): ?><p class="small">Attached: <?= fin_files_html($ef) ?></p><?php endif; ?>
-    <div><button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save expense</button></div>
+    <div><button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> <?= $edit ? 'Save changes' : 'Save payment & tell the team' ?></button></div>
   </form>
 </section>
 <?php else: ?>
-<div class="req-new-bar"><a class="btn btn-primary" href="fin-expenses.php?new=1#form"><i class="fa-solid fa-plus"></i> Record a payment / invoice</a></div>
+<?php if ($canEdit): ?><div class="req-new-bar"><a class="btn btn-primary" href="fin-expenses.php?new=1#form"><i class="fa-solid fa-money-bill-wave"></i> Pay someone / record spending</a></div><?php endif; ?>
 <?php endif; ?>
 
 <form class="card filters" method="get">
@@ -148,7 +171,7 @@ admin_header('Expenses & receipts', 'fin-expenses', 'Every payment and invoice, 
         <tr>
           <td class="nowrap"><?= e(date('j M Y', strtotime($e['spent_on']))) ?></td>
           <td class="small"><b><?= e($e['code']) ?></b> <?= e(mb_strimwidth($e['item'], 0, 30, '…')) ?></td>
-          <td><b><?= e($e['payee']) ?></b><small class="block muted"><?= e(mb_strimwidth($e['description'], 0, 90, '…')) ?></small></td>
+          <td><b><?= e($e['payee']) ?></b><?= !empty($e['payee_phone']) ? ' <small class="muted">' . e($e['payee_phone']) . '</small>' : '' ?><small class="block muted"><?= e(mb_strimwidth($e['description'], 0, 90, '…')) ?></small></td>
           <td class="small"><?= e((string) $e['spent_by']) ?><small class="block muted"><?= e((string) $e['location']) ?></small></td>
           <td class="small nowrap"><?= e(fin_methods()[$e['method']] ?? '') ?><small class="block muted"><?= e(trim(($e['invoice_no'] ? 'Inv ' . $e['invoice_no'] . ' ' : '') . (string) $e['reference'])) ?></small></td>
           <td class="r nowrap"><b><?= number_format((int) $e['amount']) ?></b></td>
@@ -156,7 +179,7 @@ admin_header('Expenses & receipts', 'fin-expenses', 'Every payment and invoice, 
           <td class="nowrap actions">
             <?php if ($e['requisition_id']): ?>
               <a class="btn btn-light btn-sm" href="requisition.php?id=<?= (int) $e['requisition_id'] ?>"><?= e($e['req_ref']) ?></a>
-            <?php else: ?>
+            <?php elseif ($canEdit): ?>
               <a class="icon-btn" href="fin-expenses.php?edit=<?= (int) $e['id'] ?>#form" title="Edit"><i class="fa-solid fa-pen"></i></a>
               <form method="post" enctype="multipart/form-data" class="inline fin-attach"><?= csrf_field() ?><input type="hidden" name="action" value="attach"><input type="hidden" name="id" value="<?= (int) $e['id'] ?>"><input type="hidden" name="return" value="<?= e($qsString) ?>"><label class="icon-btn" title="Attach a receipt"><i class="fa-solid fa-paperclip"></i><input type="file" name="receipts[]" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onchange="this.form.submit()" hidden></label></form>
               <form method="post" class="inline" data-confirm="Delete this expense? The deletion is recorded."><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $e['id'] ?>"><button class="icon-btn danger" title="Delete"><i class="fa-solid fa-trash"></i></button></form>

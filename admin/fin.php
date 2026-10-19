@@ -24,6 +24,9 @@ $thisMonth = date('M');
 
 admin_header('Finance dashboard', 'fin', $project['name'] . ' · ' . $project['donor']);
 ?>
+<?php if (role_can($admin['role'], 'disburse')): ?>
+<div class="btn-row fin-actions"><a class="btn btn-primary" href="fin-expenses.php?new=1#form"><i class="fa-solid fa-money-bill-wave"></i> Pay someone / record spending</a><a class="btn btn-light" href="requisitions.php?tab=waiting"><i class="fa-solid fa-file-signature"></i> Requisitions waiting</a><a class="btn btn-light" href="fin-income.php"><i class="fa-solid fa-building-columns"></i> Record funds received</a></div>
+<?php endif; ?>
 <section class="card fin-project">
   <div><small>Project</small><b><?= e($project['name']) ?></b></div>
   <div><small>Donor / funding</small><b><?= e($project['funding_source'] ?: $project['donor']) ?></b></div>

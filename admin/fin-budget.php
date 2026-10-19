@@ -6,8 +6,13 @@ $pid = (int) $project['id'];
 $me = (int) $admin['id'];
 $monthsAll = fin_months();
 
+$canEdit = role_can($admin['role'], 'disburse');   // team lead and finance record and change money; others can look
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
+    if (!$canEdit && ($_POST['action'] ?? '') !== 'progress') {
+        flash('Only finance and the team lead can record or change money.', 'error');
+        redirect(basename($_SERVER['SCRIPT_NAME']));
+    }
     $action = (string) ($_POST['action'] ?? '');
     $str = static fn(string $k, int $max): string => mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);
     $back = 'fin-budget.php';
@@ -111,7 +116,7 @@ admin_header('Workplan & budget', 'fin-budget', $project['name'] . ' · ' . ugx(
 <details class="card fin-outcome">
   <summary><i class="fa-solid fa-bullseye"></i> Project outcome, output &amp; details</summary>
   <p><?= e((string) $project['outcome']) ?></p>
-  <form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="project_save">
+  <?php if ($canEdit): ?><form method="post" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="project_save">
     <div class="row-3">
       <label>Project name<input type="text" name="name" value="<?= e($project['name']) ?>" maxlength="200"></label>
       <label>Donor<input type="text" name="donor" value="<?= e($project['donor']) ?>" maxlength="120"></label>
@@ -124,7 +129,7 @@ admin_header('Workplan & budget', 'fin-budget', $project['name'] . ' · ' . ugx(
     </div>
     <label>Exchange rate (UGX per $1)<input type="text" name="exchange_rate" value="<?= e((string) (float) $project['exchange_rate']) ?>"></label>
     <div><button class="btn btn-navy btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save project details</button></div>
-  </form>
+  </form><?php endif; ?>
 </details>
 
 <?php foreach ($clusters as $c): $s = $cs[(int) $c['id']] ?? ['budget' => 0, 'spent' => 0, 'advances' => 0, 'committed' => 0, 'pending' => 0, 'available' => 0, 'pct' => 0]; $on = array_filter(explode(',', (string) $c['months'])); ?>
@@ -179,7 +184,7 @@ admin_header('Workplan & budget', 'fin-budget', $project['name'] . ' · ' . ugx(
           <td class="r nowrap muted"><?= number_format($x['committed'] + $x['pending']) ?></td>
           <td class="r nowrap <?= $x['available'] < 0 ? 'due' : '' ?>"><b><?= number_format($x['available']) ?></b></td>
           <td><?= fin_bar((float) $x['pct']) ?><small class="muted"><?= $x['pct'] ?>%</small></td>
-          <td class="nowrap actions"><a class="icon-btn" href="fin-budget.php?edit=<?= (int) $l['id'] ?>#line-<?= (int) $l['id'] ?>" title="Edit"><i class="fa-solid fa-pen"></i></a><a class="icon-btn" href="fin-reports.php?view=expenses&amp;line=<?= (int) $l['id'] ?>" title="Spending on this line"><i class="fa-solid fa-receipt"></i></a></td>
+          <td class="nowrap actions"><?php if ($canEdit): ?><a class="icon-btn" href="fin-budget.php?edit=<?= (int) $l['id'] ?>#line-<?= (int) $l['id'] ?>" title="Edit"><i class="fa-solid fa-pen"></i></a><?php endif; ?><a class="icon-btn" href="fin-reports.php?view=expenses&amp;line=<?= (int) $l['id'] ?>" title="Spending on this line"><i class="fa-solid fa-receipt"></i></a></td>
         </tr>
         <?php endif; ?>
       <?php endforeach; ?>
@@ -200,7 +205,7 @@ admin_header('Workplan & budget', 'fin-budget', $project['name'] . ' · ' . ugx(
       </form>
       <?php if (!empty($updates[(int) $c['id']])): ?><ul class="fin-updates"><?php foreach (array_slice($updates[(int) $c['id']], 0, 6) as $u): ?><li><b><?= (int) $u['progress'] ?>%</b><?= $u['reached'] !== null ? ' · ' . number_format((int) $u['reached']) . ' reached' : '' ?> — <?= e((string) $u['note']) ?> <small class="muted"><?= e(date('j M Y', strtotime($u['created_at']))) ?> · <?= e((string) $u['admin_name']) ?></small></li><?php endforeach; ?></ul><?php endif; ?>
     </details>
-    <details><summary><i class="fa-solid fa-plus"></i> Add a budget line</summary>
+    <?php if ($canEdit): ?><details><summary><i class="fa-solid fa-plus"></i> Add a budget line</summary>
       <form method="post" class="fin-line-form"><?= csrf_field() ?><input type="hidden" name="action" value="line_save"><input type="hidden" name="cluster_id" value="<?= (int) $c['id'] ?>">
         <input type="text" name="code" maxlength="20" placeholder="Code" required>
         <input type="text" name="item" maxlength="200" placeholder="Item" required>
@@ -218,7 +223,7 @@ admin_header('Workplan & budget', 'fin-budget', $project['name'] . ' · ' . ugx(
         <div class="btn-row"><?php foreach ($monthsAll as $k => $label): ?><label class="check-inline"><input type="checkbox" name="months[]" value="<?= $k ?>"<?= in_array($k, $on, true) ? ' checked' : '' ?>> <?= $k ?></label><?php endforeach; ?></div>
         <div><button class="btn btn-navy btn-sm" type="submit">Save activity</button></div>
       </form>
-    </details>
+    </details><?php endif; ?>
   </div>
 </section>
 <?php endforeach; ?>

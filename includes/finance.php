@@ -28,11 +28,93 @@ function admin_role_label(string $role): string
     return admin_roles()[$role][0] ?? ucfirst($role);
 }
 
-/** What a role may do: panel, finance, review, approve, disburse, users. */
+/**
+ * Parts of the control panel a person can be given: key => [label, short label, icon, pages].
+ * The team lead always has all of them; for everyone else the role gives defaults that can be changed per person.
+ */
+function admin_features(): array
+{
+    return [
+        'dashboard'       => ['Dashboard & website analytics', 'Dashboard', 'fa-gauge-high', ['index.php', 'analytics.php']],
+        'participants'    => ['Participants, tickets, attendance & flyers', 'Participants', 'fa-users', ['registrations.php', 'view.php', 'verify.php', 'attendance.php', 'flyers.php', 'export.php']],
+        'mentorship'      => ['Mentorship & DBIP', 'Mentorship', 'fa-handshake-angle', ['mentorship.php']],
+        'volunteers'      => ['Volunteer trainers', 'Volunteers', 'fa-person-chalkboard', ['volunteers.php', 'volunteer.php']],
+        'messages'        => ['Messages from the website', 'Messages', 'fa-envelope', ['messages.php']],
+        'camp_finance'    => ['Camp payments & sponsorships', 'Camp payments', 'fa-chart-pie', ['finance.php', 'take-payment.php', 'api-pay.php', 'payments.php', 'sponsors.php']],
+        'partners'        => ['Partners', 'Partners', 'fa-handshake', ['partners.php', 'partner.php']],
+        'project_finance' => ['Project finance — budget, spending, funds received, reports', 'Project finance', 'fa-scale-balanced', ['fin.php', 'fin-budget.php', 'fin-expenses.php', 'fin-income.php', 'fin-reports.php']],
+        'requisitions'    => ['Requisitions — request money, refunds, accountability', 'Requisitions', 'fa-file-signature', ['requisitions.php', 'requisition.php']],
+        'marketing'       => ['Email campaigns & contacts', 'Marketing', 'fa-bullhorn', ['marketing.php', 'marketing-campaign.php', 'marketing-contacts.php', 'marketing-api.php']],
+        'website'         => ['Website core team', 'Website', 'fa-people-group', ['team.php']],
+        'system'          => ['Email log & settings', 'System', 'fa-gear', ['emails.php', 'settings.php']],
+    ];
+}
+
+/** What each role can see unless the team lead chooses differently for the person. */
+function role_default_features(string $role): array
+{
+    $all = array_keys(admin_features());
+    return match ($role) {
+        'admin'      => $all,
+        'operations' => array_values(array_diff($all, ['system'])),   // operations sees everything
+        'finance'    => ['dashboard', 'project_finance', 'camp_finance', 'requisitions'],
+        'team'       => ['dashboard', 'participants', 'mentorship', 'volunteers', 'messages', 'requisitions'],
+        'field'      => ['requisitions'],
+        default      => [],
+    };
+}
+
+/** The parts of the control panel this person can see. */
+function admin_feature_list(array $admin): array
+{
+    $role = (string) ($admin['role'] ?? '');
+    if ($role === 'admin') {
+        return array_keys(admin_features());
+    }
+    if ($role === 'pending') {
+        return [];
+    }
+    $saved = trim((string) ($admin['features'] ?? ''));
+    if ($saved === '') {
+        return role_default_features($role);
+    }
+    return array_values(array_intersect(array_keys(admin_features()), explode(',', $saved)));
+}
+
+/** Value to store for a chosen set of features ('' when it is just the role's defaults, '-' when nothing). */
+function features_to_store(string $role, array $chosen): ?string
+{
+    $chosen = array_values(array_intersect(array_keys(admin_features()), $chosen));
+    $defaults = role_default_features($role);
+    sort($chosen);
+    sort($defaults);
+    if ($chosen === $defaults) {
+        return null;
+    }
+    return $chosen ? implode(',', $chosen) : '-';
+}
+
+/** Which feature a control-panel page belongs to (null = open to everyone who is logged in). */
+function feature_for_page(string $script): ?string
+{
+    foreach (admin_features() as $key => $f) {
+        if (in_array($script, $f[3], true)) {
+            return $key;
+        }
+    }
+    return null;
+}
+
+/** How requisitions are approved: 'single' (operations or the team lead approves) or 'two_step' (operations reviews, team lead approves). */
+function req_approval_mode(): string
+{
+    return setting('req_approval_mode', 'single') === 'two_step' ? 'two_step' : 'single';
+}
+
+/** What a role may do: finance, review, approve, disburse, users, all_reqs. */
 function role_can(string $role, string $perm): bool
 {
     $map = [
-        'panel'    => ['admin', 'finance', 'operations', 'team'],
         'finance'  => ['admin', 'finance'],
         'review'   => ['admin', 'operations'],
         'approve'  => ['admin'],
@@ -184,7 +266,7 @@ function fin_log(int $projectId, string $entity, int $entityId, string $action, 
 function req_statuses(): array
 {
     return [
-        'submitted' => ['Waiting for operations review', 'st-pending'],
+        'submitted' => [req_approval_mode() === 'two_step' ? 'Waiting for operations review' : 'Waiting for approval', 'st-pending'],
         'reviewed'  => ['Waiting for admin approval', 'st-pending'],
         'approved'  => ['Approved — waiting for payment', 'st-booked'],
         'disbursed' => ['Paid — accountability due', 'st-booked'],
@@ -225,8 +307,8 @@ function req_overdue(array $r): bool
     return $r['status'] === 'disbursed' && $r['disbursed_at'] && strtotime($r['disbursed_at']) < time() - req_accountability_days() * 86400;
 }
 
-/** Email everyone with one of these roles (e.g. the next approvers). */
-function fin_notify_roles(array $roles, string $subject, string $html, ?int $exceptAdmin = null): void
+/** Email everyone with one of these roles (e.g. the next approvers), optionally with attachments. */
+function fin_notify_roles(array $roles, string $subject, string $html, ?int $exceptAdmin = null, array $attachments = []): void
 {
     $in = implode(',', array_fill(0, count($roles), '?'));
     $st = db()->prepare("SELECT id, email FROM admins WHERE role IN ($in)");
@@ -238,8 +320,26 @@ function fin_notify_roles(array $roles, string $subject, string $html, ?int $exc
         }
     }
     if ($to) {
-        send_mail($to, $subject, $html);
+        send_mail(array_values(array_unique($to)), $subject, $html, null, $err, $attachments);
     }
+}
+
+/** Attachments for an email: these finance files (up to ~7 MB in total). */
+function fin_file_attachments(array $files): array
+{
+    $out = [];
+    $total = 0;
+    $types = ['pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
+    foreach ($files as $f) {
+        $path = fin_upload_dir() . '/' . $f['file'];
+        $ext = strtolower(pathinfo($f['file'], PATHINFO_EXTENSION));
+        if (!isset($types[$ext]) || !is_file($path) || $total + filesize($path) > 7 * 1024 * 1024) {
+            continue;
+        }
+        $total += filesize($path);
+        $out[] = ['name' => $f['original_name'], 'type' => $types[$ext], 'data' => (string) file_get_contents($path)];
+    }
+    return $out;
 }
 
 /** Email about a requisition, with its key facts and a button to open it. */
@@ -555,7 +655,7 @@ function requisition_pdf(array $r): string
     $pdf->rect(0, 86, 595, 5);
     $pdf->jpeg(ROOT . '/assets/img/pdf-logo.jpg', 36, 28, 150, 31);
     $pdf->fill([255, 255, 255]);
-    $pdf->textRight(559, 40, 'REQUISITION & ACCOUNTABILITY', 15, true);
+    $pdf->textRight(559, 40, ($r['type'] ?? '') === 'refund' ? 'REFUND REQUEST & ACCOUNTABILITY' : 'REQUISITION & ACCOUNTABILITY', 15, true);
     $pdf->fill([255, 222, 218]);
     $pdf->textRight(559, 56, $r['reference'] . ' · ' . $statusLabel, 9.5, true);
     $pdf->textRight(559, 70, mb_strimwidth((string) $project['name'], 0, 70, '…'), 8);

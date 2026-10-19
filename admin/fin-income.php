@@ -5,8 +5,13 @@ $project = fin_project();
 $pid = (int) $project['id'];
 $me = (int) $admin['id'];
 
+$canEdit = role_can($admin['role'], 'disburse');   // team lead and finance record and change money; others can look
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
+    if (!$canEdit && ($_POST['action'] ?? '') !== 'progress') {
+        flash('Only finance and the team lead can record or change money.', 'error');
+        redirect(basename($_SERVER['SCRIPT_NAME']));
+    }
     $action = (string) ($_POST['action'] ?? '');
     $str = static fn(string $k, int $max): string => mb_substr(trim(preg_replace('/\s+/u', ' ', (string) ($_POST[$k] ?? ''))), 0, $max);
     if ($action === 'save') {
@@ -73,7 +78,7 @@ admin_header('Funds received', 'fin-income', 'Money received for ' . $project['n
           <td class="small"><?= e(fin_methods()[$i['method']] ?? '') ?><small class="block muted"><?= e((string) $i['reference']) ?></small></td>
           <td class="r nowrap"><b><?= number_format((int) $i['amount']) ?></b><small class="block muted"><?= usd_of((int) $i['amount'], $project) ?></small></td>
           <td><?= fin_files_html(fin_files('income', (int) $i['id'])) ?></td>
-          <td class="nowrap actions"><a class="icon-btn" href="fin-income.php?edit=<?= (int) $i['id'] ?>" title="Edit"><i class="fa-solid fa-pen"></i></a><form method="post" class="inline" data-confirm="Delete this entry?"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $i['id'] ?>"><button class="icon-btn danger" title="Delete"><i class="fa-solid fa-trash"></i></button></form></td>
+          <td class="nowrap actions"><?php if ($canEdit): ?><a class="icon-btn" href="fin-income.php?edit=<?= (int) $i['id'] ?>" title="Edit"><i class="fa-solid fa-pen"></i></a><form method="post" class="inline" data-confirm="Delete this entry?"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $i['id'] ?>"><button class="icon-btn danger" title="Delete"><i class="fa-solid fa-trash"></i></button></form><?php endif; ?></td>
         </tr>
       <?php endforeach; ?>
       </tbody>
@@ -82,6 +87,7 @@ admin_header('Funds received', 'fin-income', 'Money received for ' . $project['n
     <?php else: ?><div class="empty-state"><i class="fa-solid fa-building-columns"></i><p>No funds recorded yet. Record each tranche from the donor as it arrives.</p></div><?php endif; ?>
   </section>
 
+  <?php if ($canEdit): ?>
   <section class="card">
     <div class="card-head"><h3><i class="fa-solid fa-plus"></i> <?= $edit ? 'Edit entry' : 'Record funds received' ?></h3><?php if ($edit): ?><a class="link" href="fin-income.php">Cancel</a><?php endif; ?></div>
     <form method="post" enctype="multipart/form-data" class="stack"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int) $i0['id'] ?>">
@@ -95,5 +101,6 @@ admin_header('Funds received', 'fin-income', 'Money received for ' . $project['n
       <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>
     </form>
   </section>
+  <?php endif; ?>
 </div>
 <?php admin_footer(['finance.js']);

@@ -45,7 +45,7 @@ code { background: #EEF1F8; padding: 1px 6px; border-radius: 6px; font-size: 13p
 .icon-btn.danger:hover { background: #D92D20; border-color: #D92D20; }
 .chip-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink); cursor: pointer; }
 .chip-btn:hover { border-color: var(--red); color: var(--red); }
-input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"], input[type="date"], input[type="url"], select, textarea {
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"], input[type="date"], input[type="url"], input[type="tel"], select, textarea {
   width: 100%; font: inherit; font-size: 15px; color: var(--ink); background: #F8F9FC; border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; outline: none; transition: border-color .2s, box-shadow .2s, background .2s;
 }
 textarea { resize: vertical; line-height: 1.55; }
@@ -815,7 +815,7 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .req-head p { margin: 4px 0 0; }
 .req-amt { text-align: right; margin-left: auto; }
 .req-amt b { display: block; font-size: 22px; color: var(--ink); }
-.req-steps { flex-basis: 100%; list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; counter-reset: s; }
+.req-steps { flex-basis: 100%; list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; counter-reset: s; }
 .req-steps li { position: relative; padding: 8px 10px 8px 34px; border-radius: 10px; background: var(--soft); font-size: 13px; font-weight: 700; color: var(--muted); counter-increment: s; }
 .req-steps li::before { content: counter(s); position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 50%; background: #D8DDEA; color: #fff; font-size: 11px; display: grid; place-items: center; }
 .req-steps li.done { background: var(--green-50); color: var(--green); }
@@ -867,3 +867,45 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .item-note { margin-top: 4px; color: var(--navy); font-size: 12.5px; }
 .pending-accounts { border: 2px solid #F3D9A4; }
 .pending-accounts .user-list li { align-items: center; }
+
+/* Refunds, pay-to, team & access */
+.req-type { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.req-type-opt { cursor: pointer; }
+.req-type-opt input { position: absolute; opacity: 0; }
+.req-type-opt span { display: grid; grid-template-columns: 34px 1fr; column-gap: 10px; align-items: center; padding: 12px 14px; border: 2px solid var(--line); border-radius: 14px; background: #fff; }
+.req-type-opt i { grid-row: span 2; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--soft); color: var(--muted); }
+.req-type-opt b { color: var(--ink); font-size: 14.5px; }
+.req-type-opt small { color: var(--muted); font-size: 12.5px; }
+.req-type-opt input:checked + span { border-color: var(--red); background: #FFF7F7; }
+.req-type-opt input:checked + span i { background: var(--red); color: #fff; }
+#reqForm:not(.is-refund) .js-ref, #reqForm.is-refund .js-adv { display: none !important; }
+.refund-box { display: grid; gap: 12px; padding: 14px; border: 2px dashed #F3D9A4; border-radius: 14px; background: #FFFDF6; }
+.item-payee { margin-top: 6px; }
+.pay-to { padding: 10px 14px; border-radius: 12px; background: var(--blue-50); color: var(--ink); font-size: 14.5px; margin: 0 0 12px; }
+.pay-to i { color: var(--blue); margin-right: 4px; }
+.fin-actions { margin-bottom: 18px; }
+.access-features { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.access-features label { display: flex !important; flex-direction: row !important; align-items: flex-start; gap: 9px; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 12px; font-weight: 600 !important; font-size: 13px !important; color: var(--ink) !important; cursor: pointer; background: #fff; }
+.access-features label i { color: var(--muted); width: 16px; margin-top: 2px; }
+.access-features input { width: 17px; height: 17px; accent-color: var(--red); flex-shrink: 0; margin-top: 1px; }
+.access-features label:has(input:checked) { border-color: var(--red); background: #FFF7F7; }
+.access-features label:has(input:checked) i { color: var(--red); }
+.access-features label:has(input:disabled) { opacity: .8; cursor: default; }
+.access-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.access-chips span { padding: 2px 8px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 11.5px; font-weight: 700; color: var(--body); }
+.team-table td { vertical-align: top; }
+.team-edit td { background: #FBFCFE; }
+.role-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: var(--blue-50); color: var(--blue); }
+.role-badge.admin { background: var(--red-50); color: var(--red); }
+.role-badge.finance { background: var(--green-50); color: var(--green); }
+.role-badge.operations { background: var(--amber-50); color: var(--amber); }
+.js-email-msg { color: var(--blue); font-weight: 600; }
+@media (max-width: 700px) { .req-type { grid-template-columns: 1fr; } }
+.team-list { display: grid; gap: 10px; }
+.team-person { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: #fff; }
+.team-row { display: flex; align-items: flex-start; gap: 12px; }
+.team-who { flex: 1; min-width: 0; }
+.team-edit-box { margin-top: 8px; }
+.team-edit-box summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--red); }
+.team-edit-box[open] { padding: 12px; border-radius: 12px; background: var(--soft); }
+.team-edit-box form { margin-top: 10px; }
