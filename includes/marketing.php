@@ -221,7 +221,7 @@ function mk_sync_website_people(): array
     ];
     $everyone = mk_list_id('Website · Everyone registered');
     $ins = $pdo->prepare('INSERT IGNORE INTO mk_contacts (email, name, status, reason, domain, token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
-    $name = $pdo->prepare("UPDATE mk_contacts SET name = ? WHERE email = ? AND (name IS NULL OR name = '')");
+    $name = $pdo->prepare('UPDATE mk_contacts SET name = ? WHERE email = ?');   // the name registered on the website wins
     $find = $pdo->prepare('SELECT id FROM mk_contacts WHERE email = ?');
     $link = $pdo->prepare('INSERT IGNORE INTO mk_list_contacts (list_id, contact_id) VALUES (?, ?)');
     $out = ['added' => 0, 'people' => 0, 'list_id' => $everyone];
@@ -361,13 +361,49 @@ function mk_clean_body(string $html): string
     return trim($out);
 }
 
-/** Replace {first_name} / {name} for one person. */
+/** A person's name as it should appear in an email: spaces tidied, ALL CAPS / all lowercase made "Title Case". */
+function mk_display_name(?string $name): string
+{
+    $name = trim(preg_replace('/\s+/u', ' ', (string) $name));
+    if ($name !== '' && ($name === mb_strtoupper($name) || $name === mb_strtolower($name))) {
+        $name = mb_convert_case(mb_strtolower($name), MB_CASE_TITLE);
+    }
+    return $name;
+}
+
+/** First name for greetings ("Dear Grace,"), skipping titles such as Mr. or Dr. */
+function mk_first_name(?string $name): string
+{
+    $parts = explode(' ', mk_display_name($name));
+    if (count($parts) > 1 && preg_match('/^(mr|mrs|ms|miss|dr|prof|hon|rev|eng|sr|fr)\.?$/i', $parts[0])) {
+        array_shift($parts);
+    }
+    return (string) ($parts[0] ?? '');
+}
+
+/** Replace {first_name} / {name} with this person's own name (or "friend" when the database has no name). */
 function mk_personalise(string $text, ?array $contact, bool $html = true): string
 {
-    $name = trim((string) ($contact['name'] ?? ''));
-    $first = $name !== '' ? explode(' ', $name)[0] : 'there';
-    $map = ['{first_name}' => $first, '{name}' => $name !== '' ? $name : 'there'];
+    $name = mk_display_name($contact['name'] ?? '');
+    $first = mk_first_name($name);
+    $map = ['{first_name}' => $first !== '' ? $first : 'friend', '{name}' => $name !== '' ? $name : 'friend'];
     return strtr($text, $html ? array_map('e', $map) : $map);
+}
+
+/** The subject line for one person; without a name, a leading "{first_name}, " is simply left out. */
+function mk_personal_subject(string $subject, ?array $contact): string
+{
+    if (mk_first_name($contact['name'] ?? '') === '') {
+        $subject = preg_replace('/^\s*\{(first_name|name)\}\s*[,:\-—–]?\s*/u', '', $subject);
+        $subject = mb_strtoupper(mb_substr($subject, 0, 1)) . mb_substr($subject, 1);
+    }
+    return mk_personalise($subject, $contact, false);
+}
+
+/** Someone the campaign goes to, for the preview and test emails (people with names first). */
+function mk_sample_person(array $c): ?array
+{
+    return db()->query("SELECT c.name, c.email FROM mk_contacts c WHERE c.status = 'valid' AND " . mk_audience_where($c) . " ORDER BY (c.name IS NULL OR c.name = ''), c.id LIMIT 1")->fetch() ?: null;
 }
 
 /**
@@ -376,7 +412,7 @@ function mk_personalise(string $text, ?array $contact, bool $html = true): strin
  */
 function mk_render(array $c, ?array $contact = null, ?array $send = null): array
 {
-    $subject = mk_personalise((string) $c['subject'], $contact, false);
+    $subject = mk_personal_subject((string) $c['subject'], $contact);
     $body = mk_personalise((string) $c['body'], $contact);
     $pre = e(mk_personalise((string) ($c['preheader'] ?? ''), $contact, false));
     $site = base_url();

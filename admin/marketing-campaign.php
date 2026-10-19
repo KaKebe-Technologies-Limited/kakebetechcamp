@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'queue') {
+        mk_sync_website_people();   // latest registrations and names from the database before the list is made
         if (trim((string) $c['subject']) === '' || trim((string) $c['body']) === '') {
             flash('Add a subject and the email content, and save, before preparing the send list.', 'error');
             redirect($self);
@@ -99,7 +100,11 @@ $groups = q("SELECT batch, COUNT(*) total, SUM(status = 'sent') sent, SUM(status
     FROM mk_sends WHERE campaign_id = ? GROUP BY batch ORDER BY batch", [$id])->fetchAll();
 $dailyLeft = mk_daily_left();
 $ready = trim((string) $c['subject']) !== '' && trim((string) $c['body']) !== '';
-[, $previewHtml] = mk_render($c, ['name' => $admin['name']]);
+// Preview as it will look for a real person in the audience — each person gets their own name
+$sample = mk_sample_person($c) ?? ['name' => $admin['name'], 'email' => $admin['email']];
+[, $previewHtml] = mk_render($c, $sample);
+$nameCheck = q("SELECT c.name, c.email FROM mk_contacts c WHERE c.status = 'valid' AND " . mk_audience_where($c) . ' ORDER BY RAND() LIMIT 8')->fetchAll();
+$noName = (int) q("SELECT COUNT(*) FROM mk_contacts c WHERE c.status = 'valid' AND (c.name IS NULL OR TRIM(c.name) = '') AND " . mk_audience_where($c))->fetchColumn();
 
 // Recipients
 $views = ['' => 'All', 'opened' => 'Opened', 'unopened' => 'Not opened', 'queued' => 'Waiting', 'failed' => 'Failed', 'skipped' => 'Skipped'];
@@ -225,6 +230,17 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
       <?php if ($ready): ?>
         <div class="mk-inbox"><b><?= e($cfg['from_name']) ?></b><span><?= e(mk_personalise((string) $c['subject'], ['name' => $admin['name']], false)) ?></span><?php if ($c['preheader']): ?><small><?= e(mk_personalise((string) $c['preheader'], ['name' => $admin['name']], false)) ?></small><?php endif; ?></div>
         <div class="mk-frame" id="mkFrame"><iframe title="Email preview" srcdoc="<?= e($previewHtml) ?>" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"></iframe></div>
+      <p class="small muted mk-preview-who"><i class="fa-solid fa-user"></i> Shown as it will look for <b><?= e(mk_display_name($sample['name']) ?: $sample['email']) ?></b>. Every person gets their own name from the database.</p>
+      <?php if ($nameCheck): ?>
+      <details class="mk-names" open>
+        <summary><i class="fa-solid fa-id-card"></i> Names check — how the greeting reads for some of the people it goes to</summary>
+        <table class="table">
+          <thead><tr><th>Name in the database</th><th>Greeting</th></tr></thead>
+          <tbody><?php foreach ($nameCheck as $p): ?><tr><td><?= e((string) $p['name'] ?: '—') ?><small class="block muted"><?= e($p['email']) ?></small></td><td><b><?= e(mk_personalise('Dear {first_name},', $p, false)) ?></b></td></tr><?php endforeach; ?></tbody>
+        </table>
+        <p class="small muted"><?= $noName ? '<b>' . number_format($noName) . '</b> ' . ($noName === 1 ? 'person has' : 'people have') . ' no name saved, so they get "Dear friend".' : 'Everyone in this audience has a name saved.' ?> Website names are refreshed from the registrations when you prepare the send list.</p>
+      </details>
+      <?php endif; ?>
         <div class="mk-test">
           <input type="email" id="mkTestTo" value="<?= e($admin['email']) ?>" aria-label="Send a test to">
           <button type="button" class="btn btn-navy btn-sm" id="mkTest" data-id="<?= $id ?>"><i class="fa-solid fa-paper-plane"></i> Send me a test</button>

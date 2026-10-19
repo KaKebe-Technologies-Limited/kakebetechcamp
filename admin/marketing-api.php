@@ -69,9 +69,11 @@ if ($action === 'test') {
     if (trim((string) $c['subject']) === '' || trim((string) $c['body']) === '') {
         json_response(['ok' => false, 'message' => 'Add a subject and some content (and save) before sending a test.'], 422);
     }
-    [$subject, $html] = mk_render($c, ['name' => current_admin()['name'] ?? '']);
-    $ok = send_mail($to, '[TEST] ' . $subject, $html, mk_settings()['reply_to'] ?: null, $err);
-    json_response(['ok' => $ok, 'message' => $ok ? 'Test email sent to ' . $to . '.' . mail_note() : 'The test could not be sent: ' . $err]);
+    $sample = mk_sample_person($c) ?? ['name' => current_admin()['name'] ?? '', 'email' => $to];
+    [$subject, $html] = mk_render($c, $sample);
+    $as = mk_display_name($sample['name']) ?: $sample['email'];
+    $ok = send_mail($to, '[TEST · as sent to ' . $as . '] ' . $subject, $html, mk_settings()['reply_to'] ?: null, $err);
+    json_response(['ok' => $ok, 'message' => $ok ? 'Test email sent to ' . $to . ' — shown as it will look for ' . $as . ' (everyone gets their own name).' . mail_note() : 'The test could not be sent: ' . $err]);
 }
 
 json_response(['ok' => false, 'message' => 'Unknown action.'], 400);
