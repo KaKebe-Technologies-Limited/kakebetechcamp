@@ -199,11 +199,7 @@ app_header('Kakebe Mentorship Program — ' . $capacity . ' free places', '', ''
 
 <section class="ment-partners" aria-label="Partners">
   <p>Brought to you by <b>Kakebe Technologies</b> in partnership with</p>
-  <div class="ment-partner-logos">
-    <?php foreach (mentorship_partners() as $pt): ?>
-    <figure title="<?= e($pt['name']) ?>"><img src="<?= e($pt['logo']) ?>?v=<?= filemtime(__DIR__ . '/' . $pt['logo']) ?>" alt="<?= e($pt['name']) ?>" width="<?= (int) $pt['size'][0] ?>" height="<?= (int) $pt['size'][1] ?>" loading="lazy"></figure>
-    <?php endforeach; ?>
-  </div>
+  <?= partner_logos_html() ?>
 </section>
 
 <section class="ment-about">

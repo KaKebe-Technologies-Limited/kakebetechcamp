@@ -4,6 +4,32 @@
  * They tell us how from /partner; the team follows up from Admin → Partners.
  */
 
+/** Organisations supporting Kakebe Tech Camp and its programmes (logos shown on the website and in emails). */
+function site_partners(): array
+{
+    return [
+        ['name' => 'UNDP', 'full' => 'United Nations Development Programme (UNDP)', 'logo' => 'assets/img/partners/undp.png'],
+        ['name' => 'European Union', 'full' => 'European Union', 'logo' => 'assets/img/partners/eu.png'],
+        ['name' => 'United Nations', 'full' => 'United Nations', 'logo' => 'assets/img/partners/un.png'],
+        ['name' => 'Spotlight Initiative', 'full' => 'Spotlight Initiative', 'logo' => 'assets/img/partners/spotlight.png'],
+        ['name' => 'BetterLife International', 'full' => 'BetterLife International Organisation', 'logo' => 'assets/img/partners/betterlife.png'],
+        ['name' => 'Oroma TV', 'full' => 'Oroma TV', 'logo' => 'assets/img/partners/oroma-tv.png'],
+        ['name' => 'The Unlimited Youths', 'full' => 'The Unlimited Youths', 'logo' => 'assets/img/partners/unlimited-youths.png'],
+    ];
+}
+
+/** The partner logos as a neat row of equal cards. */
+function partner_logos_html(string $base = ''): string
+{
+    $html = '<div class="partner-logos">';
+    foreach (site_partners() as $pt) {
+        $file = ROOT . '/' . $pt['logo'];
+        [$w, $h] = @getimagesize($file) ?: [200, 100];
+        $html .= '<figure title="' . e($pt['full']) . '"><img src="' . e($base . $pt['logo']) . '?v=' . (is_file($file) ? filemtime($file) : 1) . '" alt="' . e($pt['full']) . '" width="' . (int) $w . '" height="' . (int) $h . '" loading="lazy"></figure>';
+    }
+    return $html . '</div>';
+}
+
 /** Ways to partner: name => [icon, short description]. Names are stored comma-separated, so no commas in them. */
 function partner_ways(): array
 {

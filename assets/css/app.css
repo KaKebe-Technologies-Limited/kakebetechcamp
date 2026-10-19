@@ -408,3 +408,10 @@ b.ok, .ok-text { color: var(--green); }
 .vol-closed h2 { margin-bottom: 10px; }
 .vol-closed p { max-width: 620px; margin-left: auto; margin-right: auto; }
 .vol-closed .btn-row { margin: 18px 0 14px; }
+
+/* Partner logos — equal cards, neatly aligned */
+.partner-logos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; align-items: stretch; }
+.partner-logos figure { margin: 0; height: 96px; display: grid; place-items: center; padding: 14px 18px; background: #fff; border: 1px solid var(--line, #E7EAF3); border-radius: 16px; transition: transform .2s, box-shadow .2s; }
+.partner-logos figure:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(16, 25, 53, .08); }
+.partner-logos img { max-height: 58px; max-width: 100%; width: auto; height: auto; object-fit: contain; }
+@media (max-width: 560px) { .partner-logos { grid-template-columns: repeat(2, 1fr); gap: 10px; } .partner-logos figure { height: 84px; } .partner-logos img { max-height: 48px; } }

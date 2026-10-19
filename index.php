@@ -72,7 +72,7 @@ $details = [
             ['fa-location-dot', 'Where', 'Online, and in person in Lira, Gulu and Kitgum'],
             ['fa-users', 'Who', 'Open to all · free · Tech Camp participants are enrolled automatically'],
             ['fa-certificate', 'Certificate', 'For everyone with at least 75% attendance — plus an in-person closing session at selected locations'],
-            ['fa-handshake', 'Partners', 'The Unlimited Youths · Betterlife International Organisation'],
+            ['fa-handshake', 'Partners', implode(' · ', array_column(site_partners(), 'name'))],
         ],
         'output' => 'Participants mentored in entrepreneurship, digital marketing, IT, AI, and personal branding — gaining skills, confidence, and a clear pathway to the next stage of the ecosystem.',
         'expect' => ['Weekly sessions led by great speakers and professionals', 'Practical skills development', 'Mentors in your field, virtually or in person, through the Digital Bridge Internship', 'A certificate and a supportive community of young people who share your ambition'],
@@ -89,7 +89,7 @@ $details = [
             ['fa-calendar-days', 'When', 'October – November 2026'],
             ['fa-location-dot', 'Where', 'Online, and in person in Lira, Gulu and Kitgum'],
             ['fa-users', 'Who', 'Open to all · free · register together with the Mentorship Program'],
-            ['fa-handshake', 'Partners', 'The Unlimited Youths · Betterlife International Organisation'],
+            ['fa-handshake', 'Partners', implode(' · ', array_column(site_partners(), 'name'))],
         ],
         'output' => 'Interns placed with companies, businesses, and creators, gaining practical experience in software development, business, content creation, and digital marketing.',
         'expect' => ['Virtual and physical work with real organisations', 'Mentorship from industry professionals', 'Networking opportunities', 'A pathway to employment or entrepreneurship'],
@@ -389,6 +389,14 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <div class="qb-item"><div><small>Learning tracks</small><b>6 tracks · pick 2</b></div></div>
       <a href="#register" class="qb-btn">Register <i class="fa-solid fa-arrow-right"></i></a>
     </div>
+  </div>
+</section>
+
+<!-- ============ PARTNERS ============ -->
+<section class="partner-band" aria-label="Partners">
+  <div class="container">
+    <p class="partner-band-title">Brought to you by <b>Kakebe Technologies</b> with the support of</p>
+    <?= partner_logos_html() ?>
   </div>
 </section>
 

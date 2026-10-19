@@ -20,15 +20,12 @@ function mentorship_tracks(): array
 /** Organisations bringing the program together with Kakebe Technologies (logos on the mentorship page). */
 function mentorship_partners(): array
 {
-    return [
-        ['name' => 'The Unlimited Youths', 'logo' => 'assets/img/partners/unlimited-youths.png', 'size' => [415, 91]],
-        ['name' => 'Betterlife International Organisation', 'logo' => 'assets/img/partners/betterlife.png', 'size' => [681, 140]],
-    ];
+    return site_partners();
 }
 
 function mentorship_partner_names(): string
 {
-    $names = array_column(mentorship_partners(), 'name');
+    $names = array_column(mentorship_partners(), 'full');
     return count($names) > 1 ? implode(', ', array_slice($names, 0, -1)) . ' and ' . end($names) : (string) ($names[0] ?? '');
 }
 

@@ -2,23 +2,42 @@
 require __DIR__ . '/_init.php';
 $admin = require_admin();
 
-// One-off (12 Oct 2026): the info session invitation, ready to edit and send to everyone registered on the website.
-// Created the first time this page is opened that day; the flag stops it being created twice.
-if (date('Y-m-d') <= '2026-10-12' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_info_session', '1')") === 1) {
+// One-off (19 Oct 2026): invitation to Session 1 of the MentorMe360 Online Mentorship Programme, ready to send to
+// everyone registered on the website. Created the first time this page is opened that day (the flag stops duplicates).
+if (date('Y-m-d') <= '2026-10-19' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_mentor_s1', '1')") === 1) {
     $sync = mk_sync_website_people();
-    $meet = 'https://meet.google.com/ssd-qjsd-tfi';
-    $body = '<p>Dear {first_name},</p>'
-        . '<p>Thank you for registering with us — for <strong>Kakebe Tech Camp 2026</strong> in Kitgum, the <strong>Mentorship Program</strong> or the <strong>Digital Bridge Internship Program (DBIP)</strong>. We are truly glad to have you on this journey with us. 🙏</p>'
-        . '<p>We would love you to join our <strong>Kakebe Tech Camp Info Session tonight</strong> — a Spotlight Initiative session on Digital Skilling for Youth through Mentorship, the Digital Bridge Internship Program and Kakebe Tech Camp in Kitgum (14th – 23rd December).</p>'
-        . '<ul><li>🗓️ <strong>Today, Monday 12 October</strong></li><li>⏰ <strong>8:00 – 9:00 PM (EAT)</strong></li><li>💻 <strong>Google Meet:</strong> <a href="' . $meet . '">meet.google.com/ssd-qjsd-tfi</a></li></ul>'
-        . '<p>Come with your questions — we will walk you through the camp, the weekly mentorship sessions, the internship opportunities with mentors, companies and development partners, and how to make the most of them.</p>'
-        . '<p>The session is open to everyone, so please share this invitation with your friends!</p>'
-        . '<p>See you tonight,<br><strong>The Kakebe Tech Camp 2026 Team</strong></p>'
-        . '<p>#KakebeTechCamp2026 #SpotlightInitiative</p>';
+    db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_from_name', 'Kakebe Technologies')");   // sent as Kakebe Technologies
+    $meet = 'https://meet.google.com/xsk-swoi-nvf';
+    $flyer = base_url('assets/img/email/mentorship-session-1.jpg');
+    $strip = base_url('assets/img/email/partners-strip.png');
+    $body = '<img src="' . $flyer . '" alt="MentorMe360 Mentorship Session 1 — Monday 19 October, 8:00 – 9:00 PM">'
+        . '<p>Dear {first_name},</p>'
+        . '<p>The <strong>MentorMe360 Online Mentorship Programme</strong> — sponsored by <strong>UNDP, the European Union, the Spotlight Initiative, BetterLife International Organisation and Oroma TV</strong> — runs <strong>every Monday from 8:00 to 9:00 PM (EAT)</strong> on Google Meet.</p>'
+        . '<p>Because you signed up for <strong>Kakebe Tech Camp 2026</strong> or the <strong>Mentorship Program</strong>, you are already part of it — congratulations! The programme prepares you for the camp in Kitgum (14th – 23rd December), and the first session is <strong>tonight</strong>.</p>'
+        . '<h2>Session 1 — tonight</h2>'
+        . '<ul>'
+        . '<li>🎯 <strong>Theme:</strong> Building Self-Awareness, Confidence and Responsible Leadership</li>'
+        . '<li>📅 <strong>Date:</strong> Monday 19th October 2026</li>'
+        . '<li>⏰ <strong>Time:</strong> 8:00 – 9:00 PM (EAT)</li>'
+        . '<li>💻 <strong>Join:</strong> <a href="' . $meet . '">meet.google.com/xsk-swoi-nvf</a></li>'
+        . '<li>🎙️ <strong>Guest:</strong> Ms. Brenda Okello, Executive Director, Meraki Action Initiative</li>'
+        . '<li>🎤 <strong>Moderator:</strong> Sedrick Otolo, Team Lead, Kakebe</li>'
+        . '</ul>'
+        . '<p>We will talk about personal growth, emotional intelligence, accountability and becoming a positive role model.</p>'
+        . '<blockquote><strong>📌 Please note</strong><br>'
+        . '• At least <strong>75% attendance</strong> of the Monday sessions is key to your programming for the Tech Camp.<br>'
+        . '• <strong>Attendance is taken during each session</strong> — the link is shared live, so please join on time.<br>'
+        . '• There will be <strong>assessments every couple of weeks</strong>, and <strong>certificates</strong> at the end of the programme.<br>'
+        . '• The programme is <strong>fully paid for by UNDP and our partners</strong> — take this special opportunity seriously and make the most of it.</blockquote>'
+        . '<p>Come with your questions, and feel free to share the link with friends — the session is open to all young people.</p>'
+        . '<h3>With the support of</h3>'
+        . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation and Oroma TV">'
+        . '<p>See you tonight,<br><strong>Kakebe Technologies</strong><br>Kakebe Tech Camp 2026 Team</p>'
+        . '<p><em>Be informed. Get inspired. Be part of the movement!</em></p>';
     q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-        'Info session — tonight, Mon 12 Oct, 8 PM',
-        '{first_name}, join the Kakebe Tech Camp Info Session TONIGHT at 8 PM',
-        'Spotlight Initiative session on digital skilling · Google Meet · 8:00 – 9:00 PM (EAT)',
+        'MentorMe360 Session 1 — tonight, Mon 19 Oct, 8 PM',
+        '{first_name}, join tonight’s MentorMe360 mentorship session — 8 PM',
+        'Sponsored by UNDP, the EU, the Spotlight Initiative, BetterLife and Oroma TV · every Monday, 8:00 – 9:00 PM',
         mk_clean_body($body), 'Join on Google Meet', $meet, $sync['list_id'], $admin['id'], now(), now(),
     ]);
 }
