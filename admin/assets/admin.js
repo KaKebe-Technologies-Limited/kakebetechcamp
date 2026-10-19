@@ -24,6 +24,14 @@
   if (edge) edge.addEventListener('click', toggleMini);
   const collapse = $('#sbCollapse');
   if (collapse) collapse.addEventListener('click', toggleMini);
+  // Menu sections: open one, close the others
+  $$('.sb-sec-head').forEach((head) => head.addEventListener('click', () => {
+    const sec = head.parentElement;
+    const open = !sec.classList.contains('open');
+    $$('.sb-sec.open').forEach((s) => { if (s !== sec) { s.classList.remove('open'); $('.sb-sec-head', s).setAttribute('aria-expanded', 'false'); } });
+    sec.classList.toggle('open', open);
+    head.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }));
   const overlay = $('#sbOverlay');
   if (overlay) overlay.addEventListener('click', () => document.body.classList.remove('sb-open'));
 

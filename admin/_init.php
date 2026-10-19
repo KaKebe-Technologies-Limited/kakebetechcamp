@@ -469,7 +469,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'volunteers'    => ['volunteers.php', 'fa-person-chalkboard', 'Volunteer trainers', $newVolunteers],
             'messages'      => ['messages.php', 'fa-envelope', 'Messages', $unread],
         ],
-        'Finance' => [
+        'Camp finance' => [
             'finance'  => ['finance.php', 'fa-chart-pie', 'Finance overview', 0],
             'take'     => ['take-payment.php', 'fa-hand-holding-dollar', 'Take a payment', 0],
             'payments' => ['payments.php', 'fa-money-bill-transfer', 'Payments', $pendingPay],
@@ -540,11 +540,25 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     <span>Control Panel</span>
   </a>
   <nav class="sb-nav">
-    <?php foreach ($groups as $group => $items): ?>
-      <p class="sb-group"><?= e($group) ?></p>
-      <?php foreach ($items as $key => [$href, $icon, $label, $count]): ?>
-      <a href="<?= $href ?>" class="<?= $active === $key ? 'active' : '' ?>" title="<?= e($label) ?>"><i class="fa-solid <?= $icon ?>"></i><span><?= $label ?></span><?php if ($count): ?><em><?= $count ?></em><?php endif; ?></a>
-      <?php endforeach; ?>
+    <?php
+    // Sections: only their names show; the one for this page is open, a click opens another (and closes the rest)
+    $groupIcons = ['Overview' => 'fa-gauge-high', 'Participants' => 'fa-users', 'Camp finance' => 'fa-wallet', 'Project finance' => 'fa-scale-balanced', 'Marketing' => 'fa-bullhorn', 'Website' => 'fa-globe', 'System' => 'fa-gear', 'Requisitions' => 'fa-file-signature', 'Account' => 'fa-user'];
+    foreach ($groups as $group => $items):
+        if (count($items) === 1):   // a section with one page is just that page
+            $key = array_key_first($items);
+            [$href, $icon, $label, $count] = $items[$key]; ?>
+      <a href="<?= $href ?>" class="sb-solo<?= $active === $key ? ' active' : '' ?>" title="<?= e($label) ?>"><i class="fa-solid <?= $icon ?>"></i><span><?= $label ?></span><?php if ($count): ?><em><?= $count ?></em><?php endif; ?></a>
+        <?php continue; endif;
+        $open = isset($items[$active]);
+        $sum = array_sum(array_column($items, 3)); ?>
+      <div class="sb-sec<?= $open ? ' open' : '' ?>">
+        <button type="button" class="sb-sec-head" aria-expanded="<?= $open ? 'true' : 'false' ?>" title="<?= e($group) ?>"><i class="fa-solid <?= e($groupIcons[$group] ?? 'fa-folder') ?>"></i><span><?= e($group) ?></span><?php if ($sum): ?><em><?= $sum ?></em><?php endif; ?><i class="fa-solid fa-chevron-down sb-chev"></i></button>
+        <div class="sb-sec-items">
+          <?php foreach ($items as $key => [$href, $icon, $label, $count]): ?>
+          <a href="<?= $href ?>" class="<?= $active === $key ? 'active' : '' ?>" title="<?= e($label) ?>"><i class="fa-solid <?= $icon ?>"></i><span><?= $label ?></span><?php if ($count): ?><em><?= $count ?></em><?php endif; ?></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
     <?php endforeach; ?>
   </nav>
   <div class="sb-foot">
