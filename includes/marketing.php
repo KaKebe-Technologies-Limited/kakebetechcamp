@@ -206,16 +206,18 @@ function mk_list_id(string $name): int
 }
 
 /**
- * Copy the people who registered on the website into the email contacts, in three lists:
- * Tech Camp participants, Mentorship & DBIP, and everyone registered (both together).
+ * Copy the people who registered on the website into the email contacts, in lists:
+ * Tech Camp participants, Mentorship & DBIP, everyone registered (those two together) and Volunteer trainers.
  * Safe to run again: new people are added and names filled in; unsubscribed people stay unsubscribed.
  */
 function mk_sync_website_people(): array
 {
     $pdo = db();
+    // list => [people, also in "Everyone registered"?]
     $sources = [
-        'Website · Tech Camp participants' => "SELECT email, full_name FROM registrations WHERE status <> 'cancelled'",
-        'Website · Mentorship & DBIP'      => "SELECT email, full_name FROM mentorship_registrations WHERE status NOT IN ('cancelled', 'withdrawn')",
+        'Website · Tech Camp participants' => ["SELECT email, full_name FROM registrations WHERE status <> 'cancelled'", true],
+        'Website · Mentorship & DBIP'      => ["SELECT email, full_name FROM mentorship_registrations WHERE status NOT IN ('cancelled', 'withdrawn')", true],
+        'Website · Volunteer trainers'     => ['SELECT email, full_name FROM volunteers', false],
     ];
     $everyone = mk_list_id('Website · Everyone registered');
     $ins = $pdo->prepare('INSERT IGNORE INTO mk_contacts (email, name, status, reason, domain, token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
@@ -224,7 +226,7 @@ function mk_sync_website_people(): array
     $link = $pdo->prepare('INSERT IGNORE INTO mk_list_contacts (list_id, contact_id) VALUES (?, ?)');
     $out = ['added' => 0, 'people' => 0, 'list_id' => $everyone];
     $seen = [];
-    foreach ($sources as $listName => $sql) {
+    foreach ($sources as $listName => [$sql, $inEveryone]) {
         $lid = mk_list_id($listName);
         foreach ($pdo->query($sql)->fetchAll() as $row) {
             [$email, $status, $reason] = mk_check_email((string) $row['email']);
@@ -240,7 +242,9 @@ function mk_sync_website_people(): array
             $find->execute([$email]);
             $cid = (int) $find->fetchColumn();
             $link->execute([$lid, $cid]);
-            $link->execute([$everyone, $cid]);
+            if ($inEveryone) {
+                $link->execute([$everyone, $cid]);
+            }
             $seen[$email] = true;
         }
     }

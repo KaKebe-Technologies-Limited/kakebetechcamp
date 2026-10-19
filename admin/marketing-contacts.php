@@ -235,7 +235,7 @@ admin_header('Email contacts', 'contacts', number_format(mk_contact_stats()['tot
       <div><button class="btn btn-primary" type="submit"><i class="fa-solid fa-file-import"></i> Import</button> <span class="small muted" id="mkImportNote" hidden><span class="spinner dark"></span> Reading the file — large files take a minute…</span></div>
     </form>
     <form method="post" class="mk-sync"><?= csrf_field() ?><input type="hidden" name="action" value="sync_website">
-      <p class="small muted">Or add everyone who registered on the website — Tech Camp participants and Mentorship &amp; DBIP — with their names. Run it again any time to add new registrations.</p>
+      <p class="small muted">Or add everyone who registered on the website — Tech Camp participants, volunteer trainers and Mentorship &amp; DBIP — with their names. Run it again any time to add new registrations.</p>
       <button class="btn btn-navy btn-sm" type="submit"><i class="fa-solid fa-users"></i> Add website registrants</button>
     </form>
   </section>

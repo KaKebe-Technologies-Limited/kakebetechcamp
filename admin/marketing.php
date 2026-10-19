@@ -43,6 +43,36 @@ if (date('Y-m-d') <= '2026-10-19' && db()->exec("INSERT IGNORE INTO settings (sk
     ]);
 }
 
+// One-off (19–25 Oct 2026): thank-you to the volunteer trainers who applied, ready to send to the volunteers list.
+if (date('Y-m-d') <= '2026-10-25' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_volunteer_thanks', '1')") === 1) {
+    mk_sync_website_people();
+    db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_from_name', 'Kakebe Technologies')");
+    $meet = 'https://meet.google.com/xsk-swoi-nvf';
+    $strip = base_url('assets/img/email/partners-strip.png');
+    $body = '<p>Dear {first_name},</p>'
+        . '<p>Thank you for applying to volunteer as a trainer at <strong>Kakebe Tech Camp 2026</strong> (14th – 23rd December, Kitgum). We received a very high number of applications, and we are truly grateful that you chose to offer your skills and time to young innovators from across Uganda.</p>'
+        . '<h2>What happens next</h2>'
+        . '<p>Our team is carefully reviewing every application. We will get back to you on the <strong>shortlisting by the end of this week — Friday 23rd October 2026</strong>.</p>'
+        . '<h2>Join our online mentorship programme</h2>'
+        . '<p>In the meantime, you are warmly invited to take part in the <strong>MentorMe360 Online Mentorship Programme</strong> — the journey towards the Tech Camp, sponsored by <strong>UNDP, the European Union, the Spotlight Initiative, BetterLife International Organisation and Oroma TV</strong>.</p>'
+        . '<ul>'
+        . '<li>📅 <strong>When:</strong> every Monday</li>'
+        . '<li>⏰ <strong>Time:</strong> 8:00 – 9:00 PM (EAT)</li>'
+        . '<li>💻 <strong>Where:</strong> Google Meet — <a href="' . $meet . '">meet.google.com/xsk-swoi-nvf</a></li>'
+        . '</ul>'
+        . '<p>It is a good opportunity to meet the team, get to know the programme, and connect with the young people taking part in the camp.</p>'
+        . '<h3>With the support of</h3>'
+        . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation and Oroma TV">'
+        . '<p>Thank you once again for your interest and commitment.</p>'
+        . '<p>Warm regards,<br><strong>The Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>';
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Volunteer trainers — thank you for applying',
+        'Thank you for applying to volunteer, {first_name} — Kakebe Tech Camp 2026',
+        'Shortlisting news by Friday 23 October · join our Monday mentorship sessions in the meantime',
+        mk_clean_body($body), 'Join a Monday session', $meet, mk_list_id('Website · Volunteer trainers'), (string) mk_list_id('Website · Volunteer trainers'), $admin['id'], now(), now(),
+    ]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $action = (string) ($_POST['action'] ?? '');
