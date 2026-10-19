@@ -14,6 +14,60 @@
     el.value = n ? fmt(n) : '';
   });
 
+  // Signature pad: draw with a finger or mouse; the drawing is sent as a PNG with the form
+  $$('.js-sig-canvas').forEach((canvas) => {
+    const form = canvas.closest('form');
+    const data = $('.js-sig-data', form);
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let drawn = false;
+    ctx.lineWidth = 3.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0F2557';
+    const pos = (e) => {
+      const r = canvas.getBoundingClientRect();
+      return [(e.clientX - r.left) * (canvas.width / r.width), (e.clientY - r.top) * (canvas.height / r.height)];
+    };
+    canvas.addEventListener('pointerdown', (e) => {
+      drawing = true;
+      canvas.setPointerCapture(e.pointerId);
+      const [x, y] = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!drawing) return;
+      const [x, y] = pos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      if (!drawn) { drawn = true; canvas.parentElement.classList.add('signed'); }
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => canvas.addEventListener(t, () => { drawing = false; }));
+    const clear = $('.js-sig-clear', form);
+    if (clear) clear.addEventListener('click', () => { ctx.clearRect(0, 0, canvas.width, canvas.height); drawn = false; canvas.parentElement.classList.remove('signed'); data.value = ''; });
+    form.addEventListener('submit', () => { data.value = drawn ? canvas.toDataURL('image/png') : ''; });
+  });
+
+  // Team lead adjusting amounts before approval: live amounts and total
+  $$('.js-adjust').forEach((form) => {
+    const totalEl = $('.js-adj-total', form);
+    const btn = $('.js-adj-btn span', form);
+    const recalc = () => {
+      let total = 0;
+      $$('.adj-row', form).forEach((row) => {
+        const amount = Math.round((parseFloat($('.js-adj-qty', row).value) || 0) * digits($('.js-adj-cost', row).value));
+        $('.js-adj-amount', row).textContent = fmt(amount);
+        total += amount;
+      });
+      totalEl.textContent = 'UGX ' + fmt(total);
+      totalEl.classList.toggle('changed', total !== parseInt(totalEl.dataset.original, 10));
+      if (btn) btn.textContent = (total !== parseInt(totalEl.dataset.original, 10) ? 'Adjust & approve UGX ' : 'Approve UGX ') + fmt(total);
+    };
+    form.addEventListener('input', recalc);
+  });
+
   const table = $('#reqItems');
   if (!table) return;
   const body = $('tbody', table);

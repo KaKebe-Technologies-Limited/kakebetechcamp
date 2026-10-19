@@ -8,6 +8,7 @@ class SimplePdf
 {
     private string $content = '';
     private array $images = [];
+    private array $pages = [];
     private const AVG_WIDTH_REGULAR = 0.52;
     private const AVG_WIDTH_BOLD = 0.56;
 
@@ -91,14 +92,52 @@ class SimplePdf
         return $y;
     }
 
+    /** Lines of text wrapped to a width (for table cells). */
+    public function wrap(string $text, float $maxW, float $size = 10, bool $bold = false): array
+    {
+        $lines = [];
+        foreach (preg_split('/\R/', trim($text)) as $para) {
+            $line = '';
+            foreach (preg_split('/\s+/', trim($para)) as $word) {
+                $try = $line === '' ? $word : "$line $word";
+                if ($line !== '' && $this->textWidth($try, $size, $bold) > $maxW) {
+                    $lines[] = $line;
+                    $line = $word;
+                } else {
+                    $line = $try;
+                }
+            }
+            $lines[] = $line;
+        }
+        return $lines ?: [''];
+    }
+
+    /** Start a new page (same size); drawing continues on it. */
+    public function addPage(): void
+    {
+        $this->pages[] = $this->content;
+        $this->content = '';
+    }
+
+    public function pageHeight(): float
+    {
+        return $this->height;
+    }
+
+    private function addImage(string $data, int $pw, int $ph, string $cs = 'DeviceRGB'): int
+    {
+        $i = count($this->images) + 1;
+        $this->images[$i] = ['data' => $data, 'w' => $pw, 'h' => $ph, 'cs' => $cs];
+        return $i;
+    }
+
     public function jpeg(string $path, float $x, float $y, float $w, float $h): void
     {
         $info = @getimagesize($path);
         if (!$info || $info[2] !== IMAGETYPE_JPEG) {
             return;
         }
-        $i = count($this->images) + 1;
-        $this->images[$i] = ['data' => file_get_contents($path), 'w' => $info[0], 'h' => $info[1], 'cs' => ($info['channels'] ?? 3) === 4 ? 'DeviceCMYK' : 'DeviceRGB'];
+        $i = $this->addImage(file_get_contents($path), $info[0], $info[1], ($info['channels'] ?? 3) === 4 ? 'DeviceCMYK' : 'DeviceRGB');
         $this->content .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /Im%d Do Q\n", $w, $h, $x, $this->height - $y - $h, $i);
     }
 
@@ -112,32 +151,54 @@ class SimplePdf
         $scale = max($w / $info[0], $h / $info[1]);
         $dw = $info[0] * $scale;
         $dh = $info[1] * $scale;
-        $i = count($this->images) + 1;
-        $this->images[$i] = ['data' => file_get_contents($path), 'w' => $info[0], 'h' => $info[1], 'cs' => ($info['channels'] ?? 3) === 4 ? 'DeviceCMYK' : 'DeviceRGB'];
+        $i = $this->addImage(file_get_contents($path), $info[0], $info[1], ($info['channels'] ?? 3) === 4 ? 'DeviceCMYK' : 'DeviceRGB');
         $py = $this->height - $y - $h;
         $this->content .= sprintf("q %.2F %.2F %.2F %.2F re W n %.2F 0 0 %.2F %.2F %.2F cm /Im%d Do Q\n",
             $x, $py, $w, $h, $dw, $dh, $x - ($dw - $w) / 2, $py - ($dh - $h) / 2, $i);
         return true;
     }
 
+    /**
+     * Draw any photo (JPEG, PNG, WEBP) scaled to fit inside the box, keeping its shape and centred.
+     * Phone photos are turned the right way up and made smaller first. Returns the drawn [w, h], or null.
+     */
+    public function photoFit(string $path, float $x, float $y, float $w, float $h, int $maxPx = 1600): ?array
+    {
+        $img = pdf_prepare_photo($path, $maxPx);
+        if (!$img) {
+            return null;
+        }
+        $scale = min($w / $img['w'], $h / $img['h']);
+        $dw = $img['w'] * $scale;
+        $dh = $img['h'] * $scale;
+        $i = $this->addImage($img['data'], $img['w'], $img['h']);
+        $this->content .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /Im%d Do Q\n", $dw, $dh, $x + ($w - $dw) / 2, $this->height - $y - ($h - $dh) / 2 - $dh, $i);
+        return [$dw, $dh];
+    }
+
     public function output(): string
     {
+        $pages = array_merge($this->pages, [$this->content]);
         $objects = [];
         $objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
-        $objects[2] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
+        $objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+        $objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+        $n = 5;
         $xobj = '';
-        $n = 7;
-        $imgObjs = [];
         foreach ($this->images as $i => $img) {
             $xobj .= "/Im$i $n 0 R ";
-            $imgObjs[$n] = "<< /Type /XObject /Subtype /Image /Width {$img['w']} /Height {$img['h']} /ColorSpace /{$img['cs']} /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($img['data']) . " >>\nstream\n{$img['data']}\nendstream";
+            $objects[$n] = "<< /Type /XObject /Subtype /Image /Width {$img['w']} /Height {$img['h']} /ColorSpace /{$img['cs']} /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($img['data']) . " >>\nstream\n{$img['data']}\nendstream";
             $n++;
         }
-        $objects[3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {$this->width} {$this->height}] /Resources << /Font << /F1 5 0 R /F2 6 0 R >>" . ($xobj ? " /XObject << $xobj>>" : '') . " >> /Contents 4 0 R >>";
-        $objects[4] = '<< /Length ' . strlen($this->content) . " >>\nstream\n{$this->content}endstream";
-        $objects[5] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
-        $objects[6] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
-        $objects += $imgObjs;
+        $resources = '<< /Font << /F1 3 0 R /F2 4 0 R >>' . ($xobj ? " /XObject << $xobj>>" : '') . ' >>';
+        $kids = [];
+        foreach ($pages as $content) {
+            $kids[] = "$n 0 R";
+            $objects[$n] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {$this->width} {$this->height}] /Resources $resources /Contents " . ($n + 1) . ' 0 R >>';
+            $objects[$n + 1] = '<< /Length ' . strlen($content) . " >>\nstream\n{$content}endstream";
+            $n += 2;
+        }
+        $objects[2] = '<< /Type /Pages /Kids [' . implode(' ', $kids) . '] /Count ' . count($kids) . ' >>';
         ksort($objects);
 
         $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
@@ -154,6 +215,52 @@ class SimplePdf
         }
         return $pdf . "trailer\n<< /Size $count /Root 1 0 R >>\nstartxref\n$xref\n%%EOF";
     }
+}
+
+/**
+ * A photo as JPEG bytes ready for a PDF: PNG / WEBP converted (transparent areas made white), phone photos turned
+ * upright from their EXIF orientation, and anything larger than $maxPx made smaller. Returns [data, w, h] or null.
+ */
+function pdf_prepare_photo(string $path, int $maxPx = 1600): ?array
+{
+    $info = @getimagesize($path);
+    if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+        return null;
+    }
+    if (!function_exists('imagecreatetruecolor')) {
+        return $info[2] === IMAGETYPE_JPEG ? ['data' => (string) file_get_contents($path), 'w' => $info[0], 'h' => $info[1]] : null;
+    }
+    @ini_set('memory_limit', '512M');
+    $src = match ($info[2]) {
+        IMAGETYPE_JPEG => @imagecreatefromjpeg($path),
+        IMAGETYPE_PNG  => @imagecreatefrompng($path),
+        IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+    };
+    if (!$src) {
+        return $info[2] === IMAGETYPE_JPEG ? ['data' => (string) file_get_contents($path), 'w' => $info[0], 'h' => $info[1]] : null;
+    }
+    if ($info[2] === IMAGETYPE_JPEG && function_exists('exif_read_data')) {
+        $o = (int) (@exif_read_data($path)['Orientation'] ?? 1);
+        $angle = [3 => 180, 6 => -90, 8 => 90][$o] ?? 0;
+        if ($angle && ($rot = imagerotate($src, $angle, 0))) {
+            imagedestroy($src);
+            $src = $rot;
+        }
+    }
+    $w = imagesx($src);
+    $h = imagesy($src);
+    $scale = min(1, $maxPx / max($w, $h));
+    $nw = max(1, (int) round($w * $scale));
+    $nh = max(1, (int) round($h * $scale));
+    $dst = imagecreatetruecolor($nw, $nh);
+    imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    ob_start();
+    imagejpeg($dst, null, 82);
+    $data = (string) ob_get_clean();
+    imagedestroy($src);
+    imagedestroy($dst);
+    return ['data' => $data, 'w' => $nw, 'h' => $nh];
 }
 
 function amount_in_words(int $num): string

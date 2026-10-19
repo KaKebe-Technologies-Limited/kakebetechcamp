@@ -19,6 +19,7 @@ function admin_roles(): array
         'operations' => ['Operations manager', 'Reviews requisitions first — plus the control panel'],
         'team'       => ['Team member', 'The control panel and their own requisitions — no project finance'],
         'field'      => ['Field staff', 'Only their own requisitions and accountability'],
+        'pending'    => ['Waiting for access', 'Signed up themselves — no access until the team lead gives them a role'],
     ];
 }
 
@@ -429,4 +430,309 @@ function fin_seed_undp(PDO $pdo): void
             $insL->execute([$pid, $cid, $lc, $item, $ldesc, $units, $cost, (int) round($units * $cost), ($li + 1) * 10, $now]);
         }
     }
+}
+
+/* ------------------------------------------------------------------
+ * Signatures (drawn on screen or uploaded, kept with the account)
+ * ------------------------------------------------------------------ */
+
+function signature_dir(): string
+{
+    return STORAGE . '/uploads/signatures';
+}
+
+function admin_signature_path(?string $file): ?string
+{
+    $path = signature_dir() . '/' . (string) $file;
+    return $file && preg_match('/^[a-z0-9_\-]+\.png$/', $file) && is_file($path) ? $path : null;
+}
+
+/**
+ * Save a signature for an account from a drawn image (data:image/png;base64,…) or an uploaded image file.
+ * Always stored as a PNG. Returns an error message, or null when saved.
+ */
+function save_signature(int $adminId, ?string $dataUrl, ?array $upload = null): ?string
+{
+    if ($dataUrl && preg_match('#^data:image/png;base64,([A-Za-z0-9+/=]+)$#', $dataUrl, $m)) {
+        $bytes = base64_decode($m[1], true);
+        if ($bytes === false || strlen($bytes) > 600 * 1024 || !str_starts_with($bytes, "\x89PNG") || !($img = @imagecreatefromstring($bytes))) {
+            return 'The drawn signature could not be read. Please draw it again.';
+        }
+    } elseif ($upload && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK && is_uploaded_file($upload['tmp_name'])) {
+        $info = @getimagesize($upload['tmp_name']);
+        if ($upload['size'] > 3 * 1024 * 1024 || !$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+            return 'Upload a photo of your signature (JPG, PNG or WEBP, up to 3 MB).';
+        }
+        $img = @imagecreatefromstring((string) file_get_contents($upload['tmp_name']));
+        if (!$img) {
+            return 'The signature image could not be read.';
+        }
+    } else {
+        return 'Draw your signature or upload a photo of it.';
+    }
+    // Fit into at most 900 × 300 px, keeping transparency
+    $w = imagesx($img);
+    $h = imagesy($img);
+    $scale = min(1, 900 / $w, 300 / $h);
+    $out = imagecreatetruecolor(max(1, (int) ($w * $scale)), max(1, (int) ($h * $scale)));
+    imagealphablending($out, false);
+    imagesavealpha($out, true);
+    imagefill($out, 0, 0, imagecolorallocatealpha($out, 255, 255, 255, 127));
+    imagecopyresampled($out, $img, 0, 0, 0, 0, imagesx($out), imagesy($out), $w, $h);
+    if (!is_dir(signature_dir()) && !@mkdir(signature_dir(), 0755, true)) {
+        return 'The signature folder could not be created on the server.';
+    }
+    $file = $adminId . '-' . bin2hex(random_bytes(6)) . '.png';
+    imagepng($out, signature_dir() . '/' . $file);
+    imagedestroy($img);
+    imagedestroy($out);
+    $old = (string) db()->query('SELECT signature_file FROM admins WHERE id = ' . $adminId)->fetchColumn();
+    db()->prepare('UPDATE admins SET signature_file = ? WHERE id = ?')->execute([$file, $adminId]);
+    if ($old && ($p = admin_signature_path($old))) {
+        @unlink($p);   // signed documents keep their own copy (see signature_snapshot)
+    }
+    return null;
+}
+
+/** A copy of the person's current signature for one signed step of a requisition (so later changes don't alter it). */
+function signature_snapshot(int $adminId): ?string
+{
+    $file = (string) db()->query('SELECT signature_file FROM admins WHERE id = ' . $adminId)->fetchColumn();
+    $src = admin_signature_path($file);
+    if (!$src) {
+        return null;
+    }
+    $dir = fin_upload_dir() . '/sig';
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+        return null;
+    }
+    $copy = 'sig/' . bin2hex(random_bytes(16)) . '.png';
+    return @copy($src, fin_upload_dir() . '/' . $copy) ? $copy : null;
+}
+
+function signature_snapshot_path(?string $copy): ?string
+{
+    return $copy && preg_match('~^sig/[a-f0-9]{32}\.png$~', $copy) && is_file(fin_upload_dir() . '/' . $copy) ? fin_upload_dir() . '/' . $copy : null;
+}
+
+/* ------------------------------------------------------------------
+ * The A4 requisition & accountability PDF (with receipt photos on the following pages)
+ * ------------------------------------------------------------------ */
+
+function requisition_pdf(array $r): string
+{
+    $red = [225, 29, 42];
+    $navy = [15, 37, 87];
+    $ink = [16, 25, 53];
+    $gray = [110, 116, 140];
+    $soft = [244, 246, 251];
+    $line = [221, 225, 236];
+    $project = fin_project((int) $r['project_id']);
+    $items = req_items((int) $r['id']);
+    $names = array_column(db()->query('SELECT id, name FROM admins')->fetchAll(), 'name', 'id');
+    $cluster = $r['cluster_id'] ? db()->query('SELECT code, name FROM fin_clusters WHERE id = ' . (int) $r['cluster_id'])->fetch() : null;
+    $receipts = fin_files('req_receipt', (int) $r['id']);
+    $proofs = fin_files('req_payment', (int) $r['id']);
+    $isPhoto = fn($f) => (bool) preg_match('/\.(jpe?g|png|webp)$/i', $f['file']);
+    $money = fn($n) => $n === null ? '—' : 'UGX ' . number_format((int) $n);
+    $dt = fn($d) => $d ? date('j M Y', strtotime($d)) : '—';
+    $statusLabel = req_statuses()[$r['status']][0] ?? $r['status'];
+
+    $pdf = new SimplePdf(595, 842);
+    $footer = function () use ($pdf, $gray, $r) {
+        $pdf->fill($gray);
+        $pdf->text(36, 822, 'Kakebe Technologies Limited · ' . $r['reference'] . ' · generated ' . date('j M Y, g:i A'), 7.5);
+    };
+    $label = function (float $x, float $y, string $t) use ($pdf, $gray) {
+        $pdf->fill($gray);
+        $pdf->text($x, $y, mb_strtoupper($t), 7.5, true);
+    };
+
+    // Header
+    $pdf->fill($red);
+    $pdf->rect(0, 0, 595, 86);
+    $pdf->fill($navy);
+    $pdf->rect(0, 86, 595, 5);
+    $pdf->jpeg(ROOT . '/assets/img/pdf-logo.jpg', 36, 28, 150, 31);
+    $pdf->fill([255, 255, 255]);
+    $pdf->textRight(559, 40, 'REQUISITION & ACCOUNTABILITY', 15, true);
+    $pdf->fill([255, 222, 218]);
+    $pdf->textRight(559, 56, $r['reference'] . ' · ' . $statusLabel, 9.5, true);
+    $pdf->textRight(559, 70, mb_strimwidth((string) $project['name'], 0, 70, '…'), 8);
+
+    // Details
+    $y = 116;
+    $pdf->fill($ink);
+    $y = $pdf->paragraph(36, $y, 523, $r['title'], 13, 16, true) + 4;
+    $rows = [
+        ['Requested by', (string) $r['requester_name'], 'Activity', $cluster ? $cluster['code'] . ' · ' . $cluster['name'] : '—'],
+        ['Date requested', $dt($r['created_at']), 'Where', (string) $r['location']],
+        ['Needed on', $dt($r['needed_on']), 'Paid', $r['disbursed_at'] ? $dt($r['disbursed_at']) . ' · ' . (fin_methods()[$r['disburse_method']] ?? '') . ($r['disburse_ref'] ? ' · ' . $r['disburse_ref'] : '') : '—'],
+    ];
+    foreach ($rows as [$l1, $v1, $l2, $v2]) {
+        $label(36, $y, $l1);
+        $label(300, $y, $l2);
+        $pdf->fill($ink);
+        $pdf->text(36, $y + 12, mb_strimwidth($v1, 0, 48, '…'), 9.5, true);
+        $pdf->text(300, $y + 12, mb_strimwidth($v2, 0, 52, '…'), 9.5, true);
+        $y += 30;
+    }
+
+    // Money summary
+    $balance = $r['actual_total'] !== null && $r['disbursed_amount'] !== null ? (int) $r['disbursed_amount'] - (int) $r['actual_total'] : null;
+    $boxes = [
+        ['Requested', $r['original_total'] ?? $r['total']],
+        ['Approved', in_array($r['status'], ['submitted', 'reviewed', 'rejected', 'cancelled'], true) ? null : $r['total']],
+        ['Paid', $r['disbursed_amount']],
+        ['Spent', $r['actual_total']],
+        [$balance !== null && $balance < 0 ? 'Overspent' : 'Balance to return', $balance === null ? null : abs($balance)],
+    ];
+    $bw = 523 / 5;
+    foreach ($boxes as $i => [$l, $v]) {
+        $x = 36 + $i * $bw;
+        $pdf->fill($i === 3 ? [255, 242, 242] : $soft);
+        $pdf->rect($x + 2, $y, $bw - 4, 42);
+        $label($x + 10, $y + 14, $l);
+        $pdf->fill($i === 3 ? $red : $ink);
+        $pdf->text($x + 10, $y + 32, $money($v), 10.5, true);
+    }
+    $y += 58;
+
+    // Items table
+    $cols = [[36, 18, '#'], [54, 190, 'Item & budget line'], [244, 70, 'Approved'], [314, 70, 'Spent'], [384, 175, 'What the money was spent on']];
+    $head = function () use (&$y, $pdf, $cols, $navy) {
+        $pdf->fill($navy);
+        $pdf->rect(36, $y, 523, 20);
+        $pdf->fill([255, 255, 255]);
+        foreach ($cols as $i => [$x, $w, $t]) {
+            in_array($i, [2, 3], true) ? $pdf->textRight($x + $w - 6, $y + 13.5, $t, 8, true) : $pdf->text($x + 5, $y + 13.5, $t, 8, true);
+        }
+        $y += 20;
+    };
+    $head();
+    foreach ($items as $n => $it) {
+        $a = $pdf->wrap($it['description'], 180, 8.5, true);
+        $b = $pdf->wrap($it['line_code'] . ' ' . $it['line_item'] . ($it['payee'] ? ' · paid to ' . $it['payee'] : ''), 180, 7.5);
+        $c = $pdf->wrap((string) ($it['note'] ?: '—'), 165, 8);
+        $h = max(count($a) * 11 + count($b) * 10, count($c) * 10.5) + 12;
+        if ($y + $h > 790) {
+            $footer();
+            $pdf->addPage();
+            $y = 40;
+            $head();
+        }
+        if ($n % 2) {
+            $pdf->fill($soft);
+            $pdf->rect(36, $y, 523, $h);
+        }
+        $pdf->fill($ink);
+        $pdf->text(41, $y + 13, (string) ($n + 1), 8.5);
+        $yy = $y + 13;
+        foreach ($a as $t) {
+            $pdf->text(59, $yy, $t, 8.5, true);
+            $yy += 11;
+        }
+        $pdf->fill($gray);
+        foreach ($b as $t) {
+            $pdf->text(59, $yy, $t, 7.5);
+            $yy += 10;
+        }
+        $pdf->fill($ink);
+        $pdf->textRight(308, $y + 13, number_format((int) $it['amount']), 8.5);
+        $pdf->textRight(378, $y + 13, $it['actual_amount'] !== null ? number_format((int) $it['actual_amount']) : '—', 8.5, true);
+        $yy = $y + 13;
+        foreach ($c as $t) {
+            $pdf->text(389, $yy, $t, 8);
+            $yy += 10.5;
+        }
+        $pdf->stroke($line);
+        $pdf->line(36, $y + $h, 559, $y + $h, 0.5);
+        $y += $h;
+    }
+    $pdf->fill([255, 242, 242]);
+    $pdf->rect(36, $y, 523, 20);
+    $pdf->fill($ink);
+    $pdf->text(59, $y + 13.5, 'Total (UGX)', 9, true);
+    $pdf->textRight(308, $y + 13.5, number_format((int) $r['total']), 9, true);
+    $pdf->textRight(378, $y + 13.5, $r['actual_total'] !== null ? number_format((int) $r['actual_total']) : '—', 9, true);
+    $y += 32;
+
+    // Notes
+    $notes = array_filter([
+        'Justification' => (string) $r['justification'],
+        'Adjusted at approval' => $r['adjust_note'] ? $r['adjust_note'] . ($r['original_total'] ? ' (requested ' . $money($r['original_total']) . ', approved ' . $money($r['total']) . ')' : '') : '',
+        'Accountability report' => (string) $r['accountability'],
+        'Balance settled' => (string) $r['balance_note'],
+    ]);
+    foreach ($notes as $l => $t) {
+        if ($y > 740) {
+            $footer();
+            $pdf->addPage();
+            $y = 40;
+        }
+        $label(36, $y, $l);
+        $pdf->fill($ink);
+        $y = $pdf->paragraph(36, $y + 12, 523, $t, 9, 12) + 6;
+    }
+    $photoCount = count(array_filter($receipts, $isPhoto)) + count(array_filter($proofs, $isPhoto));
+    $others = array_filter($receipts, fn($f) => !$isPhoto($f));
+    $label(36, $y, 'Receipts');
+    $pdf->fill($ink);
+    $y = $pdf->paragraph(36, $y + 12, 523, count($receipts) . ' receipt' . (count($receipts) === 1 ? '' : 's') . ' attached'
+        . ($photoCount ? ' — the photos and scans are on the following page' . ($photoCount === 1 ? '' : 's') . '.' : '.')
+        . ($others ? ' Also attached in the system (not images): ' . implode(', ', array_column($others, 'original_name')) . '.' : ''), 9, 12) + 10;
+
+    // Signatures
+    if ($y > 680) {
+        $footer();
+        $pdf->addPage();
+        $y = 40;
+    }
+    $sigs = [
+        ['Requested & accounted by', $r['requested_by'], $r['signed_at'] ?: $r['accounted_at'], $r['sig_requester']],
+        ['Approved by (team lead)', $r['approved_by'], $r['approved_at'], $r['sig_approver']],
+        ['Paid by (finance)', $r['disbursed_by'], $r['disbursed_at'], $r['sig_payer']],
+        ['Verified by (finance)', $r['verified_by'], $r['verified_at'], $r['sig_verifier']],
+    ];
+    $sw = 523 / 4;
+    foreach ($sigs as $i => [$l, $who, $when, $sig]) {
+        $x = 36 + $i * $sw;
+        $pdf->stroke($line);
+        $pdf->rect($x + 3, $y, $sw - 6, 108, 's');
+        $label($x + 10, $y + 14, $l);
+        if ($path = signature_snapshot_path($sig)) {
+            $pdf->photoFit($path, $x + 10, $y + 22, $sw - 26, 44, 600);
+        } elseif ($who && $when) {
+            $pdf->fill($gray);
+            $pdf->text($x + 10, $y + 50, '(no signature on file)', 7.5);
+        }
+        $pdf->stroke($line);
+        $pdf->line($x + 10, $y + 70, $x + $sw - 13, $y + 70, 0.6);
+        $pdf->fill($ink);
+        $pdf->text($x + 10, $y + 84, mb_strimwidth($who ? (string) ($names[$who] ?? '') : '', 0, 24, '…'), 8.5, true);
+        $pdf->fill($gray);
+        $pdf->text($x + 10, $y + 98, $when ? date('j M Y, g:i A', strtotime($when)) : 'Not yet', 7.5);
+    }
+    $footer();
+
+    // One page per receipt / proof-of-payment photo
+    $pages = array_merge(
+        array_map(fn($f) => ['Receipt', $f], array_values(array_filter($receipts, $isPhoto))),
+        array_map(fn($f) => ['Proof of payment', $f], array_values(array_filter($proofs, $isPhoto)))
+    );
+    foreach ($pages as $i => [$kind, $f]) {
+        $pdf->addPage();
+        $pdf->fill($navy);
+        $pdf->rect(0, 0, 595, 54);
+        $pdf->fill([255, 255, 255]);
+        $pdf->text(36, 25, $kind . ' ' . ($i + 1) . ' of ' . count($pages) . ' · ' . $r['reference'], 12, true);
+        $pdf->fill([200, 210, 235]);
+        $pdf->text(36, 41, mb_strimwidth($f['original_name'], 0, 60, '…') . ' · uploaded ' . date('j M Y', strtotime($f['created_at'])) . ($f['uploader'] ? ' by ' . $f['uploader'] : ''), 8.5);
+        if (!$pdf->photoFit(fin_upload_dir() . '/' . $f['file'], 36, 72, 523, 730)) {
+            $pdf->fill($gray);
+            $pdf->text(36, 100, 'This image could not be placed in the PDF — open it in the control panel.', 10);
+        }
+        $footer();
+    }
+    return $pdf->output();
 }

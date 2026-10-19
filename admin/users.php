@@ -7,7 +7,7 @@ $roles = admin_roles();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $action = (string) ($_POST['action'] ?? '');
-    if (!$manage && $action !== 'password') {
+    if (!$manage && !in_array($action, ['password', 'signature'], true)) {
         flash('Only the team lead can manage accounts and roles.', 'error');
         redirect('users.php');
     }
@@ -39,9 +39,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('You are the only team lead — make someone else team lead first.', 'error');
                 break;
             }
+            $before = q('SELECT name, email, role FROM admins WHERE id = ?', [$id])->fetch();
             q('UPDATE admins SET role = ? WHERE id = ?', [$role, $id]);
-            flash('Role updated to ' . admin_role_label($role) . '.');
+            if ($before && $before['role'] === 'pending' && $role !== 'pending') {
+                $inner = '<p><strong>Hi ' . e(explode(' ', $before['name'])[0]) . ',</strong></p><p>Your Kakebe staff account is ready — you now have access as <b>' . e(admin_role_label($role)) . '</b>.</p>'
+                    . '<p>Log in to make requisitions and account for money with your receipts. Add your signature under <b>My account</b> first — it goes on your accountability documents.</p>'
+                    . kt_btn('Log in', base_url('admin/login.php'), 'navy');
+                send_mail($before['email'], 'Your Kakebe staff account is ready', kt_email('Staff accounts', $inner));
+                flash($before['name'] . ' now has access as ' . admin_role_label($role) . ' — they have been emailed.' . mail_note());
+            } else {
+                flash('Role updated to ' . admin_role_label($role) . '.');
+            }
             break;
+
+        case 'signature':
+            $err = save_signature((int) $me['id'], (string) ($_POST['signature_data'] ?? ''), $_FILES['signature_file'] ?? null);
+            flash($err ?: 'Your signature is saved. It will be added to the documents you sign.', $err ? 'error' : 'success');
+            redirect('users.php#signature');
 
         case 'password':
             $current = (string) ($_POST['current'] ?? '');
@@ -73,9 +87,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('users.php');
 }
 
-$admins = $manage ? q("SELECT id, name, email, role, last_login_at, created_at FROM admins ORDER BY FIELD(role, 'admin', 'finance', 'operations', 'team', 'field'), name")->fetchAll() : [];
+$admins = $manage ? q("SELECT id, name, email, role, phone, job_title, last_login_at, created_at FROM admins WHERE role <> 'pending' ORDER BY FIELD(role, 'admin', 'finance', 'operations', 'team', 'field'), name")->fetchAll() : [];
+$pendingAccounts = $manage ? q("SELECT * FROM admins WHERE role = 'pending' ORDER BY id DESC")->fetchAll() : [];
+$mySig = admin_signature_path((string) q('SELECT signature_file FROM admins WHERE id = ?', [$me['id']])->fetchColumn());
 admin_header($manage ? 'Admin users & roles' : 'My account', 'users', $manage ? 'Who can use the control panel, project finance and requisitions' : admin_role_label($me['role']));
 ?>
+<?php if ($pendingAccounts): ?>
+<section class="card pending-accounts">
+  <div class="card-head"><h3><i class="fa-solid fa-user-clock"></i> Waiting for access</h3><span class="badge st-pending"><?= count($pendingAccounts) ?></span></div>
+  <p class="small muted">These people created their own staff account. Give them a role if they are on the team — <b>Team member</b> or <b>Field staff</b> lets them make requisitions — or remove the account.</p>
+  <ul class="user-list">
+    <?php foreach ($pendingAccounts as $a): ?>
+    <li>
+      <span class="tb-avatar"><?= e(mb_strtoupper(mb_substr($a['name'], 0, 1))) ?></span>
+      <div><b><?= e($a['name']) ?></b><small class="block muted"><?= e($a['email']) ?> · <?= e((string) $a['phone']) ?><?= $a['job_title'] ? ' · ' . e($a['job_title']) : '' ?> · signed up <?= e(time_ago($a['created_at'])) ?></small></div>
+      <div class="btn-row">
+        <?php foreach (['team' => 'Team member', 'field' => 'Field staff', 'operations' => 'Operations', 'finance' => 'Finance'] as $k => $label): ?>
+        <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="role"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><input type="hidden" name="role" value="<?= $k ?>"><button class="btn btn-sm <?= $k === 'team' ? 'btn-primary' : 'btn-light' ?>" type="submit"><?= e($label) ?></button></form>
+        <?php endforeach; ?>
+        <form method="post" class="inline" data-confirm="Remove the account for <?= e($a['name']) ?>?"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><button class="icon-btn danger" type="submit" title="Remove"><i class="fa-solid fa-trash"></i></button></form>
+      </div>
+    </li>
+    <?php endforeach; ?>
+  </ul>
+</section>
+<?php endif; ?>
+
 <div class="grid-2 align-start">
   <?php if ($manage): ?>
   <div class="card">
@@ -84,7 +121,7 @@ admin_header($manage ? 'Admin users & roles' : 'My account', 'users', $manage ? 
       <?php foreach ($admins as $a): ?>
       <li>
         <span class="tb-avatar"><?= e(mb_strtoupper(mb_substr($a['name'], 0, 1))) ?></span>
-        <div><b><?= e($a['name']) ?><?= (int) $a['id'] === (int) $me['id'] ? ' <small class="badge st-approved">You</small>' : '' ?></b><small class="block muted"><?= e($a['email']) ?> · last login: <?= $a['last_login_at'] ? e(time_ago($a['last_login_at'])) : 'never' ?></small></div>
+        <div><b><?= e($a['name']) ?><?= (int) $a['id'] === (int) $me['id'] ? ' <small class="badge st-approved">You</small>' : '' ?></b><small class="block muted"><?= e($a['email']) ?><?= $a['phone'] ? ' · ' . e($a['phone']) : '' ?><?= $a['job_title'] ? ' · ' . e($a['job_title']) : '' ?> · last login: <?= $a['last_login_at'] ? e(time_ago($a['last_login_at'])) : 'never' ?></small></div>
         <form method="post" class="role-form"><?= csrf_field() ?><input type="hidden" name="action" value="role"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
           <select name="role" onchange="this.form.submit()" aria-label="Role for <?= e($a['name']) ?>"><?php foreach ($roles as $k => [$label]): ?><option value="<?= e($k) ?>"<?= $a['role'] === $k ? ' selected' : '' ?>><?= e($label) ?></option><?php endforeach; ?></select>
         </form>
@@ -116,6 +153,17 @@ admin_header($manage ? 'Admin users & roles' : 'My account', 'users', $manage ? 
       </form>
     </div>
     <?php endif; ?>
+    <div class="card" id="signature">
+      <div class="card-head"><h3><i class="fa-solid fa-signature"></i> My signature</h3><?php if ($mySig): ?><span class="badge st-confirmed">Saved</span><?php endif; ?></div>
+      <p class="small muted">Your signature is added to requisition and accountability documents you sign (approving, paying or accounting for money).</p>
+      <?php if ($mySig): ?><div class="sig-current"><img src="signature.php?v=<?= filemtime($mySig) ?>" alt="Your saved signature"></div><?php endif; ?>
+      <form method="post" enctype="multipart/form-data" class="stack js-sig-form"><?= csrf_field() ?><input type="hidden" name="action" value="signature">
+        <div class="sig-pad"><canvas width="600" height="200" class="js-sig-canvas" aria-label="Draw your signature"></canvas><span class="sig-hint">Sign here with your finger or mouse</span></div>
+        <input type="hidden" name="signature_data" class="js-sig-data">
+        <div class="btn-row"><button type="button" class="btn btn-light btn-sm js-sig-clear"><i class="fa-solid fa-eraser"></i> Clear</button><span class="small muted">or upload a photo of your signature:</span><input type="file" name="signature_file" accept=".jpg,.jpeg,.png,.webp"></div>
+        <div><button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> <?= $mySig ? 'Replace my signature' : 'Save my signature' ?></button></div>
+      </form>
+    </div>
     <div class="card">
       <div class="card-head"><h3><i class="fa-solid fa-key"></i> Change my password</h3></div>
       <form method="post" class="stack">
@@ -130,4 +178,4 @@ admin_header($manage ? 'Admin users & roles' : 'My account', 'users', $manage ? 
     </div>
   </div>
 </div>
-<?php admin_footer();
+<?php admin_footer(['finance.js']);

@@ -55,5 +55,6 @@ auth_header('Log in');
     <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-right-to-bracket"></i> Log in</button>
   </form>
+  <p class="small center">New team member? <a href="register.php">Create your staff account</a></p>
   <p class="muted small center"><a href="../"><i class="fa-solid fa-arrow-left"></i> Back to website</a></p>
 <?php auth_footer();

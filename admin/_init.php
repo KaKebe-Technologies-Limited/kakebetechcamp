@@ -47,8 +47,16 @@ function require_admin(): array
     if (!$admin) {
         redirect('login.php?next=' . rawurlencode(basename($_SERVER['SCRIPT_NAME']) . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')));
     }
-    // Field staff only see their requisitions (and can change their password)
-    if (!role_can($admin['role'], 'panel') && !in_array(basename($_SERVER['SCRIPT_NAME']), ['requisitions.php', 'requisition.php', 'fin-file.php', 'users.php', 'logout.php'], true)) {
+    // Signed up but not given a role yet: nothing to see until the team lead gives access
+    if ($admin['role'] === 'pending') {
+        auth_header('Waiting for access');
+        echo '<h2>Thanks, ' . e(explode(' ', $admin['name'])[0]) . ' 👋</h2><p>Your account is created. The team lead will give you access — you will get an email when it is ready. Then log in again here.</p>'
+            . '<p class="muted small">Signed in as ' . e($admin['email']) . '</p><a class="btn btn-light btn-block" href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>';
+        auth_footer();
+        exit;
+    }
+    // Field staff only see their requisitions (and can change their password and signature)
+    if (!role_can($admin['role'], 'panel') && !in_array(basename($_SERVER['SCRIPT_NAME']), ['requisitions.php', 'requisition.php', 'fin-file.php', 'users.php', 'signature.php', 'logout.php'], true)) {
         redirect('requisitions.php');
     }
     return $admin;
@@ -467,7 +475,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
         $groups['Project finance'] = ['requisitions' => ['requisitions.php', 'fa-file-signature', role_can($role, 'all_reqs') ? 'Requisitions' : 'My requisitions', $reqWaiting]];
     }
     if (!role_can($role, 'panel')) {
-        $groups = ['Requisitions' => $groups['Project finance'], 'Account' => ['users' => ['users.php', 'fa-key', 'My password', 0]]];
+        $groups = ['Requisitions' => $groups['Project finance'], 'Account' => ['users' => ['users.php', 'fa-signature', 'My account & signature', 0]]];
     }
     $flash = flash();
     $sandbox = iotec()['sandbox'];

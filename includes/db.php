@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 28;
+const SCHEMA_VERSION = 29;
 
 function db(): PDO
 {
@@ -119,6 +119,17 @@ function migrate(PDO $pdo): void
     if ($version < 28) {
         fin_seed_undp($pdo);   // the Kakebe x UNDP workplan and budget
     }
+    if ($version >= 1 && !column_exists($pdo, 'admins', 'signature_file')) {
+        // v29: staff sign up themselves (role "pending" until the team lead gives access), signatures,
+        // per-item explanations in accountability, approval adjustments and signed accountability PDFs
+        $pdo->exec('ALTER TABLE admins ADD COLUMN phone VARCHAR(40) NULL AFTER role, ADD COLUMN job_title VARCHAR(120) NULL AFTER phone, ADD COLUMN signature_file VARCHAR(80) NULL AFTER job_title');
+    }
+    if ($version >= 28 && !column_exists($pdo, 'fin_req_items', 'note')) {
+        $pdo->exec('ALTER TABLE fin_req_items ADD COLUMN note VARCHAR(1000) NULL AFTER payee');
+        $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
+            ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
+            ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
+    }
     if ($version >= 1 && $version < 27) {
         // v27: volunteer applications closed (high numbers); reopen any time in Admin → Volunteer trainers
         $pdo->exec("INSERT INTO settings (skey, svalue) VALUES ('volunteers_open', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
@@ -216,6 +227,9 @@ function schema_statements(): array
             email         VARCHAR(190) NOT NULL UNIQUE,
             password_hash VARCHAR(255) NOT NULL,
             role          VARCHAR(20) NOT NULL DEFAULT 'team',
+            phone         VARCHAR(40) NULL,
+            job_title     VARCHAR(120) NULL,
+            signature_file VARCHAR(80) NULL,
             last_login_at DATETIME NULL,
             created_at    DATETIME NOT NULL
         ) $t",
@@ -670,6 +684,13 @@ function schema_statements(): array
             verified_by      INT UNSIGNED NULL,
             verified_at      DATETIME NULL,
             balance_note     VARCHAR(500) NULL,
+            original_total   INT UNSIGNED NULL,
+            adjust_note      VARCHAR(1000) NULL,
+            signed_at        DATETIME NULL,
+            sig_requester    VARCHAR(80) NULL,
+            sig_approver     VARCHAR(80) NULL,
+            sig_payer        VARCHAR(80) NULL,
+            sig_verifier     VARCHAR(80) NULL,
             created_at       DATETIME NOT NULL,
             updated_at       DATETIME NULL,
             KEY idx_project_status (project_id, status),
@@ -686,6 +707,7 @@ function schema_statements(): array
             amount         INT UNSIGNED NOT NULL DEFAULT 0,
             actual_amount  INT UNSIGNED NULL,
             payee          VARCHAR(150) NULL,
+            note           VARCHAR(1000) NULL,
             KEY idx_req (requisition_id),
             KEY idx_line (line_id)
         ) $t",
