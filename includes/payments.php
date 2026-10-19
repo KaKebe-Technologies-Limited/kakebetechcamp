@@ -382,8 +382,34 @@ function auto_sync_pending(int $max = 5): int
 /** Names of the people a sponsor paid for (empty when they gave generally or let Kakebe choose). */
 function donation_people(array $d): array
 {
-    $names = json_decode((string) ($d['beneficiaries'] ?? ''), true);
-    return is_array($names) ? array_values(array_filter(array_map('strval', $names))) : [];
+    return array_column(donation_people_full($d), 'name');
+}
+
+/** The people a sponsor paid for, with the phone / email the sponsor gave: [['name', 'phone', 'email'], …]. */
+function donation_people_full(array $d): array
+{
+    $list = json_decode((string) ($d['beneficiaries'] ?? ''), true);
+    $out = [];
+    foreach (is_array($list) ? $list : [] as $p) {
+        $p = is_array($p) ? $p : ['name' => (string) $p];   // older sponsorships stored names only
+        if (trim((string) ($p['name'] ?? '')) !== '') {
+            $out[] = ['name' => (string) $p['name'], 'phone' => (string) ($p['phone'] ?? ''), 'email' => (string) ($p['email'] ?? '')];
+        }
+    }
+    return $out;
+}
+
+/** "Akello Grace (0772 123 456 · akello@gmail.com); …" — for the team. */
+function donation_people_contacts(array $d): string
+{
+    if (!(int) $d['children']) {
+        return 'General support';
+    }
+    $people = donation_people_full($d);
+    if (!$people) {
+        return 'Kakebe Tech Camp will choose';
+    }
+    return implode('; ', array_map(fn($p) => $p['name'] . (($c = implode(' · ', array_filter([$p['phone'], $p['email']]))) ? ' (' . $c . ')' : ''), $people));
 }
 
 /** "Akello Grace, Okello Peter" — or what to show when there are no names. */

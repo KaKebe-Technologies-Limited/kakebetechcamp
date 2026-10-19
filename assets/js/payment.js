@@ -180,7 +180,9 @@
       for (let i = rows.length; i < want; i++) {
         const row = document.createElement("div");
         row.className = "person-row";
-        row.innerHTML = "<span>" + (i + 1) + "</span><input type=\"text\" name=\"beneficiaries[]\" maxlength=\"120\" autocomplete=\"off\" placeholder=\"Full name of person " + (i + 1) + "\" aria-label=\"Full name of person " + (i + 1) + "\">";
+        row.innerHTML = "<span>" + (i + 1) + "</span><input type=\"text\" name=\"beneficiaries[]\" maxlength=\"120\" autocomplete=\"off\" placeholder=\"Full name of person " + (i + 1) + "\" aria-label=\"Full name of person " + (i + 1) + "\">"
+          + "<input type=\"tel\" name=\"beneficiary_phone[]\" maxlength=\"40\" autocomplete=\"off\" placeholder=\"Their phone\" aria-label=\"Phone of person " + (i + 1) + "\">"
+          + "<input type=\"email\" name=\"beneficiary_email[]\" maxlength=\"190\" autocomplete=\"off\" placeholder=\"Their email\" aria-label=\"Email of person " + (i + 1) + "\">";
         list.appendChild(row);
       }
       rows.slice(want).forEach((r) => r.remove());

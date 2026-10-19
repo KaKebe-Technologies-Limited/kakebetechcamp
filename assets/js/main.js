@@ -301,23 +301,15 @@
     trackInputs.forEach((i) => i.addEventListener('change', syncTracks));
     syncTracks();
 
-    /* Payment: now, later or sponsored */
-    const sponsorPick = $('#sponsorPick');
-    const sponsorSelect = $('#f_sponsor');
-    const sponsorOtherWrap = $('#sponsorOtherWrap');
+    /* Payment: now or later (sponsorships are arranged by sponsors, not chosen here) */
     const submitText = $('#regSubmitText');
     const payWhen = () => (form.querySelector('input[name="pay_when"]:checked') || {}).value || 'now';
     const syncPay = () => {
-      const w = payWhen();
-      sponsorPick.hidden = w !== 'sponsored';
-      sponsorOtherWrap.hidden = !(w === 'sponsored' && sponsorSelect.value === 'other');
-      $('#pkgNote').hidden = w === 'sponsored';
-      submitText.innerHTML = w === 'now'
+      submitText.innerHTML = payWhen() === 'now'
         ? `Register &amp; pay <span class="js-total">${money(total())}</span>`
-        : (w === 'later' ? 'Complete registration' : 'Submit for approval');
+        : 'Complete registration';
     };
     $$('input[name="pay_when"]', form).forEach((r) => r.addEventListener('change', syncPay));
-    sponsorSelect.addEventListener('change', syncPay);
     syncPay();
 
     const validate = () => {
@@ -333,10 +325,6 @@
       if (val('district').length < 2) errors.district = 'Please enter your district.';
       if (!val('jersey_size')) errors.jersey_size = 'Please choose your jersey size.';
       if (!f.getAll('interests[]').length) errors.interests = 'Choose at least one track.';
-      if (payWhen() === 'sponsored') {
-        if (!val('sponsor_id')) errors.sponsor_id = 'Please choose who is sponsoring you.';
-        else if (val('sponsor_id') === 'other' && val('sponsor_other').length < 2) errors.sponsor_other = 'Please enter your sponsor\'s name.';
-      }
       return errors;
     };
 

@@ -756,29 +756,10 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 
         <div class="field full">
           <label>Payment</label>
-          <div class="funding-options three" id="payChoice">
+          <div class="funding-options" id="payChoice">
             <label class="fund-opt"><input type="radio" name="pay_when" value="now" checked><span><b>Pay now</b><small>Mobile Money or card, right after this step</small></span></label>
             <label class="fund-opt"><input type="radio" name="pay_when" value="later"><span><b>Pay later</b><small>We email you the details — pay from your dashboard</small></span></label>
-            <label class="fund-opt"><input type="radio" name="pay_when" value="sponsored"><span><b>I'm sponsored</b><small>Someone else is paying for me</small></span></label>
           </div>
-        </div>
-
-        <div class="sponsor-pick" id="sponsorPick" hidden>
-          <div class="field full">
-            <label for="f_sponsor">Who is sponsoring you?</label>
-            <select id="f_sponsor" name="sponsor_id">
-              <option value="">Select your sponsor…</option>
-              <?php foreach ($sponsorList as $sp): ?><option value="<?= (int) $sp['id'] ?>"><?= e(sponsor_label($sp)) ?></option><?php endforeach; ?>
-              <option value="other">My sponsor is not listed</option>
-            </select>
-            <span class="err" data-err="sponsor_id"></span>
-          </div>
-          <div class="field full" id="sponsorOtherWrap" hidden>
-            <label for="f_sponsor_other">Sponsor's name</label>
-            <input id="f_sponsor_other" name="sponsor_other" type="text" maxlength="150" placeholder="Full name of the person or organisation">
-            <span class="err" data-err="sponsor_other"></span>
-          </div>
-          <p class="hint sponsor-note">We confirm your sponsor first. Once approved, your ticket is emailed to you — nothing to pay.</p>
         </div>
 
         <div class="pkg-line" id="orderSummary" data-camp="<?= $f['camp'] ?>" data-jersey="<?= $f['jersey'] ?>" data-park="<?= $f['park'] ?>">
@@ -898,9 +879,9 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
             </div>
           </div>
           <div class="field js-people">
-            <label>Their names <span class="req">*</span></label>
+            <label>Who are you paying for? <span class="req">*</span> <small class="opt">name, and their phone or email so we can reach them</small></label>
             <div class="people-list js-people-list">
-              <div class="person-row"><span>1</span><input type="text" name="beneficiaries[]" maxlength="120" placeholder="Full name of person 1" autocomplete="off" aria-label="Full name of person 1"></div>
+              <div class="person-row"><span>1</span><input type="text" name="beneficiaries[]" maxlength="120" placeholder="Full name of person 1" autocomplete="off" aria-label="Full name of person 1"><input type="tel" name="beneficiary_phone[]" maxlength="40" placeholder="Their phone" autocomplete="off" aria-label="Phone of person 1"><input type="email" name="beneficiary_email[]" maxlength="190" placeholder="Their email" autocomplete="off" aria-label="Email of person 1"></div>
             </div>
             <label class="check choose-check"><input type="checkbox" name="choose_for_me" value="1" class="js-choose"><span>I don't have names — let Kakebe Tech Camp choose young people who need support</span></label>
             <span class="err" data-err="beneficiaries"></span>

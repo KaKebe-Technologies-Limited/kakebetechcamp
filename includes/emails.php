@@ -246,7 +246,7 @@ function tpl_admin_payment(array $p, ?array $r, ?array $d): array
     }
     if ($d && (int) $d['children']) {
         $rows['🌟 Innovators'] = (string) (int) $d['children'];
-        $rows['👥 Paying for'] = donation_people_label($d);
+        $rows['👥 Paying for'] = donation_people_contacts($d);
     }
     $link = $r ? base_url('admin/view.php?id=' . $r['id']) : base_url('admin/sponsors.php');
     $inner = '<p><strong>Hi Team,</strong></p><p>A payment has just been completed. 💸</p>' . kt_detail($rows) . kt_btn('Open in control panel', $link, 'navy');
@@ -282,7 +282,7 @@ function sponsorship_rows(array $d, array $p): array
         '📧 Email' => $d['email'],
         '📞 Phone' => $d['phone'],
         '🌟 Gift' => (int) $d['children'] ? (int) $d['children'] . ' innovator' . ((int) $d['children'] === 1 ? '' : 's') . ' × ' . format_ugx(fees()['sponsor_child']) : 'Any amount (general support)',
-        '👥 Paying for' => (int) $d['children'] ? donation_people_label($d) : '',
+        '👥 Paying for' => (int) $d['children'] ? donation_people_contacts($d) : '',
         '💰 Amount' => format_ugx($d['amount']) . ' (about $' . number_format(approx_usd((int) $d['amount'])) . ')',
         '💳 Method' => $method,
         '💬 Message' => $d['message'],
@@ -387,7 +387,7 @@ function sponsor_thanks_url(array $d): string
 function tpl_admin_donation_pledge(array $d): array
 {
     $inner = '<p><strong>Hi Team,</strong></p><p>A new sponsor has started a pledge on the website.</p>'
-        . kt_detail(['👤 Sponsor' => $d['donor_name'], '🏢 Organisation' => $d['organization'], '📧 Email' => $d['email'], '📞 Phone' => $d['phone'], '🌟 Innovators' => $d['children'] ?: 'General', '👥 Paying for' => $d['children'] ? donation_people_label($d) : '', '💰 Amount' => format_ugx($d['amount']), '💬 Message' => $d['message']])
+        . kt_detail(['👤 Sponsor' => $d['donor_name'], '🏢 Organisation' => $d['organization'], '📧 Email' => $d['email'], '📞 Phone' => $d['phone'], '🌟 Innovators' => $d['children'] ?: 'General', '👥 Paying for' => $d['children'] ? donation_people_contacts($d) : '', '💰 Amount' => format_ugx($d['amount']), '💬 Message' => $d['message']])
         . kt_btn('Open sponsorships', base_url('admin/sponsors.php'), 'navy');
     return ['🤝 New sponsorship pledge — ' . $d['donor_name'], kt_email('Sponsorship Pledge', $inner)];
 }

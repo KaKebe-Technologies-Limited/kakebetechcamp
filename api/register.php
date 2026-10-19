@@ -73,9 +73,10 @@ if (!in_array($jersey, jersey_sizes(), true)) {
 $park = !empty($_POST['park_visit']);
 $mentorship = !isset($_POST['mentorship']) || !empty($_POST['mentorship']); // everyone is enrolled free unless they opt out in their profile
 
-// Payment choice: pay now, pay later, or sponsored by someone else (needs admin approval)
-$payWhen = in_array($_POST['pay_when'] ?? '', ['now', 'later', 'sponsored'], true) ? $_POST['pay_when'] : 'later';
-$funding = ($payWhen === 'sponsored' || ($_POST['funding'] ?? '') === 'sponsored') ? 'sponsored' : 'self';
+// Payment choice: pay now or pay later. Participants can no longer say they are sponsored —
+// sponsors name the people they pay for in the "Sponsor an innovator" form.
+$payWhen = ($_POST['pay_when'] ?? '') === 'now' ? 'now' : 'later';
+$funding = 'self';
 $sponsorId = null;
 $sponsorName = null;
 if ($funding === 'sponsored') {

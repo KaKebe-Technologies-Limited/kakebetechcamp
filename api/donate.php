@@ -31,10 +31,15 @@ $anonymous = !empty($_POST['anonymous']);
 $method = in_array($_POST['method'] ?? '', ['mobile_money', 'card'], true) ? $_POST['method'] : 'mobile_money';
 $payPhone = trim((string) ($_POST['pay_phone'] ?? $phone));
 $chooseForMe = !empty($_POST['choose_for_me']);
-$people = array_values(array_filter(array_map(
-    static fn($v) => mb_substr(trim(preg_replace('/\s+/u', ' ', (string) $v)), 0, 120),
-    (array) ($_POST['beneficiaries'] ?? [])
-), static fn($v) => $v !== ''));
+// The people a sponsor pays for: name, and a phone or email so the team can reach them
+$tidy = static fn($v, int $max) => mb_substr(trim(preg_replace('/\s+/u', ' ', (string) $v)), 0, $max);
+$people = [];
+foreach ((array) ($_POST['beneficiaries'] ?? []) as $i => $n) {
+    $person = ['name' => $tidy($n, 120), 'phone' => $tidy($_POST['beneficiary_phone'][$i] ?? '', 40), 'email' => strtolower($tidy($_POST['beneficiary_email'][$i] ?? '', 190))];
+    if ($person['name'] !== '' || $person['phone'] !== '' || $person['email'] !== '') {
+        $people[] = $person;
+    }
+}
 
 if (mb_strlen($name) < 2) $errors['donor_name'] = 'Please enter your name.';
 if ($problem = email_problem($email)) $errors['donor_email'] = $problem;
@@ -45,9 +50,13 @@ if ($children > 0) {
     if (!$chooseForMe) {
         $people = array_slice($people, 0, $children);
         if (count($people) < $children) {
-            $errors['beneficiaries'] = $children === 1 ? 'Enter the name of the person you are paying for.' : 'Enter the names of all ' . $children . ' people you are paying for.';
-        } elseif (array_filter($people, static fn($n) => mb_strlen($n) < 2 || !preg_match('/\p{L}/u', $n))) {
-            $errors['beneficiaries'] = 'Each name needs at least two letters.';
+            $errors['beneficiaries'] = $children === 1 ? 'Enter the name and contact of the person you are paying for.' : 'Enter the name and contact of all ' . $children . ' people you are paying for.';
+        } elseif (array_filter($people, static fn($p) => mb_strlen($p['name']) < 2 || !preg_match('/\p{L}/u', $p['name']))) {
+            $errors['beneficiaries'] = 'Enter each person\'s full name.';
+        } elseif (array_filter($people, static fn($p) => $p['phone'] === '' && $p['email'] === '')) {
+            $errors['beneficiaries'] = 'Add a phone number or email for each person, so we can reach them.';
+        } elseif (array_filter($people, static fn($p) => ($p['phone'] !== '' && (strlen(preg_replace('/\D/', '', $p['phone'])) < 9 || strlen(preg_replace('/\D/', '', $p['phone'])) > 15)) || ($p['email'] !== '' && !filter_var($p['email'], FILTER_VALIDATE_EMAIL)))) {
+            $errors['beneficiaries'] = 'Check the phone numbers and emails — one of them does not look right.';
         }
     }
 }
