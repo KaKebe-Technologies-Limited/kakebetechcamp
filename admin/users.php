@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('users.php');
 }
 
-$people = $manage ? q("SELECT * FROM admins WHERE role <> 'pending' ORDER BY FIELD(role, 'admin', 'operations', 'finance', 'team', 'field'), name")->fetchAll() : [];
+$people = $manage ? q("SELECT * FROM admins WHERE role <> 'pending' ORDER BY FIELD(role, 'admin', 'operations', 'finance', 'team', 'caller', 'field'), name")->fetchAll() : [];
 $pendingAccounts = $manage ? q("SELECT * FROM admins WHERE role = 'pending' ORDER BY id DESC")->fetchAll() : [];
 $mySig = admin_signature_path((string) q('SELECT signature_file FROM admins WHERE id = ?', [$me['id']])->fetchColumn());
 $known = $manage ? array_column(q('SELECT email, name FROM admins')->fetchAll(), 'name', 'email') : [];
@@ -174,7 +174,7 @@ admin_header($manage ? 'Team & access' : 'My account', 'users', $manage ? 'Add p
       <span class="tb-avatar"><?= e(mb_strtoupper(mb_substr($a['name'], 0, 1))) ?></span>
       <div><b><?= e($a['name']) ?></b><small class="block muted"><?= e($a['email']) ?> · <?= e((string) $a['phone']) ?><?= $a['job_title'] ? ' · ' . e($a['job_title']) : '' ?> · signed up <?= e(time_ago($a['created_at'])) ?></small></div>
       <div class="btn-row">
-        <?php foreach (['team' => 'Team member', 'field' => 'Field staff', 'operations' => 'Operations', 'finance' => 'Finance'] as $k => $label): ?>
+        <?php foreach (['team' => 'Team member', 'field' => 'Field staff', 'caller' => 'Caller', 'operations' => 'Operations', 'finance' => 'Finance'] as $k => $label): ?>
         <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="role"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><input type="hidden" name="role" value="<?= $k ?>"><button class="btn btn-sm <?= $k === 'team' ? 'btn-primary' : 'btn-light' ?>" type="submit"><?= e($label) ?></button></form>
         <?php endforeach; ?>
         <form method="post" class="inline" data-confirm="Remove the account for <?= e($a['name']) ?>?"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><button class="icon-btn danger" type="submit" title="Remove"><i class="fa-solid fa-trash"></i></button></form>

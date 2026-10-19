@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 30;
+const SCHEMA_VERSION = 31;
 
 function db(): PDO
 {
@@ -758,6 +758,35 @@ function schema_statements(): array
             admin_id   INT UNSIGNED NULL,
             created_at DATETIME NOT NULL,
             KEY idx_cluster (cluster_id, created_at)
+        ) $t",
+
+        // v31: phone calls to participants — who is assigned to call each person, and every call made
+        "CREATE TABLE IF NOT EXISTS call_list (
+            registration_id INT UNSIGNED NOT NULL PRIMARY KEY,
+            assigned_to     INT UNSIGNED NULL,
+            assigned_at     DATETIME NULL,
+            last_outcome    VARCHAR(20) NULL,
+            last_response   VARCHAR(20) NULL,
+            promise_date    DATE NULL,
+            last_comment    VARCHAR(1000) NULL,
+            attempts        INT UNSIGNED NOT NULL DEFAULT 0,
+            last_called_at  DATETIME NULL,
+            last_called_by  INT UNSIGNED NULL,
+            KEY idx_assigned (assigned_to),
+            KEY idx_outcome (last_outcome)
+        ) $t",
+
+        "CREATE TABLE IF NOT EXISTS call_logs (
+            id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            registration_id INT UNSIGNED NOT NULL,
+            admin_id        INT UNSIGNED NOT NULL,
+            outcome         VARCHAR(20) NOT NULL,
+            response        VARCHAR(20) NULL,
+            promise_date    DATE NULL,
+            comment         VARCHAR(1000) NULL,
+            created_at      DATETIME NOT NULL,
+            KEY idx_reg (registration_id, created_at),
+            KEY idx_admin (admin_id, created_at)
         ) $t",
 
         // v25: quick attendance (/attendance) — a name and the time it was entered

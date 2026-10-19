@@ -19,6 +19,7 @@ function admin_roles(): array
         'operations' => ['Operations manager', 'Reviews requisitions first — plus the control panel'],
         'team'       => ['Team member', 'The control panel and their own requisitions — no project finance'],
         'field'      => ['Field staff', 'Only their own requisitions and accountability'],
+        'caller'     => ['Caller', 'Only the phone calls they are given — records each call and what the person said'],
         'pending'    => ['Waiting for access', 'Signed up themselves — no access until the team lead gives them a role'],
     ];
 }
@@ -37,6 +38,7 @@ function admin_features(): array
     return [
         'dashboard'       => ['Dashboard & website analytics', 'Dashboard', 'fa-gauge-high', ['index.php', 'analytics.php']],
         'participants'    => ['Participants, tickets, attendance & flyers', 'Participants', 'fa-users', ['registrations.php', 'view.php', 'verify.php', 'attendance.php', 'flyers.php', 'export.php']],
+        'calls'           => ['Phone calls to participants', 'Phone calls', 'fa-phone', ['calls.php']],
         'mentorship'      => ['Mentorship & DBIP', 'Mentorship', 'fa-handshake-angle', ['mentorship.php']],
         'volunteers'      => ['Volunteer trainers', 'Volunteers', 'fa-person-chalkboard', ['volunteers.php', 'volunteer.php']],
         'messages'        => ['Messages from the website', 'Messages', 'fa-envelope', ['messages.php']],
@@ -60,6 +62,7 @@ function role_default_features(string $role): array
         'finance'    => ['dashboard', 'project_finance', 'camp_finance', 'requisitions'],
         'team'       => ['dashboard', 'participants', 'mentorship', 'volunteers', 'messages', 'requisitions'],
         'field'      => ['requisitions'],
+        'caller'     => ['calls'],
         default      => [],
     };
 }

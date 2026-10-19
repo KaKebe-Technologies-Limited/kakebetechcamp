@@ -450,6 +450,8 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     $newVolunteers = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE status = 'new'")->fetchColumn();
     $newPartners = (int) db()->query("SELECT COUNT(*) FROM partners WHERE status = 'new'")->fetchColumn();
     $role = (string) ($admin['role'] ?? 'team');
+    // People given to this caller who have not been reached yet
+    $callsWaiting = (int) q("SELECT COUNT(*) FROM call_list c JOIN registrations r ON r.id = c.registration_id WHERE c.assigned_to = ? AND r.status <> 'cancelled' AND (c.last_outcome IS NULL OR c.last_outcome IN ('no_answer', 'callback', 'off'))", [(int) ($admin['id'] ?? 0)])->fetchColumn();
     // Requisitions waiting for this person: review (operations), approval (admin), payment / verification (finance), accountability (requester)
     $waitStatuses = array_merge(role_can($role, 'review') ? ['submitted'] : [], role_can($role, 'approve') ? ['reviewed'] : [], role_can($role, 'disburse') ? ['approved', 'accounted'] : []);
     $reqWaiting = $waitStatuses ? (int) q('SELECT COUNT(*) FROM fin_requisitions WHERE status IN (' . implode(',', array_fill(0, count($waitStatuses), '?')) . ')', $waitStatuses)->fetchColumn() : 0;
@@ -465,6 +467,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'mentorship'    => ['mentorship.php', 'fa-handshake-angle', 'Mentorship & DBIP', 0],
             'flyers'        => ['flyers.php', 'fa-image-portrait', '“I will be there” flyers', 0],
             'verify'        => ['verify.php', 'fa-qrcode', 'Verify tickets', 0],
+            'calls'         => ['calls.php', 'fa-phone', 'Phone calls', $callsWaiting],
             'attendance'    => ['attendance.php', 'fa-clipboard-user', 'Attendance', 0],
             'volunteers'    => ['volunteers.php', 'fa-person-chalkboard', 'Volunteer trainers', $newVolunteers],
             'messages'      => ['messages.php', 'fa-envelope', 'Messages', $unread],
@@ -542,7 +545,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
   <nav class="sb-nav">
     <?php
     // Sections: only their names show; the one for this page is open, a click opens another (and closes the rest)
-    $groupIcons = ['Overview' => 'fa-gauge-high', 'Participants' => 'fa-users', 'Camp finance' => 'fa-wallet', 'Project finance' => 'fa-scale-balanced', 'Marketing' => 'fa-bullhorn', 'Website' => 'fa-globe', 'System' => 'fa-gear', 'Requisitions' => 'fa-file-signature', 'Account' => 'fa-user'];
+    $groupIcons = ['Calls' => 'fa-phone', 'Overview' => 'fa-gauge-high', 'Participants' => 'fa-users', 'Camp finance' => 'fa-wallet', 'Project finance' => 'fa-scale-balanced', 'Marketing' => 'fa-bullhorn', 'Website' => 'fa-globe', 'System' => 'fa-gear', 'Requisitions' => 'fa-file-signature', 'Account' => 'fa-user'];
     foreach ($groups as $group => $items):
         if (count($items) === 1):   // a section with one page is just that page
             $key = array_key_first($items);

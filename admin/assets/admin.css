@@ -929,3 +929,49 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
   .sb-mini .sb-sec-head { display: none; }
   .sb-mini .sb-sec-items { display: flex; margin: 0; padding: 6px 0; border-left: 0; border-top: 1px solid rgba(255, 255, 255, .1); }
 }
+
+/* Phone calls */
+.calls-kpis .kpi .fin-bar { width: 140px; }
+.calls-assign { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 20px; position: sticky; top: 76px; z-index: 5; }
+.calls-assign select { width: auto; min-width: 200px; padding: 8px 36px 8px 12px; }
+.calls-list { display: grid; gap: 14px; }
+.call-card { padding: 18px 20px; margin-bottom: 0; border-left: 5px solid var(--line); scroll-margin-top: 140px; }
+.call-card.oc-ok { border-left-color: var(--green); }
+.call-card.oc-warn { border-left-color: var(--amber); }
+.call-card.oc-info { border-left-color: var(--blue); }
+.call-card.oc-bad { border-left-color: var(--red); }
+.call-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.call-check { width: 20px; height: 20px; accent-color: var(--red); flex-shrink: 0; }
+.call-who { flex: 1; min-width: 220px; }
+.call-who > b { font-size: 17px; color: var(--ink); }
+.call-pay { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.call-phone { display: flex; gap: 8px; align-items: center; }
+.call-dial { font-size: 16px; letter-spacing: .02em; }
+.call-wa { color: #128C7E; font-size: 18px; }
+.call-last { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--soft); }
+.call-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 800; background: #EEF1F8; color: var(--body); }
+.call-badge.oc-ok { background: var(--green-50); color: var(--green); }
+.call-badge.oc-warn { background: var(--amber-50); color: var(--amber); }
+.call-badge.oc-info { background: var(--blue-50); color: var(--blue); }
+.call-badge.oc-bad { background: #FEF0EF; color: #B42318; }
+.call-resp { font-size: 13px; font-weight: 700; color: var(--ink); }
+.call-comment { flex-basis: 100%; margin: 4px 0 0; font-size: 13.5px; color: var(--ink); }
+.call-comment i { color: var(--muted); font-size: 11px; }
+.call-form { margin-top: 12px; display: grid; gap: 10px; }
+.call-fields { display: grid; grid-template-columns: 1fr 170px 2fr; gap: 10px; }
+.call-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.call-fields select, .call-fields input, .call-fields textarea { padding: 9px 12px; font-size: 14px; }
+.call-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.call-btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: #fff; font: inherit; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; transition: .15s; }
+.call-btn.oc-ok { border-color: #A7E3C3; color: var(--green); }
+.call-btn.oc-ok:hover { background: var(--green); color: #fff; }
+.call-btn.oc-warn { border-color: #F3D9A4; color: var(--amber); }
+.call-btn.oc-warn:hover { background: var(--amber); color: #fff; }
+.call-btn.oc-info { border-color: #C8D6FF; color: var(--blue); }
+.call-btn.oc-info:hover { background: var(--blue); color: #fff; }
+.call-btn.oc-bad { border-color: #F5B5B5; color: #B42318; }
+.call-btn.oc-bad:hover { background: #B42318; color: #fff; }
+.call-history { margin-top: 10px; font-size: 13.5px; }
+.call-history summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+.call-history ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+@media (max-width: 900px) { .call-fields { grid-template-columns: 1fr; } .calls-assign { position: static; } }
