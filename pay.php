@@ -38,8 +38,9 @@ app_header($r ? 'My registration' : 'Find my registration');
         <div class="notice"><i class="fa-solid fa-hourglass-half"></i> Your sponsorship by <b><?= e($r['sponsor_name'] ?: 'your sponsor') ?></b> is being reviewed. We'll email you as soon as it is approved — there is nothing to pay.</div>
         <p class="muted">Meanwhile you can <a href="portal/">open your participant dashboard</a> to check your details and learning tracks.</p>
       <?php elseif (balance($r) > 0): ?>
-        <p class="muted">Pay your camp package in full to confirm your place — your camp ticket is emailed straight away.</p>
-        <?= pay_form($r) ?>
+        <?php if ($r['pay_deadline'] && (int) $r['amount_paid'] === 0): ?><div class="notice warn"><i class="fa-regular fa-calendar"></i> <span>Please pay by <b><?= e(date('l, j F Y', strtotime($r['pay_deadline']))) ?></b> to secure your place — in full, or 50% to start.</span></div><?php endif; ?>
+        <p class="muted"><?= half_payment($r) ? 'Pay your camp package in full, or start with 50% to secure your place — your camp ticket is emailed once the package is fully paid.' : 'Pay your remaining balance to complete your camp package — your camp ticket is emailed straight away.' ?></p>
+        <?= pay_form($r, '', true, ($_GET['plan'] ?? '') === 'half' ? 'half' : 'full') ?>
         <p class="later"><i class="fa-regular fa-clock"></i> <b>Prefer to pay later?</b> That's fine — your registration is saved. Log in to <a href="portal/">your dashboard</a> any time (with Google or your email) or use the payment link we emailed you.</p>
       <?php else: ?>
         <div class="done-box">

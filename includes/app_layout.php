@@ -107,16 +107,24 @@ function package_card(array $r): string
       <div class="pkg-progress">
         <div class="pp-row"><span>Paid <b><?= e(format_ugx($r['amount_paid'])) ?></b></span><span>Balance <b class="<?= $bal ? 'due' : 'ok' ?>"><?= e(format_ugx($bal)) ?></b></span></div>
         <div class="bar"><i style="width: <?= $pct ?>%"></i></div>
-        <small><?= $bal ? 'Pay the full amount to get your camp ticket' : 'Fully paid — your ticket is ready' ?></small>
+        <small><?= !$bal ? 'Fully paid — your ticket is ready' : ((int) $r['amount_paid'] > 0 ? 'Pay the balance before camp to get your camp ticket' : 'Pay in full, or 50% to start — your ticket comes with full payment') ?></small>
       </div>
     </div>
     <?php return (string) ob_get_clean();
 }
 
-/** Payment form (Mobile Money / card). Works for signed links ($token) or portal sessions. */
-function pay_form(array $r, string $base = '', bool $viaToken = true): string
+/**
+ * Payment form (Mobile Money / card). Works for signed links ($token) or portal sessions.
+ * Before anything is paid, the participant can pay the full package or 50% to start ($plan picks which is selected).
+ */
+function pay_form(array $r, string $base = '', bool $viaToken = true, string $plan = 'full'): string
 {
     $bal = balance($r);
+    $half = half_payment($r);
+    $plan = $half && $plan === 'half' ? 'half' : 'full';
+    $fullNote = (int) $r['amount_paid'] > 0 ? 'Remaining balance · your ticket is emailed once paid' : 'Full camp package · your ticket is emailed once paid';
+    $halfNote = 'First 50% · pay the balance of ' . format_ugx($bal - $half) . ' before camp';
+    $due = $plan === 'half' ? $half : $bal;
     ob_start(); ?>
     <form class="pay-form js-pay-form" action="<?= $base ?>api/pay.php" data-status="<?= $base ?>api/payment-status.php" novalidate>
       <?= csrf_field() ?>
@@ -125,12 +133,19 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
         <input type="hidden" name="t" value="<?= e(sign('pay', $r['reference'])) ?>">
       <?php endif; ?>
       <div class="pay-body">
+        <?php if ($half): ?>
+        <label class="lbl">How much would you like to pay?</label>
+        <div class="methods pay-plans">
+          <label class="method"><input type="radio" name="plan" value="full" data-amount="<?= $bal ?>" data-note="<?= e($fullNote) ?>"<?= $plan === 'full' ? ' checked' : '' ?>><span><i class="fa-solid fa-circle-check"></i><b>Pay in full</b><small><?= e(format_ugx($bal)) ?></small></span></label>
+          <label class="method"><input type="radio" name="plan" value="half" data-amount="<?= $half ?>" data-note="<?= e($halfNote) ?>"<?= $plan === 'half' ? ' checked' : '' ?>><span><i class="fa-solid fa-circle-half-stroke"></i><b>Pay 50% now</b><small><?= e(format_ugx($half)) ?></small></span></label>
+        </div>
+        <?php endif; ?>
         <div class="pay-due">
           <span>Amount to pay</span>
-          <b><?= e(format_ugx($bal)) ?></b>
-          <small><?= (int) $r['amount_paid'] > 0 ? 'Remaining balance' : 'Full camp package' ?> · your ticket is emailed once paid</small>
+          <b class="js-due"><?= e(format_ugx($due)) ?></b>
+          <small class="js-due-note"><?= e($plan === 'half' ? $halfNote : $fullNote) ?></small>
         </div>
-        <input type="hidden" name="amount" value="<?= $bal ?>">
+        <input type="hidden" name="amount" value="<?= $due ?>">
 
         <label class="lbl">Payment method</label>
         <div class="methods">
@@ -145,7 +160,7 @@ function pay_form(array $r, string $base = '', bool $viaToken = true): string
         </div>
         <p class="hint js-card" hidden><i class="fa-solid fa-lock"></i> <?= e(card_page_hint()) ?></p>
         <div class="form-alert" hidden></div>
-        <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-lock"></i> Pay <span class="js-amt"><?= e(format_ugx($bal)) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
+        <button class="btn btn-primary btn-block js-pay-btn" type="submit"><span class="btn-label"><i class="fa-solid fa-lock"></i> Pay <span class="js-amt"><?= e(format_ugx($due)) ?></span></span><span class="btn-loading"><span class="spinner"></span> Starting payment…</span></button>
       </div>
       <div class="pay-state" hidden></div>
     </form>

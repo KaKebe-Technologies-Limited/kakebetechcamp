@@ -92,8 +92,9 @@ app_header('My dashboard', '../', 'portal');
         </div>
       <?php elseif ($bal > 0 && $r['status'] !== 'waitlisted'): ?>
         <h3>Complete your payment</h3>
-        <p class="muted">Pay your package in full to confirm your place — your camp ticket is emailed straight away.</p>
-        <?= pay_form($r, '../', false) ?>
+        <?php if ($r['pay_deadline'] && (int) $r['amount_paid'] === 0): ?><div class="notice warn"><i class="fa-regular fa-calendar"></i> <span>Please pay by <b><?= e(date('l, j F Y', strtotime($r['pay_deadline']))) ?></b> to secure your place — in full, or 50% to start.</span></div><?php endif; ?>
+        <p class="muted"><?= half_payment($r) ? 'Pay your package in full, or start with 50% to secure your place — your camp ticket is emailed once the package is fully paid.' : 'Pay your remaining balance to complete your package — your camp ticket is emailed straight away.' ?></p>
+        <?= pay_form($r, '../', false, ($_GET['plan'] ?? '') === 'half' ? 'half' : 'full') ?>
       <?php else: ?>
         <div class="notice warn"><i class="fa-solid fa-hourglass-half"></i> You are on the waitlist. We will contact you as soon as a place opens up.</div>
       <?php endif; ?>

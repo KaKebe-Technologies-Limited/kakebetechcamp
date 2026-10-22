@@ -54,6 +54,20 @@
         syncLabel();
       });
     }
+    // Pay in full or 50% to start: the chosen option sets the amount
+    const plans = $$('input[name="plan"]', form);
+    const planSync = () => {
+      const pl = plans.find((r) => r.checked);
+      if (!pl || !amount) return;
+      amount.value = pl.dataset.amount;
+      const due = $('.js-due', form);
+      const note = $('.js-due-note', form);
+      if (due) due.textContent = money(digits(pl.dataset.amount));
+      if (note && pl.dataset.note) note.textContent = pl.dataset.note;
+      syncLabel();
+    };
+    plans.forEach((r) => r.addEventListener('change', planSync));
+    planSync();
     $$('.chip-amt', form).forEach((chip) => chip.addEventListener('click', () => {
       if (!amount) return;
       amount.value = digits(chip.dataset.amount).toLocaleString('en-US');

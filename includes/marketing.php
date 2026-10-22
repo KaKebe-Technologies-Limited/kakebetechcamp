@@ -205,20 +205,26 @@ function mk_list_id(string $name): int
     return (int) db()->lastInsertId();
 }
 
+/** Tech Camp registrations that have not paid anything yet (not cancelled, waitlisted or awaiting sponsorship). */
+const MK_UNPAID_WHERE = "status = 'pending' AND payment_status = 'unpaid' AND amount_paid = 0 AND total_amount > 0";
+
 /**
  * Copy the people who registered on the website into the email contacts, in lists:
- * Tech Camp participants, Mentorship & DBIP, everyone registered (those two together) and Volunteer trainers.
+ * Tech Camp participants, Mentorship & DBIP, everyone registered (those two together), Volunteer trainers
+ * and Tech Camp — not paid yet (rebuilt each time, so people who have paid drop off).
  * Safe to run again: new people are added and names filled in; unsubscribed people stay unsubscribed.
  */
 function mk_sync_website_people(): array
 {
     $pdo = db();
-    // list => [people, also in "Everyone registered"?]
+    // list => [people, also in "Everyone registered"?, only these people (others are taken off)?]
     $sources = [
-        'Website · Tech Camp participants' => ["SELECT email, full_name FROM registrations WHERE status <> 'cancelled'", true],
-        'Website · Mentorship & DBIP'      => ["SELECT email, full_name FROM mentorship_registrations WHERE status NOT IN ('cancelled', 'withdrawn')", true],
-        'Website · Volunteer trainers'     => ['SELECT email, full_name FROM volunteers', false],
+        'Website · Tech Camp participants'   => ["SELECT email, full_name FROM registrations WHERE status <> 'cancelled'", true, false],
+        'Website · Mentorship & DBIP'        => ["SELECT email, full_name FROM mentorship_registrations WHERE status NOT IN ('cancelled', 'withdrawn')", true, false],
+        'Website · Volunteer trainers'       => ['SELECT email, full_name FROM volunteers', false, false],
+        'Website · Tech Camp — not paid yet' => ['SELECT email, full_name FROM registrations WHERE ' . MK_UNPAID_WHERE, false, true],
     ];
+    $exact = [];
     $everyone = mk_list_id('Website · Everyone registered');
     $ins = $pdo->prepare('INSERT IGNORE INTO mk_contacts (email, name, status, reason, domain, token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
     $name = $pdo->prepare('UPDATE mk_contacts SET name = ? WHERE email = ?');   // the name registered on the website wins
@@ -226,8 +232,11 @@ function mk_sync_website_people(): array
     $link = $pdo->prepare('INSERT IGNORE INTO mk_list_contacts (list_id, contact_id) VALUES (?, ?)');
     $out = ['added' => 0, 'people' => 0, 'list_id' => $everyone];
     $seen = [];
-    foreach ($sources as $listName => [$sql, $inEveryone]) {
+    foreach ($sources as $listName => [$sql, $inEveryone, $only]) {
         $lid = mk_list_id($listName);
+        if ($only) {
+            $exact[$lid] = [];
+        }
         foreach ($pdo->query($sql)->fetchAll() as $row) {
             [$email, $status, $reason] = mk_check_email((string) $row['email']);
             if ($status === 'skip') {
@@ -245,8 +254,14 @@ function mk_sync_website_people(): array
             if ($inEveryone) {
                 $link->execute([$everyone, $cid]);
             }
+            if ($only) {
+                $exact[$lid][] = $cid;
+            }
             $seen[$email] = true;
         }
+    }
+    foreach ($exact as $lid => $ids) {
+        $pdo->exec("DELETE FROM mk_list_contacts WHERE list_id = $lid" . ($ids ? ' AND contact_id NOT IN (' . implode(',', array_unique($ids)) . ')' : ''));
     }
     $out['people'] = count($seen);
     mk_mark_known_domains();
@@ -322,7 +337,7 @@ function mk_clean_body(string $html): string
                 $keep = [];
                 if ($tag === 'a') {
                     $href = trim($child->getAttribute('href'));
-                    if (preg_match('~^(https?://|mailto:|tel:)~i', $href)) {
+                    if (preg_match('~^(https?://|mailto:|tel:)~i', $href) || preg_match('~^\{pay_(half_)?link\}$~', $href)) {
                         $keep['href'] = $href;
                     }
                 }
@@ -381,13 +396,86 @@ function mk_first_name(?string $name): string
     return (string) ($parts[0] ?? '');
 }
 
-/** Replace {first_name} / {name} with this person's own name (or "friend" when the database has no name). */
+/** Replace {first_name} / {name} (and the payment tags, when the person's registration is attached) for one person. */
 function mk_personalise(string $text, ?array $contact, bool $html = true): string
 {
     $name = mk_display_name($contact['name'] ?? '');
     $first = mk_first_name($name);
     $map = ['{first_name}' => $first !== '' ? $first : 'friend', '{name}' => $name !== '' ? $name : 'friend'];
+    if ($contact !== null && array_key_exists('reg', $contact)) {
+        $f = mk_pay_fields($contact['reg']);
+        $map += ['{reference}' => $f['reference'], '{amount_due}' => $f['amount_due'], '{half_amount}' => $f['half_amount'],
+            '{pay_link}' => $f['pay_link'], '{pay_half_link}' => $f['pay_half_link'], '{pay_deadline}' => $f['pay_deadline']];
+    }
     return strtr($text, $html ? array_map('e', $map) : $map);
+}
+
+/*
+ * Payment tags: {pay_buttons} (pay in full / pay 50% buttons), {pay_link}, {pay_half_link}, {amount_due}, {half_amount},
+ * {reference} and {pay_deadline} — each person's own camp registration and payment page, with 10 days to pay.
+ * Meant for "Tech Camp — not paid yet": people who pay before their email goes out are skipped.
+ */
+const MK_PAY_TAGS = ['{pay_buttons}', '{pay_link}', '{pay_half_link}', '{amount_due}', '{half_amount}', '{reference}', '{pay_deadline}'];
+
+function mk_uses_payment(array $c): bool
+{
+    $all = $c['subject'] . ($c['preheader'] ?? '') . $c['body'] . ($c['cta_url'] ?? '');
+    foreach (MK_PAY_TAGS as $tag) {
+        if (str_contains($all, $tag) || str_contains($all, rawurlencode($tag))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** This person's Tech Camp registration that has nothing paid yet, or null. */
+function mk_unpaid_registration(string $email): ?array
+{
+    $st = db()->prepare('SELECT * FROM registrations WHERE email = ? AND ' . MK_UNPAID_WHERE . ' ORDER BY id DESC LIMIT 1');
+    $st->execute([$email]);
+    return $st->fetch() ?: null;
+}
+
+/** Attach the person's unpaid registration ('reg') when the campaign uses payment tags. */
+function mk_with_payment(array $c, ?array $contact, ?array $send = null): ?array
+{
+    if (!mk_uses_payment($c) || ($contact !== null && array_key_exists('reg', $contact))) {
+        return $contact;
+    }
+    $email = (string) ($contact['email'] ?? $send['email'] ?? '');
+    return ($contact ?? []) + ['reg' => $email !== '' ? mk_unpaid_registration($email) : null];
+}
+
+/** The payment details for one registration (plain text); an example when there is none (preview). */
+function mk_pay_fields(?array $r): array
+{
+    if (!$r) {
+        $total = new_order_amounts(false)['total_amount'];
+        $r = ['reference' => 'KTC26-0000', 'total_amount' => $total, 'amount_paid' => 0, 'payment_status' => 'unpaid'];
+        $link = base_url('pay.php');
+    }
+    $half = half_payment($r);
+    $link ??= pay_url($r);
+    return [
+        'reference'     => (string) $r['reference'],
+        'amount_due'    => format_ugx(balance($r)),
+        'half'          => $half,
+        'half_amount'   => format_ugx($half ?: balance($r)),
+        'pay_link'      => $link,
+        'pay_half_link' => $link . ($half && str_contains($link, '?') ? '&plan=half' : ''),
+        'pay_deadline'  => date('l, j F Y', strtotime(pay_deadline_date($r))),
+    ];
+}
+
+/** {pay_buttons}: big "Pay in full" and "Pay 50% now" buttons to the person's own payment page. */
+function mk_pay_buttons(array $f): string
+{
+    $btn = fn(string $url, string $label, string $bg) => '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 10px;"><tr><td style="border-radius:10px;background:' . $bg . ';">'
+        . '<a href="' . e($url) . '" target="_blank" style="display:inline-block;min-width:230px;padding:14px 26px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:10px;text-align:center;">' . e($label) . '</a></td></tr></table>';
+    return '<div style="margin:22px 0 18px;text-align:center;">'
+        . $btn($f['pay_link'], 'Pay in full — ' . $f['amount_due'], '#E11D2A')
+        . ($f['half'] ? $btn($f['pay_half_link'], 'Pay 50% now — ' . $f['half_amount'], '#0F2557') : '')
+        . '<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;line-height:1.5;color:#6B7390;">Your own payment page · MTN or Airtel Mobile Money, or Visa / Mastercard</p></div>';
 }
 
 /** The subject line for one person; without a name, a leading "{first_name}, " is simply left out. */
@@ -412,8 +500,14 @@ function mk_sample_person(array $c): ?array
  */
 function mk_render(array $c, ?array $contact = null, ?array $send = null): array
 {
+    $contact = mk_with_payment($c, $contact, $send);
     $subject = mk_personal_subject((string) $c['subject'], $contact);
-    $body = mk_personalise((string) $c['body'], $contact);
+    $body = str_replace(['%7Bpay_link%7D', '%7Bpay_half_link%7D'], ['{pay_link}', '{pay_half_link}'], (string) $c['body']);
+    $body = mk_personalise($body, $contact);
+    if (str_contains($body, '{pay_buttons}')) {
+        $block = mk_pay_buttons(mk_pay_fields($contact['reg'] ?? null));
+        $body = str_replace('{pay_buttons}', $block, preg_replace_callback('~<p[^>]*>\s*\{pay_buttons\}\s*</p>~', fn() => $block, $body));
+    }
     $pre = e(mk_personalise((string) ($c['preheader'] ?? ''), $contact, false));
     $site = base_url();
     $siteLabel = e(preg_replace('~^https?://~', '', $site));
@@ -424,7 +518,7 @@ function mk_render(array $c, ?array $contact = null, ?array $send = null): array
     $button = '';
     if (!empty($c['cta_label']) && !empty($c['cta_url'])) {
         $button = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:26px auto 8px;"><tr><td style="border-radius:10px;background:#E11D2A;">'
-            . '<a href="' . e($c['cta_url']) . '" target="_blank" style="display:inline-block;padding:14px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:10px;">' . e($c['cta_label']) . '</a></td></tr></table>';
+            . '<a href="' . e(mk_personalise((string) $c['cta_url'], $contact, false)) . '" target="_blank" style="display:inline-block;padding:14px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:10px;">' . e($c['cta_label']) . '</a></td></tr></table>';
     }
     $phone = e(setting('contact_phone', '0779 712 990'));
     $year = date('Y');
@@ -619,13 +713,20 @@ function mk_send_chunk(array $c, int $batch, int $max = 10): array
     }
     $replyTo = mk_settings()['reply_to'] ?: null;
     $pdo->prepare("UPDATE mk_campaigns SET status = 'sending' WHERE id = ? AND status IN ('ready', 'draft', 'paused')")->execute([$c['id']]);
+    $payMail = mk_uses_payment($c);
+    $startDeadline = $pdo->prepare('UPDATE registrations SET pay_deadline = ? WHERE id = ? AND pay_deadline IS NULL');
 
     foreach ($rows as $s) {
         if ($s['contact_status'] !== 'valid') {   // unsubscribed or marked invalid since queueing
             $pdo->prepare("UPDATE mk_sends SET status = 'skipped', error = 'No longer subscribed' WHERE id = ?")->execute([$s['id']]);
             continue;
         }
-        [$subject, $html, $text, $headers] = mk_render($c, ['name' => $s['name']], $s);
+        $person = ['name' => $s['name'], 'email' => $s['email']];
+        if ($payMail && !($person['reg'] = mk_unpaid_registration($s['email']))) {   // paid (or nothing to pay) since queueing
+            $pdo->prepare("UPDATE mk_sends SET status = 'skipped', error = 'Already paid (or no unpaid camp registration)' WHERE id = ?")->execute([$s['id']]);
+            continue;
+        }
+        [$subject, $html, $text, $headers] = mk_render($c, $person, $s);
         $error = null;
         if ($transport === 'smtp') {
             if (!$mailer->connected() && !$mailer->open()) {
@@ -651,6 +752,9 @@ function mk_send_chunk(array $c, int $batch, int $max = 10): array
         if ($ok) {
             $out['sent']++;
             $pdo->prepare("UPDATE mk_sends SET status = 'sent', sent_at = ?, error = NULL WHERE id = ?")->execute([now(), $s['id']]);
+            if ($payMail) {   // their 10 days to pay start now (shown on their payment page too)
+                $startDeadline->execute([pay_deadline_date($person['reg']), $person['reg']['id']]);
+            }
         } else {
             $out['failed']++;
             $pdo->prepare("UPDATE mk_sends SET status = 'failed', error = ? WHERE id = ?")->execute([mb_substr((string) $error, 0, 255), $s['id']]);

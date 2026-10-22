@@ -242,6 +242,12 @@ function pay_url(array $r): string
     return base_url('pay.php?ref=' . rawurlencode($r['reference']) . '&t=' . sign('pay', $r['reference']));
 }
 
+/** Payment emails give 10 days to pay: the date saved when the email went out, or 10 days from today. */
+function pay_deadline_date(array $r): string
+{
+    return (string) (($r['pay_deadline'] ?? null) ?: date('Y-m-d', strtotime('+10 days')));
+}
+
 /** Flyer maker with the participant's name and code number already filled in (works without logging in). */
 function flyer_url(array $r): string
 {
@@ -408,10 +414,22 @@ function balance(array $r): int
     return max(0, (int) $r['total_amount'] - (int) $r['amount_paid']);
 }
 
-/** Camp fees are paid in full in one payment (no part payments) — the amount due is always the whole balance. */
+/**
+ * Half the package (rounded up to the nearest 500), offered as a first payment when nothing has been paid yet.
+ * 0 when it is not on offer. The balance is paid later; the camp ticket comes with full payment.
+ */
+function half_payment(array $r): int
+{
+    if (is_covered($r) || (int) $r['amount_paid'] > 0 || balance($r) <= 0) {
+        return 0;
+    }
+    return (int) (ceil((int) $r['total_amount'] / 2 / 500) * 500);
+}
+
+/** The least a participant can pay now: 50% to start (when nothing is paid yet), otherwise the whole balance. */
 function min_payment(array $r): int
 {
-    return balance($r);
+    return half_payment($r) ?: balance($r);
 }
 
 function paid_percent(array $r): int

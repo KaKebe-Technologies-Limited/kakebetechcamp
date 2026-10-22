@@ -622,7 +622,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
       <ol class="steps">
         <li><span>1</span><div><b>Continue with Google</b><small>Or enter your email and open the link we send you.</small></div></li>
         <li><span>2</span><div><b>Add a few details</b><small>Age, phone, district and your tracks.</small></div></li>
-        <li><span>3</span><div><b>Pay now or later</b><small>Pay in full right away, or later from your dashboard.</small></div></li>
+        <li><span>3</span><div><b>Pay now or later</b><small>Pay in full or 50% to start — right away, or later from your dashboard.</small></div></li>
         <li><span>4</span><div><b>Get your ticket</b><small>Emailed as soon as your package is paid.</small></div></li>
       </ol>
       <div class="summary-card perks">
@@ -765,7 +765,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         <div class="pkg-line" id="orderSummary" data-camp="<?= $f['camp'] ?>" data-jersey="<?= $f['jersey'] ?>" data-park="<?= $f['park'] ?>">
           <div class="pkg-sum"><span><b>Camp package</b><small>Camp fee, meals &amp; stay + jersey · shirt free</small></span><strong class="js-total"><?= e(format_ugx($base)) ?></strong></div>
           <label class="park-check"><input type="checkbox" name="park_visit" value="1" id="f_park"> Add the <?= e($f['park_name']) ?> excursion <em>+<?= e(format_ugx($f['park'])) ?></em></label>
-          <p class="pkg-note" id="pkgNote">Paid in full in one payment — your camp ticket is emailed as soon as it's paid.</p>
+          <p class="pkg-note" id="pkgNote">Pay in full, or 50% to start and the balance before camp — your camp ticket is emailed once it's fully paid.</p>
         </div>
 
         <div class="form-alert" id="formAlert" role="alert" hidden></div>

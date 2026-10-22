@@ -73,6 +73,40 @@ if (date('Y-m-d') <= '2026-10-25' && db()->exec("INSERT IGNORE INTO settings (sk
     ]);
 }
 
+// One-off (22 Oct – 10 Nov 2026): camp fee reminder to Tech Camp participants who have not paid anything yet. Each person
+// gets their own amounts and payment links (in full, or 50% to start) and 10 days from the day their email is sent.
+if (date('Y-m-d') <= '2026-11-10' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_fee_reminder', '1')") === 1) {
+    mk_sync_website_people();
+    db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_from_name', 'Kakebe Technologies')");
+    $phone = e((string) setting('contact_phone', '0779 712 990'));
+    $body = '<p>Dear {first_name},</p>'
+        . '<p>Thank you for registering for <strong>Kakebe Tech Camp 2026</strong>, taking place from <strong>14th to 23rd December 2026 in Kitgum</strong>. We are truly glad that you chose to be part of this journey with young innovators from across Uganda.</p>'
+        . '<p>As preparations for the camp move ahead, we would like to kindly remind you that <strong>places at the camp are confirmed on payment of the camp fee</strong>. According to our records, your payment has not yet been received.</p>'
+        . '<h2>You have 10 days to pay</h2>'
+        . '<p>We are giving every registered participant <strong>10 days from today — until {pay_deadline}</strong> — to make their payment and secure their place.</p>'
+        . '<ul>'
+        . '<li>🆔 <strong>Registration number:</strong> {reference}</li>'
+        . '<li>💰 <strong>Camp package:</strong> {amount_due}</li>'
+        . '<li>✅ <strong>To secure your place:</strong> pay in full, or at least 50% ({half_amount}) now and the balance before the camp</li>'
+        . '<li>📅 <strong>Pay by:</strong> {pay_deadline}</li>'
+        . '</ul>'
+        . '<h2>Pay with your personal link</h2>'
+        . '<p>Choose one of the buttons below. Each one opens your own payment page — no login needed — where you can pay with <strong>MTN or Airtel Mobile Money</strong> or a <strong>Visa / Mastercard</strong> card.</p>'
+        . '<p>{pay_buttons}</p>'
+        . '<p>Your receipt is emailed to you as soon as your payment goes through, and your <strong>camp ticket</strong> is emailed once the full package is paid.</p>'
+        . '<p>Please note that places are limited, so registrations that have not been paid for by <strong>{pay_deadline}</strong> may not be guaranteed a place at the camp.</p>'
+        . '<p>If you have any questions or need help with your payment, simply reply to this email or call / WhatsApp us on <strong>' . $phone . '</strong>. If you have just made your payment, thank you — please ignore this reminder.</p>'
+        . '<p>We look forward to welcoming you to Kitgum in December!</p>'
+        . '<p>Warm regards,<br><strong>The Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>';
+    $unpaid = mk_list_id('Website · Tech Camp — not paid yet');
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Camp fee — 10 days to pay (not paid yet)',
+        '{first_name}, please complete your Kakebe Tech Camp 2026 payment within 10 days',
+        'Pay in full or start with 50% using your personal payment link — by {pay_deadline}',
+        mk_clean_body($body), null, null, $unpaid, (string) $unpaid, $admin['id'], now(), now(),
+    ]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $action = (string) ($_POST['action'] ?? '');

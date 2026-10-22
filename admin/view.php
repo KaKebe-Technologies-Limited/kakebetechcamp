@@ -208,7 +208,7 @@ admin_header($r['full_name'], 'registrations', $r['reference'] . ' · registered
   <div><small>Package</small><b><?= e(format_ugx($r['total_amount'])) ?></b></div>
   <div><small>Paid</small><b class="ok-text"><?= e(format_ugx($r['amount_paid'])) ?></b></div>
   <div><small>Balance</small><b class="<?= $bal ? 'due' : 'ok-text' ?>"><?= e(format_ugx($bal)) ?></b></div>
-  <div class="grow"><small><?= $pct ?>% paid · full payment issues the ticket</small><div class="big-progress"><i style="width: <?= $pct ?>%"></i></div></div>
+  <div class="grow"><small><?= $pct ?>% paid · full payment issues the ticket<?php if ($r['pay_deadline'] && (int) $r['amount_paid'] === 0 && $bal > 0): ?> · <b class="<?= $r['pay_deadline'] < date('Y-m-d') ? 'due' : '' ?>">pay by <?= e(date('j M Y', strtotime($r['pay_deadline']))) ?><?= $r['pay_deadline'] < date('Y-m-d') ? ' (passed)' : '' ?></b><?php endif; ?></small><div class="big-progress"><i style="width: <?= $pct ?>%"></i></div></div>
 </div>
 
 <div class="view-grid">

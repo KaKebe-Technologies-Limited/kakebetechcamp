@@ -1013,3 +1013,40 @@ body.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px
 .mk-names summary i { color: var(--red); margin-right: 4px; }
 .mk-names .table { margin-top: 8px; font-size: 13px; }
 .mk-names .table td, .mk-names .table th { padding: 7px 10px; }
+
+/* Campaign editor: payment tags */
+.mk-pay-tags { border-top: 1px dashed var(--line); }
+.mk-pay-tags > span:first-child { cursor: help; }
+
+/* Take a payment: full balance or 50% to start */
+.admin-pay .pay-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.admin-pay .pay-plans .method { position: relative; cursor: pointer; }
+.admin-pay .pay-plans input { position: absolute; opacity: 0; }
+.admin-pay .pay-plans span { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; }
+.admin-pay .pay-plans small { color: var(--muted); }
+.admin-pay .pay-plans input:checked + span { border-color: var(--red); background: #FFF5F5; }
+.admin-pay .pay-plans input:focus-visible + span { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+/* Flyers: posting on X */
+.kpi-of { font-size: 14px; font-weight: 600; color: var(--muted); }
+.x-bar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.x-bar .tabs { margin: 0; }
+.x-wording { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 9px 14px; max-width: 520px; flex: 1 1 320px; }
+.x-wording summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--ink); }
+.x-wording summary i { color: var(--red); margin-right: 4px; }
+.x-wording form { margin-top: 10px; }
+.x-wording textarea { width: 100%; font: inherit; font-size: 14px; }
+.flyer-thumb { position: relative; }
+.x-ribbon { display: none; position: absolute; left: 8px; top: 8px; padding: 4px 9px; border-radius: 999px; background: var(--green); color: #fff; font-size: 12px; font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.flyer-item.is-posted .x-ribbon { display: inline-flex; gap: 5px; align-items: center; }
+.flyer-item.is-posted { border-color: #B7E4C7; }
+.x-post textarea { width: 100%; resize: vertical; font: inherit; font-size: 12.5px; line-height: 1.45; color: var(--body); background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.x-count { display: block; text-align: right; font-size: 11.5px; color: var(--muted); }
+.x-count.over { color: var(--red); font-weight: 700; }
+.flyer-item .btn-block { width: 100%; justify-content: center; }
+.x-state { font-size: 12.5px; }
+.x-state .link-btn { font-size: 12.5px; }
+.x-state .x-done { display: none; color: var(--green); font-weight: 600; }
+.x-state .x-todo { color: var(--amber); font-weight: 600; }
+.flyer-item.is-posted .x-state .x-done { display: inline; }
+.flyer-item.is-posted .x-state .x-todo { display: none; }

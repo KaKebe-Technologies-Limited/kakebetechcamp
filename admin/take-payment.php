@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'manua
     $method = in_array($_POST['method'] ?? '', ['cash', 'mobile_money', 'bank', 'other'], true) ? $_POST['method'] : 'cash';
     if ($r['status'] === 'review') {
         flash('This participant is awaiting sponsorship approval. Approve or decline the sponsorship first.', 'error');
-    } elseif ($amount !== balance($r)) {
-        flash('Payments are for the full balance only — ' . format_ugx(balance($r)) . '.', 'error');
+    } elseif ($amount !== balance($r) && !(half_payment($r) && $amount === half_payment($r))) {
+        flash('Payments are for the full balance (' . format_ugx(balance($r)) . ')' . (half_payment($r) ? ' or 50% (' . format_ugx(half_payment($r)) . ')' : '') . '.', 'error');
     } else {
         $notify = !empty($_POST['notify']);
         $p = record_manual_payment($r, $amount, $method, mb_substr(trim((string) ($_POST['ref'] ?? '')), 0, 64), mb_substr(trim((string) ($_POST['notes'] ?? '')), 0, 200), (int) $admin['id'], $notify);
@@ -109,7 +109,14 @@ admin_header('Take a payment', 'take', 'Record or request a payment for a partic
       <input type="hidden" name="registration_id" value="<?= (int) $r['id'] ?>">
       <input type="hidden" name="method" value="mobile_money">
       <div class="pay-body stack">
-        <p class="pay-full">Amount: <b><?= e(format_ugx($bal)) ?></b> <span class="muted small">(full balance — no part payments)</span></p>
+        <?php if ($half = half_payment($r)): ?>
+        <div class="methods pay-plans">
+          <label class="method"><input type="radio" name="plan" value="full" data-amount="<?= $bal ?>" checked><span><b>Full balance</b><small><?= e(format_ugx($bal)) ?></small></span></label>
+          <label class="method"><input type="radio" name="plan" value="half" data-amount="<?= $half ?>"><span><b>50% to start</b><small><?= e(format_ugx($half)) ?></small></span></label>
+        </div>
+        <?php else: ?>
+        <p class="pay-full">Amount: <b><?= e(format_ugx($bal)) ?></b> <span class="muted small">(full balance)</span></p>
+        <?php endif; ?>
         <input type="hidden" name="amount" value="<?= $bal ?>">
         <label class="field">Payer's Mobile Money number<input name="pay_phone" type="tel" value="<?= e($r['phone']) ?>" placeholder="e.g. 0772 123 456"><span class="err" data-err="pay_phone"></span></label>
         <div class="form-alert" hidden></div>
@@ -125,7 +132,11 @@ admin_header('Take a payment', 'take', 'Record or request a payment for a partic
     <form method="post" class="stack" data-confirm="Record this payment for <?= e($r['full_name']) ?>?">
       <?= csrf_field() ?><input type="hidden" name="action" value="manual"><input type="hidden" name="registration_id" value="<?= (int) $r['id'] ?>">
       <div class="row-2">
+        <?php if ($half = half_payment($r)): ?>
+        <label>Amount (UGX)<select name="amount"><option value="<?= $bal ?>">Full balance — <?= number_format($bal) ?></option><option value="<?= $half ?>">50% to start — <?= number_format($half) ?></option></select></label>
+        <?php else: ?>
         <label>Amount (UGX) — full balance<input type="text" name="amount_show" value="<?= number_format($bal) ?>" readonly><input type="hidden" name="amount" value="<?= $bal ?>"></label>
+        <?php endif; ?>
         <label>Method<select name="method"><?php foreach (['cash', 'mobile_money', 'bank', 'other'] as $m): ?><option value="<?= $m ?>"><?= e(payment_methods()[$m]) ?></option><?php endforeach; ?></select></label>
       </div>
       <label>Transaction / receipt reference<input type="text" name="ref" maxlength="64" placeholder="e.g. MoMo ID or bank slip number"></label>

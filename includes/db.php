@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 32;
+const SCHEMA_VERSION = 33;
 
 function db(): PDO
 {
@@ -74,6 +74,7 @@ function migrate(PDO $pdo): void
             'ticket_sent_at'     => 'DATETIME NULL AFTER reminded_at',   // v17: last time the camp ticket was emailed
             'checked_in_at'      => 'DATETIME NULL AFTER ticket_sent_at', // v18: checked in at camp (ticket scanned by staff)
             'checked_in_by'      => 'INT UNSIGNED NULL AFTER checked_in_at',
+            'pay_deadline'       => 'DATE NULL AFTER reminded_at',          // v33: pay by this date (set when the payment email goes out)
         ];
         foreach ($add as $col => $def) {
             if (!column_exists($pdo, 'registrations', $col)) {
@@ -155,6 +156,10 @@ function migrate(PDO $pdo): void
     if ($version >= 1 && $version < 23) {
         // v23: the camp now gathers 800 young people (was 300)
         $pdo->exec("UPDATE settings SET svalue = '800' WHERE skey = 'camp_capacity' AND svalue = '300'");
+    }
+    if ($version >= 1 && !column_exists($pdo, 'flyers', 'x_posted_at')) {
+        // v33: flyers copied for posting on the camp's X account (and by whom)
+        $pdo->exec('ALTER TABLE flyers ADD COLUMN x_posted_at DATETIME NULL AFTER ip, ADD COLUMN x_posted_by INT UNSIGNED NULL AFTER x_posted_at');
     }
     if ($version >= 1 && !column_exists($pdo, 'donations', 'thanked_at')) {
         // v22: when the sponsor was sent the thank-you message
@@ -291,6 +296,7 @@ function schema_statements(): array
             user_agent     VARCHAR(255) NULL,
             last_login_at  DATETIME NULL,
             reminded_at    DATETIME NULL,
+            pay_deadline   DATE NULL,
             ticket_sent_at DATETIME NULL,
             checked_in_at  DATETIME NULL,
             checked_in_by  INT UNSIGNED NULL,
@@ -842,6 +848,8 @@ function schema_statements(): array
             bytes           INT UNSIGNED NOT NULL DEFAULT 0,
             saves           INT UNSIGNED NOT NULL DEFAULT 1,
             ip              VARCHAR(45) NULL,
+            x_posted_at     DATETIME NULL,
+            x_posted_by     INT UNSIGNED NULL,
             created_at      DATETIME NOT NULL,
             updated_at      DATETIME NOT NULL,
             KEY idx_registration (registration_id),

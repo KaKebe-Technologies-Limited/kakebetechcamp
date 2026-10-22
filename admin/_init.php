@@ -163,6 +163,10 @@ function registration_filters(array $in): array
         $params[] = $f['payment'];
     } elseif ($f['payment'] === 'balance') {
         $where[] = "payment_status IN ('unpaid','partial') AND status <> 'cancelled'";
+    } elseif ($f['payment'] === 'emailed') {   // sent the payment email (10 days to pay), nothing paid yet
+        $where[] = "pay_deadline IS NOT NULL AND amount_paid = 0 AND payment_status = 'unpaid' AND status <> 'cancelled'";
+    } elseif ($f['payment'] === 'overdue') {
+        $where[] = "pay_deadline < CURDATE() AND amount_paid = 0 AND payment_status = 'unpaid' AND status <> 'cancelled'";
     } else {
         $f['payment'] = '';
     }

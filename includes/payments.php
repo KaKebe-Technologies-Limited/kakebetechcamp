@@ -489,8 +489,9 @@ function begin_registration_payment(array $r, int $amount, string $method, strin
     if ($r['status'] === 'review') {
         return ['ok' => false, 'message' => 'Your sponsorship is being reviewed — no payment is needed right now. We will email you once it is confirmed.'];
     }
-    if ($amount !== $bal) { // full payment only
-        return ['ok' => false, 'message' => 'The amount due is ' . format_ugx($bal) . '. Please refresh the page and try again.'];
+    $half = half_payment($r);
+    if ($amount !== $bal && !($half && $amount === $half)) { // the full balance, or 50% to start
+        return ['ok' => false, 'message' => 'The amount due is ' . format_ugx($bal) . ($half ? ' (or 50%: ' . format_ugx($half) . ')' : '') . '. Please refresh the page and try again.'];
     }
     if (!in_array($method, ['mobile_money', 'card'], true)) {
         $method = 'mobile_money';

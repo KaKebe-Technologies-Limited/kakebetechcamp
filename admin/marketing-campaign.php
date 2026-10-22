@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'save') {
         $cta = trim((string) ($_POST['cta_url'] ?? ''));
-        if ($cta !== '' && !preg_match('~^https?://~i', $cta)) {
+        if ($cta !== '' && !preg_match('~^(https?://|\{pay_(half_)?link\}$)~i', $cta)) {
             $cta = 'https://' . ltrim($cta, '/');
         }
         // Audience: several lists (or all contacts) plus people picked one by one
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mb_substr(trim((string) ($_POST['preheader'] ?? '')), 0, 200) ?: null,
             mk_clean_body((string) ($_POST['body'] ?? '')),
             mb_substr(trim((string) ($_POST['cta_label'] ?? '')), 0, 80) ?: null,
-            $cta !== '' && filter_var($cta, FILTER_VALIDATE_URL) ? mb_substr($cta, 0, 500) : null,
+            $cta !== '' && (filter_var($cta, FILTER_VALIDATE_URL) || preg_match('~^\{pay_(half_)?link\}$~', $cta)) ? mb_substr($cta, 0, 500) : null,
             $listId, now(), $id,
         ]);
         flash('Campaign saved.');
@@ -102,7 +102,8 @@ $dailyLeft = mk_daily_left();
 $ready = trim((string) $c['subject']) !== '' && trim((string) $c['body']) !== '';
 // Preview as it will look for a real person in the audience — each person gets their own name
 $sample = mk_sample_person($c) ?? ['name' => $admin['name'], 'email' => $admin['email']];
-[, $previewHtml] = mk_render($c, $sample);
+$sample = mk_with_payment($c, $sample);
+[$previewSubject, $previewHtml] = mk_render($c, $sample);
 $nameCheck = q("SELECT c.name, c.email FROM mk_contacts c WHERE c.status = 'valid' AND " . mk_audience_where($c) . ' ORDER BY RAND() LIMIT 8')->fetchAll();
 $noName = (int) q("SELECT COUNT(*) FROM mk_contacts c WHERE c.status = 'valid' AND (c.name IS NULL OR TRIM(c.name) = '') AND " . mk_audience_where($c))->fetchColumn();
 
@@ -200,7 +201,7 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
           <?php foreach ($pickedPeople as $p): ?><span class="mk-chip" data-id="<?= (int) $p['id'] ?>"><input type="hidden" name="contacts[]" value="<?= (int) $p['id'] ?>"><?= e($p['name'] ?: $p['email']) ?> <small><?= e($p['email']) ?></small><button type="button" class="js-chip-x" aria-label="Remove">×</button></span><?php endforeach; ?>
         </div>
       </div>
-      <p class="small muted mk-aud-foot">Website lists hold people who registered on the website: <b>Tech Camp participants</b>, <b>Mentorship &amp; DBIP</b> (one registration covers both programmes) and <b>Volunteer trainers</b>; <b>Everyone registered</b> is participants and mentorship together. <button type="submit" form="mkSyncForm" class="link-btn"><i class="fa-solid fa-rotate"></i> Refresh website lists</button> to add today's new registrations.</p>
+      <p class="small muted mk-aud-foot">Website lists hold people who registered on the website: <b>Tech Camp participants</b>, <b>Mentorship &amp; DBIP</b> (one registration covers both programmes) and <b>Volunteer trainers</b>; <b>Everyone registered</b> is participants and mentorship together. <b>Tech Camp — not paid yet</b> holds participants who have paid nothing so far — it is rebuilt each time, so people who pay drop off. <button type="submit" form="mkSyncForm" class="link-btn"><i class="fa-solid fa-rotate"></i> Refresh website lists</button> to add today's new registrations.</p>
     </div>
     <label>Subject line <small class="muted">what people see in their inbox · {first_name} adds their first name</small><input type="text" name="subject" value="<?= e($c['subject']) ?>" maxlength="200" placeholder="e.g. {first_name}, the Digital Bridge internship is open — apply by 20 October"></label>
     <label>Preview text <small class="muted">the grey line shown after the subject in Gmail (optional)</small><input type="text" name="preheader" value="<?= e((string) $c['preheader']) ?>" maxlength="200" placeholder="Free mentorship in Lira, Gulu, Kitgum and online — 2 minutes to apply"></label>
@@ -208,6 +209,10 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
       <div class="mk-editor-bar small muted">
         <span>Email content — headings, <b>bold</b>, bullets, links and pictures</span>
         <span class="mk-merge">Insert: <button type="button" class="link" data-merge="{first_name}">{first_name}</button> <button type="button" class="link" data-merge="{name}">{name}</button></span>
+      </div>
+      <div class="mk-editor-bar small muted mk-pay-tags">
+        <span title="For Tech Camp participants who have not paid: each person gets their own amounts, payment links and a date 10 days after their email is sent. People who pay before their email goes out are skipped.">Payment <i class="fa-regular fa-circle-question"></i></span>
+        <span class="mk-merge"><button type="button" class="link" data-merge="{pay_buttons}">{pay_buttons}</button> <button type="button" class="link" data-merge="{amount_due}">{amount_due}</button> <button type="button" class="link" data-merge="{half_amount}">{half_amount}</button> <button type="button" class="link" data-merge="{pay_deadline}">{pay_deadline}</button> <button type="button" class="link" data-merge="{reference}">{reference}</button></span>
       </div>
       <div id="mkEditor"></div>
       <p class="small muted mk-upload-note" id="mkUploadNote" hidden><span class="spinner dark"></span> Uploading picture…</p>
@@ -228,7 +233,7 @@ admin_header($c['name'], 'campaigns', 'Email campaign · ' . ($stats['total'] ? 
         <div class="tabs mk-device"><a href="#" class="active" data-device="desktop"><i class="fa-solid fa-desktop"></i></a><a href="#" data-device="mobile"><i class="fa-solid fa-mobile-screen"></i></a></div>
       </div>
       <?php if ($ready): ?>
-        <div class="mk-inbox"><b><?= e($cfg['from_name']) ?></b><span><?= e(mk_personalise((string) $c['subject'], ['name' => $admin['name']], false)) ?></span><?php if ($c['preheader']): ?><small><?= e(mk_personalise((string) $c['preheader'], ['name' => $admin['name']], false)) ?></small><?php endif; ?></div>
+        <div class="mk-inbox"><b><?= e($cfg['from_name']) ?></b><span><?= e($previewSubject) ?></span><?php if ($c['preheader']): ?><small><?= e(mk_personalise((string) $c['preheader'], $sample, false)) ?></small><?php endif; ?></div>
         <div class="mk-frame" id="mkFrame"><iframe title="Email preview" srcdoc="<?= e($previewHtml) ?>" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"></iframe></div>
       <p class="small muted mk-preview-who"><i class="fa-solid fa-user"></i> Shown as it will look for <b><?= e(mk_display_name($sample['name']) ?: $sample['email']) ?></b>. Every person gets their own name from the database.</p>
       <?php if ($nameCheck): ?>

@@ -134,7 +134,7 @@ function tpl_applicant_received(array $r): array
     } else {
         $inner .= '<p style="margin-top:20px;"><strong>Your camp package</strong></p>' . kt_items($r)
             . kt_detail([
-                '🗓️ When to pay' => 'Any time before camp. The package (' . format_ugx($r['total_amount']) . ') is paid in full in one payment — your camp ticket is emailed as soon as it is paid.',
+                '🗓️ When to pay' => 'Pay the package (' . format_ugx($r['total_amount']) . ') in full, or 50% to start and the balance before camp — your camp ticket is emailed once it is fully paid.',
                 '📱 How to pay' => 'Click the button below and pay with Mobile Money (MTN/Airtel) or Visa/Mastercard — or log in to your participant dashboard (with Google or your email) and pay from there.',
                 '🧾 Receipt' => 'A PDF receipt is emailed to you after your payment.',
             ])
