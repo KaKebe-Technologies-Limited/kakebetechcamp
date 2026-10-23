@@ -394,14 +394,15 @@ function order_items(array $r): array
         ['Camp fee (training, accommodation & meals)', (int) $r['camp_amount'], 'Required'],
         ['Sports jersey vest', (int) $r['jersey_amount'], 'Required'],
         ['Camp shirt', 0, 'Free'],
-        !empty($r['park_visit']) ? [$f['park_name'] . ' park visit', (int) $r['park_amount'], 'Optional'] : null,
+        !empty($r['park_visit']) ? [$f['park_name'] . ' park visit', (int) $r['park_amount'], 'Included'] : null,
     ]));
 }
 
-function new_order_amounts(bool $park): array
+/** Amounts for a new registration: camp fee + jersey + park excursion (every package includes the excursion). */
+function new_order_amounts(): array
 {
     $f = fees();
-    $a = ['camp_amount' => $f['camp'], 'jersey_amount' => $f['jersey'], 'park_amount' => $park ? $f['park'] : 0];
+    $a = ['camp_amount' => $f['camp'], 'jersey_amount' => $f['jersey'], 'park_amount' => $f['park']];
     $a['total_amount'] = array_sum($a);
     return $a;
 }

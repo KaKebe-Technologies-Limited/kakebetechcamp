@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 33;
+const SCHEMA_VERSION = 34;
 
 function db(): PDO
 {
@@ -156,6 +156,13 @@ function migrate(PDO $pdo): void
     if ($version >= 1 && $version < 23) {
         // v23: the camp now gathers 800 young people (was 300)
         $pdo->exec("UPDATE settings SET svalue = '800' WHERE skey = 'camp_capacity' AND svalue = '300'");
+    }
+    if ($version >= 1 && $version < 34) {
+        // v34: the full camp package is UGX 140,000 — the park excursion is part of every package. Added to registrations
+        // that have paid nothing yet (part-paid and fully paid registrations keep the package they paid for).
+        $parkFee = (int) ($pdo->query("SELECT svalue FROM settings WHERE skey = 'park_fee'")->fetchColumn() ?: 20000);
+        $pdo->prepare("UPDATE registrations SET park_visit = 1, park_amount = ?, total_amount = camp_amount + jersey_amount + ?, updated_at = NOW()
+                       WHERE park_visit = 0 AND amount_paid = 0 AND payment_status = 'unpaid' AND status <> 'cancelled'")->execute([$parkFee, $parkFee]);
     }
     if ($version >= 1 && !column_exists($pdo, 'flyers', 'x_posted_at')) {
         // v33: flyers copied for posting on the camp's X account (and by whom)

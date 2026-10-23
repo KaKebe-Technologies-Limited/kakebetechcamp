@@ -34,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
         $jersey = in_array($_POST['jersey_size'] ?? '', jersey_sizes(), true) ? $_POST['jersey_size'] : null;
         $interests = array_values(array_unique(array_intersect((array) ($_POST['interests'] ?? []), interests())));
         $motivation = mb_substr(trim((string) ($_POST['motivation'] ?? '')), 0, 1000);
-        $park = !empty($_POST['park_visit']);
         $mentorship = !empty($_POST['mentorship']);
 
         if (mb_strlen($name) < 3) $errors['full_name'] = 'Please enter your full name.';
@@ -43,12 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
         if (mb_strlen($country) < 2) $errors['country'] = 'Please enter your country.';
         if (!$jersey) $errors['jersey_size'] = 'Choose your jersey size.';
         if (!$interests || count($interests) > 2) $errors['interests'] = 'Choose one or two learning tracks.';
-
-        $parkAmount = $park ? ((int) $r['park_visit'] ? (int) $r['park_amount'] : fees()['park']) : 0;
-        $newTotal = (int) $r['camp_amount'] + (int) $r['jersey_amount'] + $parkAmount;
-        if ($newTotal < (int) $r['amount_paid']) {
-            $errors['park_visit'] = 'You have already paid for the park visit, so it cannot be removed. Contact us if you need a change.';
-        }
 
         [$ext, $photoErr] = check_image_upload('photo');
         if ($photoErr) $errors['photo'] = $photoErr;
@@ -62,9 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
                 $photo = $new;
             }
             db()->prepare('UPDATE registrations SET full_name = ?, phone = ?, district = ?, country = ?, gender = ?, jersey_size = ?, interests = ?, motivation = ?,
-                park_visit = ?, park_amount = ?, total_amount = ?, mentorship = ?, photo = ?, updated_at = ? WHERE id = ?')
+                mentorship = ?, photo = ?, updated_at = ? WHERE id = ?')
                 ->execute([$name, $phone, $district, $country, $gender, $jersey, implode(', ', $interests), $motivation ?: null,
-                    (int) $park, $parkAmount, $newTotal, (int) $mentorship, $photo, now(), $r['id']]);
+                    (int) $mentorship, $photo, now(), $r['id']]);
             recompute_registration((int) $r['id']);
             portal_flash('Your profile has been updated.');
             redirect('./');
@@ -72,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
     }
     $r = array_merge($r, array_intersect_key($_POST, array_flip(['full_name', 'phone', 'district', 'country', 'gender', 'jersey_size', 'motivation'])));
     $r['interests'] = implode(', ', (array) ($_POST['interests'] ?? []));
-    $r['park_visit'] = !empty($_POST['park_visit']);
     $r['mentorship'] = !empty($_POST['mentorship']);
 }
 
@@ -128,10 +120,6 @@ app_header('Edit profile', '../', 'portal');
       </div><?= $err('interests') ?>
     </div>
 
-    <label class="switch-row<?= $inv('park_visit') ?>">
-      <span><b><?= e(fees()['park_name']) ?> park visit (+<?= e(format_ugx($r['park_visit'] && (int) $r['park_amount'] ? $r['park_amount'] : fees()['park'])) ?>)</b><small>Optional excursion during camp</small><?= $err('park_visit') ?></span>
-      <input type="checkbox" name="park_visit" value="1" <?= $r['park_visit'] ? 'checked' : '' ?>>
-    </label>
     <label class="switch-row">
       <span><b>Free Mentorship &amp; Digital Bridge Internship</b><small><?= e(camp()['mentorship']) ?> · online every Monday 8:00 – 9:30 PM</small></span>
       <input type="checkbox" name="mentorship" value="1" <?= $r['mentorship'] ? 'checked' : '' ?>>

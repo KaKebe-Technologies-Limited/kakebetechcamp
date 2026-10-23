@@ -450,7 +450,7 @@ function mk_with_payment(array $c, ?array $contact, ?array $send = null): ?array
 function mk_pay_fields(?array $r): array
 {
     if (!$r) {
-        $total = new_order_amounts(false)['total_amount'];
+        $total = new_order_amounts()['total_amount'];
         $r = ['reference' => 'KTC26-0000', 'total_amount' => $total, 'amount_paid' => 0, 'payment_status' => 'unpaid'];
         $link = base_url('pay.php');
     }

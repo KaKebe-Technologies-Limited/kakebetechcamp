@@ -70,7 +70,7 @@ $jersey = $clean('jersey_size', 10);
 if (!in_array($jersey, jersey_sizes(), true)) {
     $errors['jersey_size'] = 'Please choose your jersey size.';
 }
-$park = !empty($_POST['park_visit']);
+$park = true;   // the park excursion is part of every camp package
 $mentorship = !isset($_POST['mentorship']) || !empty($_POST['mentorship']); // everyone is enrolled free unless they opt out in their profile
 
 // Payment choice: pay now or pay later. Participants can no longer say they are sponsored —
@@ -128,7 +128,7 @@ if (seats_left() <= 0) {
 }
 
 $photoFile = $photoExt ? store_upload('photo', $photoExt, STORAGE . '/uploads/photos') : null;
-$amounts = new_order_amounts($park);
+$amounts = new_order_amounts();
 
 try {
     $pdo->beginTransaction();

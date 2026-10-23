@@ -73,12 +73,14 @@ if (date('Y-m-d') <= '2026-10-25' && db()->exec("INSERT IGNORE INTO settings (sk
     ]);
 }
 
-// One-off (22 Oct – 10 Nov 2026): camp fee reminder to Tech Camp participants who have not paid anything yet. Each person
-// gets their own amounts and payment links (in full, or 50% to start) and 10 days from the day their email is sent.
-if (date('Y-m-d') <= '2026-11-10' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_fee_reminder', '1')") === 1) {
+// One-off (23 Oct – 10 Nov 2026): camp fee reminder (full package UGX 140,000, or 50% to start) to Tech Camp participants
+// who have not paid anything yet. Each person gets their own payment links and 10 days from the day their email is sent.
+// Yesterday's version of the draft is replaced if nobody has edited or sent it.
+if (date('Y-m-d') <= '2026-11-10' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_fee_reminder2', '1')") === 1) {
     mk_sync_website_people();
     db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_from_name', 'Kakebe Technologies')");
     $phone = e((string) setting('contact_phone', '0779 712 990'));
+    $park = e(fees()['park_name']);
     $body = '<p>Dear {first_name},</p>'
         . '<p>Thank you for registering for <strong>Kakebe Tech Camp 2026</strong>, taking place from <strong>14th to 23rd December 2026 in Kitgum</strong>. We are truly glad that you chose to be part of this journey with young innovators from across Uganda.</p>'
         . '<p>As preparations for the camp move ahead, we would like to kindly remind you that <strong>places at the camp are confirmed on payment of the camp fee</strong>. According to our records, your payment has not yet been received.</p>'
@@ -86,8 +88,8 @@ if (date('Y-m-d') <= '2026-11-10' && db()->exec("INSERT IGNORE INTO settings (sk
         . '<p>We are giving every registered participant <strong>10 days from today — until {pay_deadline}</strong> — to make their payment and secure their place.</p>'
         . '<ul>'
         . '<li>🆔 <strong>Registration number:</strong> {reference}</li>'
-        . '<li>💰 <strong>Camp package:</strong> {amount_due}</li>'
-        . '<li>✅ <strong>To secure your place:</strong> pay in full, or at least 50% ({half_amount}) now and the balance before the camp</li>'
+        . '<li>💰 <strong>Full camp package:</strong> {amount_due} — training, accommodation and meals, your sports jersey and the ' . $park . ' excursion (the camp shirt is free)</li>'
+        . '<li>✅ <strong>To secure your place:</strong> pay the full {amount_due}, or at least 50% ({half_amount}) now and the balance before the camp</li>'
         . '<li>📅 <strong>Pay by:</strong> {pay_deadline}</li>'
         . '</ul>'
         . '<h2>Pay with your personal link</h2>'
@@ -99,12 +101,19 @@ if (date('Y-m-d') <= '2026-11-10' && db()->exec("INSERT IGNORE INTO settings (sk
         . '<p>We look forward to welcoming you to Kitgum in December!</p>'
         . '<p>Warm regards,<br><strong>The Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>';
     $unpaid = mk_list_id('Website · Tech Camp — not paid yet');
-    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+    $fields = [
         'Camp fee — 10 days to pay (not paid yet)',
         '{first_name}, please complete your Kakebe Tech Camp 2026 payment within 10 days',
-        'Pay in full or start with 50% using your personal payment link — by {pay_deadline}',
-        mk_clean_body($body), null, null, $unpaid, (string) $unpaid, $admin['id'], now(), now(),
-    ]);
+        'Full package {amount_due}, or 50% ({half_amount}) to start — pay by {pay_deadline} with your personal link',
+        mk_clean_body($body), null, null, $unpaid, (string) $unpaid,
+    ];
+    $old = db()->query("SELECT c.id FROM mk_campaigns c WHERE c.name = 'Camp fee — 10 days to pay (not paid yet)' AND c.status = 'draft' AND c.updated_at = c.created_at
+                        AND NOT EXISTS (SELECT 1 FROM mk_sends s WHERE s.campaign_id = c.id) ORDER BY c.id DESC LIMIT 1")->fetchColumn();
+    if ($old) {
+        q('UPDATE mk_campaigns SET name = ?, subject = ?, preheader = ?, body = ?, cta_label = ?, cta_url = ?, list_id = ?, list_ids = ? WHERE id = ?', array_merge($fields, [$old]));
+    } else {
+        q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', array_merge($fields, [$admin['id'], now(), now()]));
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

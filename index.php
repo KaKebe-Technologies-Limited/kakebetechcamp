@@ -14,7 +14,7 @@ $email    = setting('contact_email');
 $website  = setting('org_website');
 $socials  = social_links();
 $team     = team_members();
-$base     = $f['camp'] + $f['jersey'];
+$base     = $f['camp'] + $f['jersey'] + $f['park'];   // the full package (UGX 140,000)
 $_SESSION['form_rendered_at'] = time();
 $me       = current_participant();
 $sponsorList = active_sponsors();
@@ -150,7 +150,7 @@ $gallery = [
 
 $faqs = [
     ['Who can apply?', 'Young people aged 14–30 who are passionate about technology, innovation, creativity, and entrepreneurship. We especially encourage girls, refugees, and persons with disabilities to apply.'],
-    ['What does it cost to attend?', 'The camp package is ' . format_ugx($base) . ' — the camp fee (' . format_ugx($f['camp']) . ') covering training, accommodation and meals, plus the sports jersey every participant receives (' . format_ugx($f['jersey']) . '). The camp shirt is free and the ' . $f['park_name'] . ' excursion is optional (' . format_ugx($f['park']) . '). Pay the full package in one payment — right after registering or later from your dashboard — and your camp ticket is emailed as soon as it is paid.'],
+    ['What does it cost to attend?', 'The full camp package is ' . format_ugx($base) . ' — the camp fee (' . format_ugx($f['camp']) . ') covering training, accommodation and meals, the sports jersey every participant receives (' . format_ugx($f['jersey']) . ') and the ' . $f['park_name'] . ' excursion (' . format_ugx($f['park']) . '). The camp shirt is free. Pay in full, or 50% to start and the balance before camp — right after registering or later from your dashboard — and your camp ticket is emailed once it is fully paid.'],
     ['I have registered. How do I check my registration?', 'Click "My registration" at the top of the website and enter the email and phone number you registered with, or log in to the participant portal. There you can view your details, complete any payment (Mobile Money or card) and download receipts and your ticket.'],
     ['What do I get with my registration?', 'Ten days of residential training in Kitgum (accommodation and meals included), camp materials, a free camp shirt, your sports jersey, hackathons, Demo Day, a certificate — plus free enrolment in the Mentorship Program and Digital Bridge Internship (October – November 2026).'],
     setting('volunteers_open', '1') === '1'
@@ -492,7 +492,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
           <li><span>Who</span><b>Ages 14 – 30</b></li>
           <li><span>Learning tracks</span><b>6 · choose 2</b></li>
           <li><span>Mentorship &amp; internship</span><b>Oct – Nov · free</b></li>
-          <li><span><?= e($f['park_name']) ?> excursion</span><b>Optional</b></li>
+          <li><span><?= e($f['park_name']) ?> excursion</span><b>Included</b></li>
         </ul>
         <a href="#register" class="btn btn-primary btn-block">Register Now <i class="fa-solid fa-arrow-right"></i></a>
       </div>
@@ -763,8 +763,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
         </div>
 
         <div class="pkg-line" id="orderSummary" data-camp="<?= $f['camp'] ?>" data-jersey="<?= $f['jersey'] ?>" data-park="<?= $f['park'] ?>">
-          <div class="pkg-sum"><span><b>Camp package</b><small>Camp fee, meals &amp; stay + jersey · shirt free</small></span><strong class="js-total"><?= e(format_ugx($base)) ?></strong></div>
-          <label class="park-check"><input type="checkbox" name="park_visit" value="1" id="f_park"> Add the <?= e($f['park_name']) ?> excursion <em>+<?= e(format_ugx($f['park'])) ?></em></label>
+          <div class="pkg-sum"><span><b>Camp package</b><small>Camp fee, meals &amp; stay + jersey + <?= e($f['park_name']) ?> excursion · shirt free</small></span><strong class="js-total"><?= e(format_ugx($base)) ?></strong></div>
           <p class="pkg-note" id="pkgNote">Pay in full, or 50% to start and the balance before camp — your camp ticket is emailed once it's fully paid.</p>
         </div>
 

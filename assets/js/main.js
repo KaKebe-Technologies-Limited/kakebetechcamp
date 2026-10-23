@@ -285,10 +285,8 @@
     clearFieldOnEdit(form);
     const summary = $('#orderSummary');
     const fees = { camp: +summary.dataset.camp, jersey: +summary.dataset.jersey, park: +summary.dataset.park };
-    const park = $('#f_park');
-    const total = () => fees.camp + fees.jersey + (park.checked ? fees.park : 0);
+    const total = () => fees.camp + fees.jersey + fees.park;   // every package includes the park excursion
     const updateTotals = () => { $$('.js-total').forEach((el) => { el.textContent = money(total()); }); };
-    park.addEventListener('change', updateTotals);
     updateTotals();
 
     const trackInputs = $$('#trackPick input');
