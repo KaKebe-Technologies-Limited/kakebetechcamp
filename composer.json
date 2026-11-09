@@ -1,0 +1,17 @@
+{
+    "name": "kakebe/techcamp",
+    "description": "Kakebe Tech Camp 2026 website. vendor/ is committed because the host deploys straight from git (no composer install there).",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "anthropic-ai/sdk": "^1.6",
+        "guzzlehttp/guzzle": "^8.3"
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.12"
+        },
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

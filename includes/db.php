@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 34;
+const SCHEMA_VERSION = 35;
 
 function db(): PDO
 {
@@ -156,6 +156,16 @@ function migrate(PDO $pdo): void
     if ($version >= 1 && $version < 23) {
         // v23: the camp now gathers 800 young people (was 300)
         $pdo->exec("UPDATE settings SET svalue = '800' WHERE skey = 'camp_capacity' AND svalue = '300'");
+    }
+    if ($version >= 1 && !column_exists($pdo, 'volunteers', 'ai_score')) {
+        // v35: AI review of volunteer applications — score, best field, summary, notes, shortlist rank and cost
+        $pdo->exec("ALTER TABLE volunteers
+            ADD COLUMN ai_score TINYINT UNSIGNED NULL AFTER admin_notes, ADD COLUMN ai_field VARCHAR(60) NULL AFTER ai_score,
+            ADD COLUMN ai_summary VARCHAR(700) NULL AFTER ai_field, ADD COLUMN ai_notes TEXT NULL AFTER ai_summary,
+            ADD COLUMN ai_meets TINYINT(1) NOT NULL DEFAULT 1 AFTER ai_notes, ADD COLUMN ai_rank SMALLINT UNSIGNED NULL AFTER ai_meets,
+            ADD COLUMN ai_pick TINYINT(1) NOT NULL DEFAULT 0 AFTER ai_rank, ADD COLUMN ai_cost DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER ai_pick,
+            ADD COLUMN ai_scored_at DATETIME NULL AFTER ai_cost, ADD COLUMN ai_error VARCHAR(255) NULL AFTER ai_scored_at,
+            ADD KEY idx_ai (ai_score)");
     }
     if ($version >= 1 && $version < 34) {
         // v34: the full camp package is UGX 140,000 — the park excursion is part of every package. Added to registrations
@@ -593,10 +603,21 @@ function schema_statements(): array
             status        VARCHAR(16) NOT NULL DEFAULT 'new',
             thanked_at    DATETIME NULL,
             admin_notes   TEXT NULL,
+            ai_score      TINYINT UNSIGNED NULL,
+            ai_field      VARCHAR(60) NULL,
+            ai_summary    VARCHAR(700) NULL,
+            ai_notes      TEXT NULL,
+            ai_meets      TINYINT(1) NOT NULL DEFAULT 1,
+            ai_rank       SMALLINT UNSIGNED NULL,
+            ai_pick       TINYINT(1) NOT NULL DEFAULT 0,
+            ai_cost       DECIMAL(10,4) NOT NULL DEFAULT 0,
+            ai_scored_at  DATETIME NULL,
+            ai_error      VARCHAR(255) NULL,
             ip            VARCHAR(45) NULL,
             created_at    DATETIME NOT NULL,
             updated_at    DATETIME NULL,
             KEY idx_status (status),
+            KEY idx_ai (ai_score),
             KEY idx_ip (ip, created_at)
         ) $t",
 

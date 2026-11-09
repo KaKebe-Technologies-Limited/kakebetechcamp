@@ -18,6 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'notes') {
         q('UPDATE volunteers SET admin_notes = ?, updated_at = ? WHERE id = ?', [mb_substr(trim((string) ($_POST['admin_notes'] ?? '')), 0, 3000) ?: null, now(), $v['id']]);
         flash('Notes saved.');
+    } elseif ($action === 'ai_rescore' && can('users')) {
+        @set_time_limit(400);
+        if (!vol_ai_ready()) {
+            flash('Add the Anthropic API key on the Volunteer trainers page first.', 'error');
+        } else {
+            $r = vol_ai_score($v);
+            $r['ok'] ? flash('AI score: ' . $r['score'] . ' / 100.') : flash($r['error'], 'error');
+        }
     } elseif ($action === 'delete') {
         if ($path = volunteer_cv_path($v)) {
             @unlink($path);
@@ -54,6 +62,32 @@ admin_header($v['full_name'], 'volunteers', 'Volunteer trainer application ' . $
 
 <div class="grid-3-1">
   <div class="stack-cards">
+    <?php $n = vol_ai_notes($v); ?>
+    <section class="card ai-assess">
+      <div class="card-head"><h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI assessment</h3>
+        <?php if (can('users') && vol_ai_ready()): ?><form method="post" class="inline" data-confirm="Score this application with AI again?"><?= csrf_field() ?><input type="hidden" name="action" value="ai_rescore"><input type="hidden" name="id" value="<?= (int) $v['id'] ?>"><button class="btn btn-light btn-sm" type="submit"><i class="fa-solid fa-rotate"></i> <?= $v['ai_scored_at'] ? 'Score again' : 'Score now' ?></button></form><?php endif; ?>
+      </div>
+      <?php if ($v['ai_scored_at']): ?>
+        <div class="ai-head">
+          <span class="ai-score big ai-<?= vol_ai_band((int) $v['ai_score']) ?>"><?= (int) $v['ai_score'] ?><small>/100</small></span>
+          <div>
+            <b><?= e(['top' => 'Exceptional fit', 'strong' => 'Strong fit', 'possible' => 'Possible fit', 'weak' => 'Weak fit'][vol_ai_band((int) $v['ai_score'])]) ?></b> · best field: <b><?= e((string) $v['ai_field']) ?></b><?= $v['ai_rank'] ? ' · <span class="badge st-pending">#' . (int) $v['ai_rank'] . ' on the AI shortlist</span>' : '' ?>
+            <?php if (!$v['ai_meets']): ?><span class="badge st-cancelled">may not meet the requirements</span><?php endif; ?>
+            <p><?= e((string) $v['ai_summary']) ?></p>
+          </div>
+        </div>
+        <div class="ai-points">
+          <?php if ($n['strengths']): ?><div><h4><i class="fa-solid fa-circle-plus"></i> Strengths</h4><ul><?php foreach ($n['strengths'] as $s): ?><li><?= e($s) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
+          <?php if ($n['concerns']): ?><div><h4><i class="fa-solid fa-circle-minus"></i> Concerns</h4><ul><?php foreach ($n['concerns'] as $s): ?><li><?= e($s) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
+        </div>
+        <?php if ($n['flags']): ?><p class="ai-flags"><?php foreach ($n['flags'] as $fl): ?><span class="tag"><i class="fa-solid fa-flag"></i> <?= e($fl) ?></span><?php endforeach; ?></p><?php endif; ?>
+        <small class="muted">Scored <?= e(time_ago($v['ai_scored_at'])) ?> by <?= e($n['model'] ?: VOL_AI_MODEL) ?>. A guide for the team — check the CV before deciding.</small>
+      <?php elseif ($v['ai_error']): ?>
+        <p class="small"><i class="fa-solid fa-triangle-exclamation"></i> Not scored: <?= e($v['ai_error']) ?></p>
+      <?php else: ?>
+        <p class="small muted">Not scored yet. Use <a href="volunteers.php#ai">AI shortlist</a> on the Volunteer trainers page.</p>
+      <?php endif; ?>
+    </section>
     <section class="card">
       <div class="card-head"><h3><i class="fa-regular fa-user"></i> Personal details</h3></div>
       <dl class="details">

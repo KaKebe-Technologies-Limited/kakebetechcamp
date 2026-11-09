@@ -49,8 +49,8 @@ DirectoryIndex index.php
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 </IfModule>
 
-# Hide dotfiles, docs, SQL and logs
-<FilesMatch "(^\.|\.(md|sql|log|ini|sh|bak)$)">
+# Hide dotfiles, docs, SQL, logs and the composer files
+<FilesMatch "(^\.|\.(md|sql|log|ini|sh|bak)$|^composer\.(json|lock)$)">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
