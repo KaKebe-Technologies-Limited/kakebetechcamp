@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 35;
+const SCHEMA_VERSION = 36;
 
 function db(): PDO
 {
@@ -143,6 +143,10 @@ function migrate(PDO $pdo): void
         $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
             ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
+    }
+    if ($version >= 1 && $version < 36) {
+        // v36: volunteer applications closed again (shortlisting has started); reopen any time in Admin → Volunteer trainers
+        $pdo->exec("INSERT INTO settings (skey, svalue) VALUES ('volunteers_open', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
     }
     if ($version >= 1 && $version < 27) {
         // v27: volunteer applications closed (high numbers); reopen any time in Admin → Volunteer trainers
