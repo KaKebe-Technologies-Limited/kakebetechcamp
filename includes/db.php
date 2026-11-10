@@ -159,13 +159,19 @@ function migrate(PDO $pdo): void
     }
     if ($version >= 1 && !column_exists($pdo, 'volunteers', 'ai_score')) {
         // v35: AI review of volunteer applications — score, best field, summary, notes, shortlist rank and cost
-        $pdo->exec("ALTER TABLE volunteers
+        try {
+            $pdo->exec("ALTER TABLE volunteers
             ADD COLUMN ai_score TINYINT UNSIGNED NULL AFTER admin_notes, ADD COLUMN ai_field VARCHAR(60) NULL AFTER ai_score,
             ADD COLUMN ai_summary VARCHAR(700) NULL AFTER ai_field, ADD COLUMN ai_notes TEXT NULL AFTER ai_summary,
             ADD COLUMN ai_meets TINYINT(1) NOT NULL DEFAULT 1 AFTER ai_notes, ADD COLUMN ai_rank SMALLINT UNSIGNED NULL AFTER ai_meets,
             ADD COLUMN ai_pick TINYINT(1) NOT NULL DEFAULT 0 AFTER ai_rank, ADD COLUMN ai_cost DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER ai_pick,
             ADD COLUMN ai_scored_at DATETIME NULL AFTER ai_cost, ADD COLUMN ai_error VARCHAR(255) NULL AFTER ai_scored_at,
             ADD KEY idx_ai (ai_score)");
+        } catch (PDOException $e) {
+            if (!in_array((int) ($e->errorInfo[1] ?? 0), [1060, 1061], true)) {   // another request added them first
+                throw $e;
+            }
+        }
     }
     if ($version >= 1 && $version < 34) {
         // v34: the full camp package is UGX 140,000 — the park excursion is part of every package. Added to registrations
@@ -890,6 +896,7 @@ function default_settings(): array
 {
     return [
         'registration_open'      => '1',
+        'pay_popup'              => '1',
         'camp_fee'               => '100000',
         'jersey_fee'             => '20000',
         'park_fee'               => '20000',

@@ -8,7 +8,7 @@ $statuses = volunteer_statuses();
 /** WHERE clause for the filters (status, field, search). */
 $filters = function (array $in) use ($fields, $statuses): array {
     $f = ['status' => (string) ($in['status'] ?? ''), 'field' => (string) ($in['field'] ?? ''), 'q' => trim((string) ($in['q'] ?? '')),
-        'ai' => ($in['ai'] ?? '') === 'picks' ? 'picks' : '', 'sort' => ($in['sort'] ?? '') === 'score' ? 'score' : ''];
+        'ai' => in_array($in['ai'] ?? '', ['picks', 'unmet', 'nocv'], true) ? $in['ai'] : '', 'sort' => ($in['sort'] ?? '') === 'score' ? 'score' : ''];
     $where = [];
     $params = [];
     if (isset($statuses[$f['status']])) {
@@ -29,6 +29,10 @@ $filters = function (array $in) use ($fields, $statuses): array {
     }
     if ($f['ai'] === 'picks') {
         $where[] = 'ai_rank IS NOT NULL';
+    } elseif ($f['ai'] === 'unmet') {
+        $where[] = 'ai_scored_at IS NOT NULL AND ai_meets = 0';
+    } elseif ($f['ai'] === 'nocv') {
+        $where[] = "ai_scored_at IS NOT NULL AND ai_notes LIKE '%CV could not be read%'";
     }
     return [$where ? ' WHERE ' . implode(' AND ', $where) : '', $params, $f];
 };
@@ -77,7 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action === 'ai_key') {
         $key = trim((string) ($_POST['anthropic_api_key'] ?? ''));
-        if (!empty($_POST['remove'])) {
+        if (env('ANTHROPIC_API_KEY') !== '') {
+            flash('The key comes from ANTHROPIC_API_KEY in the .env file — change or remove it there.', 'error');
+        } elseif (!empty($_POST['remove'])) {
             setting_set('anthropic_api_key', '');
             flash('The Anthropic API key was removed.');
         } elseif (!preg_match('/^sk-ant-[A-Za-z0-9_\-]{20,}$/', $key)) {
@@ -90,10 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // The applications still to score (or all of them again), for the page to send one by one
     if ($action === 'ai_queue') {
+        session_write_close();
         $ids = q("SELECT id FROM volunteers WHERE status <> 'declined'" . (empty($_POST['rescore']) ? ' AND ai_scored_at IS NULL' : '') . ' ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
         json_response(['ok' => vol_ai_ready(), 'ids' => array_map('intval', $ids), 'error' => vol_ai_ready() ? null : 'Add the Anthropic API key first.']);
     }
     if ($action === 'ai_score') {
+        session_write_close();   // the Claude call can take a minute; don't hold the session (and the admin's other pages) meanwhile
         @set_time_limit(400);
         $v = find_volunteer((int) ($_POST['id'] ?? 0));
         if (!$v || !vol_ai_ready()) {
@@ -150,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect($back);
     }
     $in = implode(',', $ids);
-    $n = q("UPDATE volunteers SET status = ?, updated_at = ? WHERE id IN ($in)", [$to, now()])->rowCount();
+    $n = q("UPDATE volunteers SET status = ?, ai_pick = 2, updated_at = ? WHERE id IN ($in)", [$to, now()])->rowCount();   // ai_pick 2: the team decided, the AI shortlist leaves them alone
     flash($n . ' volunteer' . ($n === 1 ? '' : 's') . ' marked "' . $statuses[$to] . '".');
     redirect($back);
 }
@@ -178,7 +186,8 @@ $badge = ['new' => 'st-booked', 'shortlisted' => 'st-pending', 'accepted' => 'st
 $aiAdmin = can('users');
 $aiReady = vol_ai_ready();
 $ai = q("SELECT SUM(ai_scored_at IS NOT NULL) scored, SUM(status <> 'declined' AND ai_scored_at IS NULL) todo, SUM(ai_rank IS NOT NULL) picks,
-                COALESCE(SUM(ai_cost), 0) cost, SUM(ai_scored_at IS NOT NULL AND ai_meets = 0) unmet, SUM(ai_scored_at IS NULL AND ai_error IS NOT NULL) errors FROM volunteers")->fetch();
+                COALESCE(SUM(ai_cost), 0) cost, SUM(ai_scored_at IS NOT NULL AND ai_meets = 0) unmet, SUM(ai_scored_at IS NULL AND ai_error IS NOT NULL) errors,
+                SUM(ai_scored_at IS NOT NULL AND ai_notes LIKE '%CV could not be read%') nocv FROM volunteers")->fetch();
 $aiPct = $all ? (int) floor((int) $ai['scored'] / $all * 100) : 0;
 $pickFields = q('SELECT ai_field label, COUNT(*) c FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY ai_field ORDER BY c DESC')->fetchAll();
 $pickGender = q("SELECT COALESCE(NULLIF(gender, ''), 'Not given') g, COUNT(*) c FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY g ORDER BY c DESC")->fetchAll();
@@ -209,7 +218,8 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
   <div class="ai-progress">
     <div><b class="js-ai-scored"><?= number_format((int) $ai['scored']) ?></b> of <b><?= number_format($all) ?></b> applications scored<?php if ((float) $ai['cost'] > 0): ?> · cost so far <b class="js-ai-cost">$<?= number_format((float) $ai['cost'], 2) ?></b><?php endif; ?><?php if ((int) $ai['picks']): ?> · <a href="volunteers.php?ai=picks"><b><?= (int) $ai['picks'] ?></b> on the AI shortlist</a><?php endif; ?></div>
     <div class="bar"><i class="js-ai-bar" style="width: <?= $aiPct ?>%"></i></div>
-    <?php if ((int) $ai['unmet']): ?><small class="muted"><?= (int) $ai['unmet'] ?> scored applicant<?= (int) $ai['unmet'] === 1 ? '' : 's' ?> may not meet the requirements (age 22 – 40, Diploma) and are left out of the shortlist — <a href="volunteers.php?sort=score">check them</a>.</small><?php endif; ?>
+    <?php if ((int) $ai['unmet']): ?><small class="muted"><?= (int) $ai['unmet'] ?> scored applicant<?= (int) $ai['unmet'] === 1 ? '' : 's' ?> may not meet the requirements (age 22 – 40, at least a Diploma, a CV that is really theirs), so the AI shortlist leaves them out — <a href="volunteers.php?ai=unmet">check them</a>.</small><?php endif; ?>
+    <?php if ((int) $ai['nocv']): ?><small class="muted"><?= (int) $ai['nocv'] ?> applicant<?= (int) $ai['nocv'] === 1 ? ' was' : 's were' ?> scored without reading the CV (old Word files or damaged PDFs) — <a href="volunteers.php?ai=nocv">review them yourself</a>.</small><?php endif; ?>
   </div>
   <?php if (!$aiAdmin): ?>
     <p class="small muted">Only admins can run the AI review. Open an application to see its AI assessment.</p>
@@ -242,7 +252,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
             Shortlist the best <input type="number" name="size" value="<?= $aiSize ?>" min="1" max="300"> · at least <input type="number" name="per_field" value="<?= $aiPer ?>" min="0" max="20"> per training field
             <button class="btn btn-navy btn-sm" type="submit"<?= (int) $ai['scored'] ? '' : ' disabled' ?>><i class="fa-solid fa-list-check"></i> Shortlist</button>
           </form>
-          <p class="small muted">Applicants still "New" move to <b>Shortlisted</b>, ranked by score. Accepted and Not selected applicants are never changed. Run it again after more scoring to refresh the list. You make the final decisions.</p>
+          <p class="small muted">Applicants still "New" move to <b>Shortlisted</b>, ranked by score. Anyone whose status you set yourself is never changed. Run it again after more scoring to refresh the list — earlier AI picks that are no longer in the top move back to New. You make the final decisions.</p>
           <?php if ($pickFields): ?>
             <div class="ai-mix small"><span class="muted">Shortlist by field:</span> <?php foreach ($pickFields as $pf): ?><span class="tag"><?= e($pf['label']) ?> <b><?= (int) $pf['c'] ?></b></span><?php endforeach; ?></div>
             <div class="ai-mix small"><span class="muted">By gender:</span> <?php foreach ($pickGender as $pg): ?><span class="tag"><?= e($pg['g']) ?> <b><?= (int) $pg['c'] ?></b></span><?php endforeach; ?></div>
@@ -250,11 +260,15 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
         </div>
       </div>
     </div>
-    <details class="ai-key-change small"><summary>Anthropic API key saved<?= env('ANTHROPIC_API_KEY') ? ' in .env' : '' ?> · change</summary>
+    <?php if (env('ANTHROPIC_API_KEY') !== ''): ?>
+    <p class="ai-key-change small">The Anthropic API key comes from ANTHROPIC_API_KEY in the .env file — change or remove it there.</p>
+    <?php else: ?>
+    <details class="ai-key-change small"><summary>Anthropic API key saved · change</summary>
       <form method="post" class="ai-key"><?= csrf_field() ?><input type="hidden" name="action" value="ai_key">
         <span class="ai-key-row"><input type="password" name="anthropic_api_key" autocomplete="off" placeholder="New key: sk-ant-…"><button class="btn btn-light btn-sm" type="submit">Save new key</button><button class="btn btn-light btn-sm" type="submit" name="remove" value="1" formnovalidate>Remove saved key</button></span>
       </form>
     </details>
+    <?php endif; ?>
   <?php endif; ?>
 </section>
 
@@ -291,7 +305,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
   <?php if ($f['status']): ?><input type="hidden" name="status" value="<?= e($f['status']) ?>"><?php endif; ?>
   <?php if ($f['ai']): ?><input type="hidden" name="ai" value="<?= e($f['ai']) ?>"><?php endif; ?>
   <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Name, email, phone, course, university, place…"></div>
-  <?php if (!$f['ai']): ?><select name="sort"><option value="">Newest first</option><option value="score" <?= $f['sort'] === 'score' ? 'selected' : '' ?>>Highest AI score first</option></select><?php endif; ?>
+  <?php if ($f['ai'] !== 'picks'): ?><select name="sort"><option value="">Newest first</option><option value="score" <?= $f['sort'] === 'score' ? 'selected' : '' ?>>Highest AI score first</option></select><?php endif; ?>
   <select name="field"><option value="">Any field</option><?php foreach ($fields as $fld): ?><option <?= $f['field'] === $fld ? 'selected' : '' ?>><?= e($fld) ?></option><?php endforeach; ?></select>
   <button class="btn btn-navy" type="submit"><i class="fa-solid fa-filter"></i> Filter</button>
   <?php if ($f['q'] !== '' || $f['field']): ?><a href="<?= e($f['status'] ? 'volunteers.php?status=' . $f['status'] : 'volunteers.php') ?>" class="btn btn-light">Clear</a><?php endif; ?>
@@ -315,14 +329,14 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
   <?php if ($rows): ?>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><?php if ($f['ai']): ?><th>Rank</th><?php endif; ?><th>Volunteer</th><th>AI score</th><th>Fields</th><th>Qualification</th><th>Experience</th><th>Age</th><th>Based in</th><th>Status</th><th>Applied</th><th class="row-actions"></th></tr></thead>
+      <thead><tr><th class="w-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th><?php if ($f['ai'] === 'picks'): ?><th>Rank</th><?php endif; ?><th>Volunteer</th><th>AI score</th><th>Fields</th><th>Qualification</th><th>Experience</th><th>Age</th><th>Based in</th><th>Status</th><th>Applied</th><th class="row-actions"></th></tr></thead>
       <tbody>
       <?php foreach ($rows as $v): ?>
         <tr class="row-link" data-href="volunteer.php?id=<?= (int) $v['id'] ?>">
           <td class="w-check"><input type="checkbox" name="ids[]" value="<?= (int) $v['id'] ?>" class="row-check" aria-label="Select <?= e($v['full_name']) ?>"></td>
-          <?php if ($f['ai']): ?><td class="ai-rank">#<?= (int) $v['ai_rank'] ?></td><?php endif; ?>
+          <?php if ($f['ai'] === 'picks'): ?><td class="ai-rank">#<?= (int) $v['ai_rank'] ?></td><?php endif; ?>
           <td><div class="person"><span class="av ini"><?= e(initials($v['full_name'])) ?></span><div><b><?= e($v['full_name']) ?></b><small><?= e($v['email']) ?> · <?= e($v['reference']) ?></small></div></div></td>
-          <td class="ai-cell"><?php if ($v['ai_scored_at']): $flags = vol_ai_notes($v)['flags']; ?><span class="ai-score ai-<?= vol_ai_band((int) $v['ai_score']) ?>" title="<?= e((string) $v['ai_summary']) ?>"><?= (int) $v['ai_score'] ?></span><small class="block muted"><?= e((string) $v['ai_field']) ?><?= $flags ? ' · <i class="fa-solid fa-flag" title="' . e(implode(' · ', $flags)) . '"></i>' : '' ?></small><?php elseif ($v['ai_error']): ?><span class="muted small" title="<?= e($v['ai_error']) ?>"><i class="fa-solid fa-triangle-exclamation"></i> not scored</span><?php else: ?><span class="muted">—</span><?php endif; ?></td>
+          <td class="ai-cell"><?php if ($v['ai_scored_at']): $flags = vol_ai_notes($v)['flags']; ?><span class="ai-score ai-<?= vol_ai_band((int) $v['ai_score']) ?>" title="<?= e((string) $v['ai_summary']) ?>"><?= (int) $v['ai_score'] ?></span><?= $v['ai_meets'] ? '' : ' <span class="badge st-cancelled" title="May not meet the requirements — left out of the AI shortlist">requirements?</span>' ?><small class="block muted"><?= e((string) $v['ai_field']) ?><?= $flags ? ' · <i class="fa-solid fa-flag" title="' . e(implode(' · ', $flags)) . '"></i>' : '' ?></small><?php elseif ($v['ai_error']): ?><span class="muted small" title="<?= e($v['ai_error']) ?>"><i class="fa-solid fa-triangle-exclamation"></i> not scored</span><?php else: ?><span class="muted">—</span><?php endif; ?></td>
           <td class="tracks-cell"><?php foreach (array_filter(explode(',', (string) $v['fields'])) as $t): ?><span class="tag"><?= e($t) ?></span><?php endforeach; ?></td>
           <td><b><?= e($v['qualification']) ?></b><small class="block muted"><?= e($v['course']) ?> · <?= e($v['institution']) ?></small></td>
           <td class="nowrap"><?= e($v['experience']) ?></td>

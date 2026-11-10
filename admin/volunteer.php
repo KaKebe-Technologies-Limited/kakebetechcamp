@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $action = (string) ($_POST['action'] ?? '');
     if ($action === 'status' && isset($statuses[$_POST['status'] ?? ''])) {
-        q('UPDATE volunteers SET status = ?, updated_at = ? WHERE id = ?', [$_POST['status'], now(), $v['id']]);
+        q('UPDATE volunteers SET status = ?, ai_pick = 2, updated_at = ? WHERE id = ?', [$_POST['status'], now(), $v['id']]);   // the team decided: the AI shortlist leaves them alone
         flash('Marked as "' . $statuses[$_POST['status']] . '".');
     } elseif ($action === 'notes') {
         q('UPDATE volunteers SET admin_notes = ?, updated_at = ? WHERE id = ?', [mb_substr(trim((string) ($_POST['admin_notes'] ?? '')), 0, 3000) ?: null, now(), $v['id']]);
@@ -23,7 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!vol_ai_ready()) {
             flash('Add the Anthropic API key on the Volunteer trainers page first.', 'error');
         } else {
+            session_write_close();   // don't hold the session (and the admin's other pages) during the Claude call
             $r = vol_ai_score($v);
+            session_start();
             $r['ok'] ? flash('AI score: ' . $r['score'] . ' / 100.') : flash($r['error'], 'error');
         }
     } elseif ($action === 'delete') {

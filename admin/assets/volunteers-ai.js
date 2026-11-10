@@ -8,6 +8,7 @@
   const status = $('.js-ai-status');
   const log = $('.js-ai-log');
   let stopped = false;
+  let running = false;
 
   const post = async (data) => {
     const fd = new FormData();
@@ -26,17 +27,20 @@
   stopBtn.addEventListener('click', () => { stopped = true; stopBtn.disabled = true; status.textContent = 'Stopping after the applications being read now…'; });
 
   run.addEventListener('click', async () => {
+    if (running) return;   // a double click must not start a second run (it would pay twice)
+    running = true;
+    run.disabled = true;
+    const cancel = (text) => { status.textContent = text; running = false; run.disabled = false; };
     const rescore = $('.js-ai-rescore').checked;
     let queue;
-    try { queue = await post({ action: 'ai_queue', rescore: rescore ? '1' : '' }); } catch (_) { status.textContent = 'Could not start — check your connection and try again.'; return; }
-    if (!queue.ok) { status.textContent = queue.error || 'Could not start.'; return; }
+    try { queue = await post({ action: 'ai_queue', rescore: rescore ? '1' : '' }); } catch (_) { cancel('Could not start — check your connection and try again.'); return; }
+    if (!queue.ok) { cancel(queue.error || 'Could not start.'); return; }
     const ids = queue.ids;
     const total = ids.length;
-    if (!total) { status.textContent = 'Nothing left to score.'; return; }
-    if (!confirm(`Score ${total} application${total === 1 ? '' : 's'} with AI? This uses your Anthropic account (roughly 5–10 US cents per application). You can stop at any time.`)) return;
+    if (!total) { cancel('Nothing left to score.'); return; }
+    if (!confirm(`Score ${total} application${total === 1 ? '' : 's'} with AI? This uses your Anthropic account (roughly 5–10 US cents per application). You can stop at any time.`)) { cancel(''); return; }
 
     stopped = false;
-    run.disabled = true;
     stopBtn.hidden = false;
     stopBtn.disabled = false;
     let done = 0;
