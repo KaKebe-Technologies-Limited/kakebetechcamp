@@ -10,6 +10,9 @@ $r = null;
 $ref = (string) ($_GET['ref'] ?? '');
 if ($ref !== '' && sign_valid('pay', $ref, $_GET['t'] ?? null)) {
     $r = find_registration_by_ref($ref);
+    if ($r) {
+        remember_registration($r);   // so the payment pop-up on the website knows them next time
+    }
 }
 $justRegistered = isset($_GET['new']);
 

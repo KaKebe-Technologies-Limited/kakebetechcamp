@@ -1105,6 +1105,7 @@ $navRight = [['#schedule', 'Schedule'], ['#team', 'Team'], ['#faq', 'FAQ'], ['#c
 <script id="programData" type="application/json"><?= json_encode($details, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 <script src="assets/js/main.js?v=<?= filemtime(__DIR__ . '/assets/js/main.js') ?>"></script>
 <script src="assets/js/payment.js?v=<?= filemtime(__DIR__ . '/assets/js/payment.js') ?>"></script>
+<script src="assets/js/pay-prompt.js?v=<?= filemtime(__DIR__ . '/assets/js/pay-prompt.js') ?>" data-api="api/pay-prompt.php"></script>
 <?php if (google_enabled() && $regOpen && !$regFull && !$regVerified): ?>
 <script src="assets/js/google.js?v=<?= filemtime(__DIR__ . '/assets/js/google.js') ?>"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>

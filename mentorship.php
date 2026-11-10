@@ -308,4 +308,4 @@ app_header('Kakebe Mentorship Program — ' . $capacity . ' free places', '', ''
   <a class="btn btn-primary" href="mentorship">Go to registration</a>
 </section>
 <?php endif; ?>
-<?php app_footer('', $view === 'form' ? ['assets/js/mentorship.js'] : []);
+<?php app_footer('', $view === 'form' ? ['assets/js/mentorship.js', 'assets/js/pay-prompt.js'] : ['assets/js/pay-prompt.js']);

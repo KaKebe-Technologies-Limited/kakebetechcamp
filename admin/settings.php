@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     switch ($section) {
         case 'general':
             setting_set('registration_open', !empty($_POST['registration_open']) ? '1' : '0');
+            setting_set('pay_popup', !empty($_POST['pay_popup']) ? '1' : '0');
             setting_set('camp_capacity', (string) max(1, (int) $str('camp_capacity')));
             flash('General settings saved.');
             break;
@@ -110,6 +111,7 @@ admin_header('Settings', 'settings');
     <form method="post" class="stack">
       <?= csrf_field() ?><input type="hidden" name="section" value="general">
       <label class="switch"><input type="checkbox" name="registration_open" value="1" <?= $s['registration_open'] === '1' ? 'checked' : '' ?>><span class="slider"></span> Registration is open on the website</label>
+      <label class="switch"><input type="checkbox" name="pay_popup" value="1" <?= ($s['pay_popup'] ?? '1') === '1' ? 'checked' : '' ?>><span class="slider"></span> Payment pop-up on every visit — "Ready to make your payment?" (registered visitors go straight to their payment page; others are asked to log in)</label>
       <label>Camp capacity (seats) — registration closes when this many have registered<input type="number" min="1" name="camp_capacity" value="<?= e($s['camp_capacity']) ?>"></label>
       <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save</button>
     </form>

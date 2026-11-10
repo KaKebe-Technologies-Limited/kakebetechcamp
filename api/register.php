@@ -169,7 +169,11 @@ if ($g = google_profile_for($email)) {
 }
 
 $r = find_registration($id);
+// A device that registers a second person is shared (a school or registration drive): don't remember anyone on it
+$shared = !empty($_SESSION['registered_here']) && (int) $_SESSION['registered_here'] !== $id;
+$_SESSION['registered_here'] = $id;
 $_SESSION['participant_id'] = $id; // lets them open the portal straight away on this device
+$shared ? forget_registration() : remember_registration($r);   // the payment pop-up knows them when they come back
 unset($_SESSION['reg_email'], $_SESSION['verified_emails'][$email]); // registering someone else starts again at step 1
 
 respond_and_continue([

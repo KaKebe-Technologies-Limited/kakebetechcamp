@@ -20,6 +20,9 @@ $login = function (int $id): never {
     session_regenerate_id(true);
     $_SESSION['participant_id'] = $id;
     unset($_SESSION['login_email'], $_SESSION['impersonated_by']);
+    if ($r = find_registration($id)) {
+        remember_registration($r);
+    }
     redirect('./');
 };
 

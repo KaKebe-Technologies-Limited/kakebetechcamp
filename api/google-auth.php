@@ -38,6 +38,7 @@ if ($r) {
     session_regenerate_id(true);
     $_SESSION['participant_id'] = (int) $r['id'];
     unset($_SESSION['impersonated_by']);
+    remember_registration($r);
     portal_flash_message($intent === 'register'
         ? 'You are already registered for Kakebe Tech Camp 2026 — welcome to your dashboard.'
         : 'Welcome back, ' . explode(' ', trim($r['full_name']))[0] . '!');

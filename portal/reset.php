@@ -22,6 +22,7 @@ if ($r && $_SERVER['REQUEST_METHOD'] === 'POST') {
         session_regenerate_id(true);
         $_SESSION['participant_id'] = (int) $r['id'];
         unset($_SESSION['impersonated_by']);
+        remember_registration($r);
         db()->prepare('UPDATE registrations SET last_login_at = ? WHERE id = ?')->execute([now(), $r['id']]);
         portal_flash('Your password has been saved. Welcome to your dashboard!');
         redirect('./');

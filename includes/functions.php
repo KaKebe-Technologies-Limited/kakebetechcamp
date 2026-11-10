@@ -242,6 +242,47 @@ function pay_url(array $r): string
     return base_url('pay.php?ref=' . rawurlencode($r['reference']) . '&t=' . sign('pay', $r['reference']));
 }
 
+/* ---------- Remembering a participant's device (for the payment pop-up on the website) ---------- */
+
+/**
+ * Remember on this device whose registration it is (a signed cookie for 120 days), so that when they come back the
+ * payment pop-up can send them straight to their own payment page. Never set while staff are signed in or viewing
+ * someone's dashboard.
+ */
+function remember_registration(array $r): void
+{
+    if (PHP_SAPI === 'cli' || headers_sent() || !empty($_SESSION['admin_id']) || !empty($_SESSION['impersonated_by'])) {
+        return;
+    }
+    $value = $r['reference'] . '.' . sign('remember', $r['reference']);
+    // Kept until the camp ends (at most 120 days): the pop-up has no use after that, and it limits exposure on shared devices
+    $until = min(time() + 120 * 86400, strtotime(camp()['end_date'] . ' 23:59:59'));
+    setcookie('ktc_me', $value, remember_cookie_options($until));
+    $_COOKIE['ktc_me'] = $value;
+}
+
+/** "Not me" on a shared computer, and logging out of the portal. */
+function forget_registration(): void
+{
+    if (PHP_SAPI !== 'cli' && !headers_sent()) {
+        setcookie('ktc_me', '', remember_cookie_options(time() - 3600));
+    }
+    unset($_COOKIE['ktc_me']);
+}
+
+function remember_cookie_options(int $expires): array
+{
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    return ['expires' => $expires, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax'];
+}
+
+/** The registration this device remembers, or null. */
+function remembered_registration(): ?array
+{
+    [$ref, $sig] = array_pad(explode('.', (string) ($_COOKIE['ktc_me'] ?? ''), 2), 2, '');
+    return $ref !== '' && sign_valid('remember', $ref, $sig) ? find_registration_by_ref($ref) : null;
+}
+
 /** Payment emails give 10 days to pay: the date saved when the email went out, or 10 days from today. */
 function pay_deadline_date(array $r): string
 {
