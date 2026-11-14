@@ -33,6 +33,12 @@ DirectoryIndex index.php
   RewriteRule ^partner\.php$ %1/partner [R=301,L,QSA]
   RewriteRule ^partner$ partner.php [L,QSA]
 
+  # Short link for NASA Space Apps Challenge registration: /NASA26 (also /nasa26, /nasa)
+  RewriteCond %{REQUEST_URI} ^(.*)/NASA26/$
+  RewriteRule ^NASA26/$ %1/NASA26 [R=301,L]
+  RewriteRule ^[Nn][Aa][Ss][Aa]26$ nasa26.php [L,QSA]
+  RewriteRule ^[Nn][Aa][Ss][Aa]$ nasa26.php [L,QSA]
+
   # Short link for attendance: /attendance
   RewriteCond %{REQUEST_URI} ^(.*)/attendance/$
   RewriteRule ^attendance/$ %1/attendance [R=301,L]

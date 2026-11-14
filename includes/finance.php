@@ -41,6 +41,7 @@ function admin_features(): array
         'calls'           => ['Phone calls to participants', 'Phone calls', 'fa-phone', ['calls.php']],
         'mentorship'      => ['Mentorship & DBIP', 'Mentorship', 'fa-handshake-angle', ['mentorship.php']],
         'volunteers'      => ['Volunteer trainers', 'Volunteers', 'fa-person-chalkboard', ['volunteers.php', 'volunteer.php', 'shortlist.php']],
+        'nasa'            => ['NASA Space Apps Challenge registrations', 'Space Apps', 'fa-rocket', ['nasa.php']],
         'messages'        => ['Messages from the website', 'Messages', 'fa-envelope', ['messages.php']],
         'camp_finance'    => ['Camp payments & sponsorships', 'Camp payments', 'fa-chart-pie', ['finance.php', 'take-payment.php', 'api-pay.php', 'payments.php', 'sponsors.php']],
         'partners'        => ['Partners', 'Partners', 'fa-handshake', ['partners.php', 'partner.php']],
@@ -60,7 +61,7 @@ function role_default_features(string $role): array
         'admin'      => $all,
         'operations' => array_values(array_diff($all, ['system'])),   // operations sees everything
         'finance'    => ['dashboard', 'project_finance', 'camp_finance', 'requisitions'],
-        'team'       => ['dashboard', 'participants', 'mentorship', 'volunteers', 'messages', 'requisitions'],
+        'team'       => ['dashboard', 'participants', 'mentorship', 'volunteers', 'nasa', 'messages', 'requisitions'],
         'field'      => ['requisitions'],
         'caller'     => ['calls'],
         default      => [],

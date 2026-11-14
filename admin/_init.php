@@ -7,14 +7,6 @@ require dirname(__DIR__) . '/includes/bootstrap.php';
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: same-origin');
 
-/** Prepare + execute a query in one call. */
-function q(string $sql, array $params = []): PDOStatement
-{
-    $stmt = db()->prepare($sql);
-    $stmt->execute($params);
-    return $stmt;
-}
-
 function admins_exist(): bool
 {
     return (int) db()->query('SELECT COUNT(*) FROM admins')->fetchColumn() > 0;
@@ -453,6 +445,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     $pendingPay = (int) db()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
     $newVolunteers  = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE status = 'new'")->fetchColumn();
     $shortlisted    = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE ai_rank IS NOT NULL")->fetchColumn();
+    $nasaCount      = (int) db()->query("SELECT COUNT(*) FROM nasa_registrations")->fetchColumn();
     $newPartners = (int) db()->query("SELECT COUNT(*) FROM partners WHERE status = 'new'")->fetchColumn();
     $role = (string) ($admin['role'] ?? 'team');
     // People given to this caller who have not been reached yet
@@ -476,6 +469,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'attendance'    => ['attendance.php', 'fa-clipboard-user', 'Attendance', 0],
             'volunteers'    => ['volunteers.php', 'fa-person-chalkboard', 'Volunteer trainers', $newVolunteers],
             'shortlist'     => ['shortlist.php', 'fa-list-check', 'Shortlist review', $shortlisted],
+            'nasa'          => ['nasa.php', 'fa-rocket', 'Space Apps 2026', $nasaCount],
             'messages'      => ['messages.php', 'fa-envelope', 'Messages', $unread],
         ],
         'Camp finance' => [

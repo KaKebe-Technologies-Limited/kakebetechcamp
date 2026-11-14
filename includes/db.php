@@ -5,7 +5,15 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 36;
+const SCHEMA_VERSION = 37;
+
+/** Prepare + execute a query in one call. */
+function q(string $sql, array $params = []): PDOStatement
+{
+    $stmt = db()->prepare($sql);
+    $stmt->execute($params);
+    return $stmt;
+}
 
 function db(): PDO
 {
@@ -143,6 +151,44 @@ function migrate(PDO $pdo): void
         $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
             ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
+    }
+    if ($version >= 1 && $version < 37) {
+        // v37: NASA Space Apps Challenge 2026 — groups and registrations
+        $pdo->exec("CREATE TABLE IF NOT EXISTS nasa_groups (
+            id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            name       VARCHAR(150) NOT NULL,
+            description TEXT NULL,
+            capacity   TINYINT UNSIGNED NOT NULL DEFAULT 4,
+            sort_order TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS nasa_registrations (
+            id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            reference  VARCHAR(20) NOT NULL UNIQUE,
+            full_name  VARCHAR(150) NOT NULL,
+            email      VARCHAR(190) NOT NULL,
+            phone      VARCHAR(40) NOT NULL,
+            group_id   INT UNSIGNED NOT NULL,
+            ip         VARCHAR(45) NULL,
+            created_at DATETIME NOT NULL,
+            INDEX idx_group (group_id),
+            INDEX idx_email (email)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        // Placeholder groups — replace with actual challenge areas in Admin → NASA Space Apps
+        $ins = $pdo->prepare("INSERT INTO nasa_groups (name, description, capacity, sort_order, created_at) VALUES (?, ?, 4, ?, NOW())");
+        $placeholders = [
+            ['Earth & Environment', 'Explore challenges around climate change, land use, water resources and environmental monitoring using NASA satellite data.'],
+            ['Space Exploration', 'Design solutions for deep space travel, lunar missions, Mars exploration and the future of human spaceflight.'],
+            ['Technology & Engineering', 'Build hardware, software or systems that solve real problems in space technology, robotics or engineering.'],
+            ['Data Analytics & AI', 'Use NASA open datasets and machine learning to uncover insights, build predictive models or visualise complex space data.'],
+            ['Life Sciences', 'Investigate how living organisms survive in space: health, nutrition, agriculture and biological systems beyond Earth.'],
+            ['Climate & Weather', 'Tackle weather prediction, disaster response, ocean temperatures and atmospheric science with NASA Earth observation data.'],
+            ['Astronomy & Astrophysics', 'Dive into the cosmos: exoplanets, black holes, the Big Bang and the tools that help us understand the universe.'],
+            ['Arts, Education & Outreach', 'Communicate space science to the public through storytelling, art, games, apps or educational tools.'],
+        ];
+        foreach ($placeholders as $i => [$name, $desc]) {
+            $ins->execute([$name, $desc, ($i + 1) * 10]);
+        }
     }
     if ($version >= 1 && $version < 36) {
         // v36: volunteer applications closed again (shortlisting has started); reopen any time in Admin → Volunteer trainers
@@ -901,6 +947,8 @@ function default_settings(): array
     return [
         'registration_open'      => '1',
         'pay_popup'              => '1',
+        'nasa_whatsapp_url'      => '',
+        'nasa_total_cap'         => '48',
         'camp_fee'               => '100000',
         'jersey_fee'             => '20000',
         'park_fee'               => '20000',
