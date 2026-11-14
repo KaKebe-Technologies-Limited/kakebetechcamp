@@ -40,7 +40,7 @@ function admin_features(): array
         'participants'    => ['Participants, tickets, attendance & flyers', 'Participants', 'fa-users', ['registrations.php', 'view.php', 'verify.php', 'attendance.php', 'flyers.php', 'export.php']],
         'calls'           => ['Phone calls to participants', 'Phone calls', 'fa-phone', ['calls.php']],
         'mentorship'      => ['Mentorship & DBIP', 'Mentorship', 'fa-handshake-angle', ['mentorship.php']],
-        'volunteers'      => ['Volunteer trainers', 'Volunteers', 'fa-person-chalkboard', ['volunteers.php', 'volunteer.php']],
+        'volunteers'      => ['Volunteer trainers', 'Volunteers', 'fa-person-chalkboard', ['volunteers.php', 'volunteer.php', 'shortlist.php']],
         'messages'        => ['Messages from the website', 'Messages', 'fa-envelope', ['messages.php']],
         'camp_finance'    => ['Camp payments & sponsorships', 'Camp payments', 'fa-chart-pie', ['finance.php', 'take-payment.php', 'api-pay.php', 'payments.php', 'sponsors.php']],
         'partners'        => ['Partners', 'Partners', 'fa-handshake', ['partners.php', 'partner.php']],

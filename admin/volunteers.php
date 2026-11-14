@@ -191,7 +191,7 @@ $ai = q("SELECT SUM(ai_scored_at IS NOT NULL) scored, SUM(status <> 'declined' A
 $aiPct = $all ? (int) floor((int) $ai['scored'] / $all * 100) : 0;
 $pickFields = q('SELECT ai_field label, COUNT(*) c FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY ai_field ORDER BY c DESC')->fetchAll();
 $pickGender = q("SELECT COALESCE(NULLIF(gender, ''), 'Not given') g, COUNT(*) c FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY g ORDER BY c DESC")->fetchAll();
-$aiSize = (int) setting('vol_ai_size', '50') ?: 50;
+$aiSize = (int) setting('vol_ai_size', '30') ?: 30;
 $aiPer = (int) setting('vol_ai_per_field', '3');
 
 admin_header('Volunteer trainers', 'volunteers', 'People offering their expertise as trainers during Kakebe Tech Camp 2026');
@@ -208,7 +208,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
 
 <div class="kpis">
   <a class="kpi" href="volunteers.php"><span class="kpi-icon navy"><i class="fa-solid fa-person-chalkboard"></i></span><div><small>Applications</small><b><?= number_format($all) ?></b><em><?= number_format((int) ($counts['new'] ?? 0)) ?> new to review</em></div></a>
-  <a class="kpi" href="volunteers.php?status=shortlisted"><span class="kpi-icon amber"><i class="fa-solid fa-list-check"></i></span><div><small>Shortlisted</small><b><?= number_format((int) ($counts['shortlisted'] ?? 0)) ?></b><em>to interview or confirm</em></div></a>
+  <a class="kpi" href="shortlist.php"><span class="kpi-icon amber"><i class="fa-solid fa-list-check"></i></span><div><small>Shortlisted</small><b><?= number_format((int) ($counts['shortlisted'] ?? 0)) ?></b><em><?= (int) $ai['picks'] ? 'Review AI shortlist →' : 'to interview or confirm' ?></em></div></a>
   <a class="kpi" href="volunteers.php?status=accepted"><span class="kpi-icon green"><i class="fa-solid fa-user-check"></i></span><div><small>Accepted</small><b><?= number_format((int) ($counts['accepted'] ?? 0)) ?></b><em>trainers for camp</em></div></a>
   <div class="kpi"><span class="kpi-icon red"><i class="fa-solid fa-link"></i></span><div><small>Application page</small><b class="small-b"><a href="<?= e(base_url('volunteers')) ?>" target="_blank">/volunteers <i class="fa-solid fa-arrow-up-right-from-square"></i></a></b><em><?= $open ? 'Open for applications' : 'Closed' ?></em></div></div>
 </div>
@@ -298,7 +298,10 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
 <div class="tabs big">
   <a href="<?= e($url(['status' => null, 'page' => null, 'ai' => null])) ?>" class="<?= $f['status'] === '' && $f['ai'] === '' ? 'active' : '' ?>">All <em><?= number_format($all) ?></em></a>
   <?php foreach ($statuses as $k => $label): ?><a href="<?= e($url(['status' => $k, 'page' => null, 'ai' => null])) ?>" class="<?= $f['status'] === $k && $f['ai'] === '' ? 'active' : '' ?>"><?= e($label) ?> <em><?= number_format((int) ($counts[$k] ?? 0)) ?></em></a><?php endforeach; ?>
-  <?php if ((int) $ai['picks']): ?><a href="volunteers.php?ai=picks" class="<?= $f['ai'] === 'picks' ? 'active' : '' ?>"><i class="fa-solid fa-wand-magic-sparkles"></i> AI shortlist <em><?= (int) $ai['picks'] ?></em></a><?php endif; ?>
+  <?php if ((int) $ai['picks']): ?>
+    <a href="volunteers.php?ai=picks" class="<?= $f['ai'] === 'picks' ? 'active' : '' ?>"><i class="fa-solid fa-wand-magic-sparkles"></i> AI shortlist <em><?= (int) $ai['picks'] ?></em></a>
+    <a href="shortlist.php" class="<?= false ? 'active' : '' ?>" style="background:#0F2557;color:#fff;border-radius:8px;padding:6px 14px;font-weight:700"><i class="fa-solid fa-list-check"></i> Review shortlist →</a>
+  <?php endif; ?>
 </div>
 
 <form class="card filters" method="get">

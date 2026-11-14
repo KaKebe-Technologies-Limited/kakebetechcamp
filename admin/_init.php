@@ -451,7 +451,8 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
     $pending = (int) db()->query("SELECT COUNT(*) FROM registrations WHERE status = 'review'")->fetchColumn();
     $unread = (int) db()->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
     $pendingPay = (int) db()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
-    $newVolunteers = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE status = 'new'")->fetchColumn();
+    $newVolunteers  = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE status = 'new'")->fetchColumn();
+    $shortlisted    = (int) db()->query("SELECT COUNT(*) FROM volunteers WHERE ai_rank IS NOT NULL")->fetchColumn();
     $newPartners = (int) db()->query("SELECT COUNT(*) FROM partners WHERE status = 'new'")->fetchColumn();
     $role = (string) ($admin['role'] ?? 'team');
     // People given to this caller who have not been reached yet
@@ -474,6 +475,7 @@ function admin_header(string $title, string $active = '', string $subtitle = '',
             'calls'         => ['calls.php', 'fa-phone', 'Phone calls', $callsWaiting],
             'attendance'    => ['attendance.php', 'fa-clipboard-user', 'Attendance', 0],
             'volunteers'    => ['volunteers.php', 'fa-person-chalkboard', 'Volunteer trainers', $newVolunteers],
+            'shortlist'     => ['shortlist.php', 'fa-list-check', 'Shortlist review', $shortlisted],
             'messages'      => ['messages.php', 'fa-envelope', 'Messages', $unread],
         ],
         'Camp finance' => [
