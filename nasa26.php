@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['done'])) {
 
             // Confirmation email to the participant (CC the Space Apps coordinator)
             [$subj, $html] = tpl_nasa_registered(['reference' => $ref, 'full_name' => $full_name, 'email' => $email, 'group_name' => $group['name']], $waUrl);
-            send_mail($email, $subj, $html, null, $ignored, [], ['oscarbriankojok@gmail.com']);
+            send_mail($email, $subj, $html, null, $ignored, [], ['oscarbrianojok@gmail.com']);
 
             // Notify the team
             notify_team('nasa_registration', "New NASA Space Apps registration: $full_name ($ref) — {$group['name']}",
