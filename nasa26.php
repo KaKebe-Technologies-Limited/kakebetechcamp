@@ -284,12 +284,23 @@ app_header('NASA Space Apps 2026 — NASA Space Apps Challenge', '', '', [
      style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,26,63,.55);backdrop-filter:blur(3px)">
   <div style="background:#fff;border-radius:22px;padding:clamp(24px,5vw,36px);max-width:480px;width:100%;max-height:calc(100vh - 32px);overflow:auto;position:relative;animation:nsUp .3s cubic-bezier(.2,.9,.3,1.2)">
     <button type="button" id="nasaModalClose" aria-label="Close" style="position:absolute;top:12px;right:12px;width:36px;height:36px;border:0;border-radius:50%;background:#f2f4f9;color:#4A5372;font-size:22px;line-height:1;cursor:pointer">×</button>
-    <h2 id="nasaModalTitle" style="font-size:1.3rem;margin:0 0 4px;color:#0F2557">Register for NASA Space Apps</h2>
-    <p id="nasaModalGroup" style="margin:0 0 20px;color:#1F4FD1;font-weight:700;font-size:15px"></p>
+    <h2 id="nasaModalTitle" style="font-size:1.3rem;margin:0 0 16px;color:#0F2557">Register for NASA Space Apps</h2>
     <form method="post" id="nasaForm" novalidate>
       <?= csrf_field() ?>
-      <input type="hidden" name="group_id" id="nasaGroupId">
       <div style="display:flex;flex-direction:column;gap:14px">
+        <label style="display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:600;color:#1B2340">
+          Challenge group *
+          <select name="group_id" id="nasaGroupId" required
+                  style="border:1.5px solid #d1d5e0;border-radius:10px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff;transition:border-color .2s">
+            <option value="">— choose a group —</option>
+            <?php foreach ($groups as $g):
+              $gFull = (int) $g['registered'] >= (int) $g['capacity'];
+              if ($gFull) continue; ?>
+            <option value="<?= (int) $g['id'] ?>"><?= e($g['name']) ?> (<?= (int) $g['capacity'] - (int) $g['registered'] ?> left)</option>
+            <?php endforeach; ?>
+          </select>
+          <?php if (!empty($errors['group_id'])): ?><span style="color:#c4121e;font-size:13px"><?= e($errors['group_id']) ?></span><?php endif; ?>
+        </label>
         <label style="display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:600;color:#1B2340">
           Full name *
           <input type="text" name="full_name" value="<?= e((string) ($_POST['full_name'] ?? '')) ?>" autocomplete="name" required
@@ -311,7 +322,6 @@ app_header('NASA Space Apps 2026 — NASA Space Apps Challenge', '', '', [
                  placeholder="+256 700 000 000">
           <?php if (!empty($errors['phone'])): ?><span style="color:#c4121e;font-size:13px"><?= e($errors['phone']) ?></span><?php endif; ?>
         </label>
-        <?php if (!empty($errors['group_id'])): ?><p style="color:#c4121e;font-size:13px;margin:0"><?= e($errors['group_id']) ?></p><?php endif; ?>
         <button type="submit" style="background:#0F2557;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px">
           Register for this group →
         </button>
@@ -331,13 +341,11 @@ app_header('NASA Space Apps 2026 — NASA Space Apps Challenge', '', '', [
 (function () {
   const modal   = document.getElementById('nasaModal');
   const closeBtn = document.getElementById('nasaModalClose');
-  const groupId = document.getElementById('nasaGroupId');
-  const groupLbl = document.getElementById('nasaModalGroup');
+  const groupSel = document.getElementById('nasaGroupId');
   let lastFocus;
 
   const open = (id, name) => {
-    groupId.value = id;
-    groupLbl.textContent = '→ ' + name;
+    if (id) groupSel.value = id;
     modal.hidden = false;
     lastFocus = document.activeElement;
     document.body.style.overflow = 'hidden';
@@ -350,7 +358,7 @@ app_header('NASA Space Apps 2026 — NASA Space Apps Challenge', '', '', [
   };
 
   document.querySelectorAll('.nasa-join-btn').forEach(btn => {
-    btn.addEventListener('click', () => open(btn.dataset.groupId, btn.dataset.groupName));
+    btn.addEventListener('click', () => open(btn.dataset.groupId));
   });
   closeBtn.addEventListener('click', close);
   modal.addEventListener('click', e => { if (e.target === modal) close(); });
@@ -358,7 +366,7 @@ app_header('NASA Space Apps 2026 — NASA Space Apps Challenge', '', '', [
 
   // Open the modal automatically if there were validation errors (form was submitted)
   <?php if ($errors && empty($errors['form']) && !empty($_POST['group_id'])): ?>
-  open(<?= (int) ($_POST['group_id'] ?? 0) ?>, <?= json_encode(array_column($groups, 'name', 'id')[(int) ($_POST['group_id'] ?? 0)] ?? '', JSON_HEX_TAG) ?>);
+  open(<?= (int) ($_POST['group_id'] ?? 0) ?>);
   <?php endif; ?>
 })();
 </script>
