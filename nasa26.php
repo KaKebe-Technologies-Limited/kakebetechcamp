@@ -125,8 +125,10 @@ HTML;
 
 /* ==================== HTML ==================== */
 app_header('NASA Space Apps 2026 — NASA Space Apps Challenge', '', '', [
-    'description' => 'Register for NASA Space Apps 2026 — the NASA Space Apps Challenge, brought to you by Kakebe Tech Camp. 48 spots, 8 challenge groups, fully virtual. Physical session 27 Feb 2027.',
+    'description' => 'Register for NASA Space Apps 2026 — the NASA Space Apps Challenge, brought to you by Kakebe Tech Camp. 100 spots across 25 challenge groups, fully virtual. Physical session 27 Feb 2027.',
     'canonical'   => base_url('NASA26'),
+    'image'       => base_url('assets/img/nasa-space-apps-2026.jpg'),
+    'image_alt'   => 'NASA Space Apps Challenge 2026',
 ]);
 ?>
 
