@@ -102,7 +102,7 @@ if (($_GET['export'] ?? '') === '1') {
     exit;
 }
 
-admin_header('Kakebe Space Apps', 'nasa', 'NASA Space Apps Challenge 2026 — registrations and group management');
+admin_header('NASA Space Apps', 'nasa', 'NASA Space Apps Challenge 2026 — registrations and group management');
 ?>
 <div class="kpis">
   <div class="kpi"><span class="kpi-icon navy"><i class="fa-solid fa-rocket"></i></span><div><small>Registered</small><b><?= number_format($totalRegistered) ?></b><em>of <?= $totalCap ?> spots</em></div></div>

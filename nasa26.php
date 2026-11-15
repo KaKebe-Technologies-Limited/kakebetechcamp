@@ -63,14 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['done'])) {
 
         // Check if the total cap is reached
         if (!$errors && $spotsLeft <= 0) {
-            $errors['form'] = 'All 48 spots have been taken. Thank you for your interest in Kakebe Space Apps!';
+            $errors['form'] = 'All 48 spots have been taken. Thank you for your interest in NASA Space Apps!';
         }
 
         // Duplicate email
         if (!$errors) {
             $existing = q('SELECT id FROM nasa_registrations WHERE email = ?', [$email])->fetch();
             if ($existing) {
-                $errors['email'] = 'This email address is already registered for Kakebe Space Apps.';
+                $errors['email'] = 'This email address is already registered for NASA Space Apps.';
             }
         }
 
@@ -110,12 +110,12 @@ function tpl_nasa_registered(array $r, string $waUrl): array
     $group    = e($r['group_name']);
     $ref      = e($r['reference']);
     $wa       = $waUrl ? '<p style="margin:20px 0"><a href="' . e($waUrl) . '" style="display:inline-block;background:#25D366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Join the WhatsApp group →</a></p>' : '';
-    $subject  = "You're in! Kakebe Space Apps 2026 — {$r['group_name']}";
+    $subject  = "You're in! NASA Space Apps 2026 — {$r['group_name']}";
     $html     = <<<HTML
 <p>Hi $name,</p>
-<p>You are registered for <b>Kakebe Space Apps 2026</b> — the NASA Space Apps Challenge, brought to you by Kakebe Technologies Limited as an added benefit of Kakebe Tech Camp 2026. 🚀</p>
+<p>You are registered for <b>NASA Space Apps 2026</b> — the NASA Space Apps Challenge, brought to you by Kakebe Technologies Limited as an added benefit of Kakebe Tech Camp 2026. 🚀</p>
 <p><b>Your challenge group:</b> $group<br><b>Your registration code:</b> $ref</p>
-<p>The competition is fully virtual. At the end, the top teams will be invited to the <b>Kakebe Space Apps physical session on 27 February 2027</b>.</p>
+<p>The competition is fully virtual. At the end, the top teams will be invited to the <b>NASA Space Apps physical session on 27 February 2027</b>.</p>
 $wa
 <p>Stay tuned for more details from the Kakebe team. We are excited to have you on board!</p>
 <p>Warm regards,<br>The Kakebe Tech Camp team</p>
@@ -124,8 +124,8 @@ HTML;
 }
 
 /* ==================== HTML ==================== */
-app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
-    'description' => 'Register for Kakebe Space Apps 2026 — the NASA Space Apps Challenge, brought to you by Kakebe Tech Camp. 48 spots, 8 challenge groups, fully virtual. Physical session 27 Feb 2027.',
+app_header('NASA Space Apps 2026 — NASA Space Apps Challenge', '', '', [
+    'description' => 'Register for NASA Space Apps 2026 — the NASA Space Apps Challenge, brought to you by Kakebe Tech Camp. 48 spots, 8 challenge groups, fully virtual. Physical session 27 Feb 2027.',
     'canonical'   => base_url('NASA26'),
 ]);
 ?>
@@ -136,7 +136,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
   <div class="vol-thanks-inner" style="text-align:center;max-width:560px">
     <div class="nasa-rocket-emoji" style="font-size:64px;margin-bottom:16px">🚀</div>
     <h1 style="font-size:clamp(1.6rem,4vw,2.2rem);margin:0 0 10px">You're in, <?= e(explode(' ', $done['full_name'])[0]) ?>!</h1>
-    <p style="font-size:1.1rem;color:#4A5372;margin:0 0 20px">You have registered for <b><?= e($done['group_name']) ?></b> in Kakebe Space Apps 2026.</p>
+    <p style="font-size:1.1rem;color:#4A5372;margin:0 0 20px">You have registered for <b><?= e($done['group_name']) ?></b> in NASA Space Apps 2026.</p>
     <div class="nasa-ref" style="display:inline-block;background:#f2f4f9;border-radius:12px;padding:12px 24px;margin:0 0 24px;font-size:1rem">
       Your code: <b><?= e($done['reference']) ?></b>
     </div>
@@ -147,7 +147,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
       Join the WhatsApp group
     </a>
     <?php endif; ?>
-    <p><a href="<?= e(base_url('NASA26')) ?>" style="color:#0F2557">← Back to Kakebe Space Apps</a></p>
+    <p><a href="<?= e(base_url('NASA26')) ?>" style="color:#0F2557">← Back to NASA Space Apps</a></p>
   </div>
 </section>
 
@@ -158,7 +158,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
 <section class="vol-hero nasa-hero" style="background:linear-gradient(135deg,#0F2557 0%,#162E6E 55%,#1a3a8a 100%);color:#fff;padding:clamp(40px,8vw,80px) 16px 0;text-align:center">
   <div class="container" style="max-width:720px;margin:0 auto">
     <div style="font-size:48px;margin-bottom:12px">🚀</div>
-    <div style="display:inline-block;background:rgba(255,255,255,.12);border-radius:999px;padding:5px 16px;font-size:13px;font-weight:700;letter-spacing:.06em;margin-bottom:14px;text-transform:uppercase">Kakebe Space Apps 2026</div>
+    <div style="display:inline-block;background:rgba(255,255,255,.12);border-radius:999px;padding:5px 16px;font-size:13px;font-weight:700;letter-spacing:.06em;margin-bottom:14px;text-transform:uppercase">NASA Space Apps 2026</div>
     <h1 style="font-size:clamp(1.8rem,5vw,2.8rem);line-height:1.2;margin:0 0 16px;font-weight:800">NASA Space Apps<br>Challenge 2026</h1>
     <p style="font-size:clamp(1rem,2.5vw,1.15rem);opacity:.9;line-height:1.6;margin:0 0 24px;max-width:580px;margin-left:auto;margin-right:auto">
       Kakebe Technologies is giving Kakebe Tech Camp 2026 participants an added advantage — access to the global NASA Space Apps Challenge. <b>Fully virtual</b>. Top teams are invited to the <b>physical session on 27 Feb 2027</b>.
@@ -196,7 +196,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
         ['🎯', 'Choose a group', 'Pick the challenge area that matches your skills and interests.'],
         ['📝', 'Register', 'Fill in your name, email and phone number. Takes 30 seconds.'],
         ['💬', 'Join WhatsApp', 'Join your group\'s WhatsApp to meet your teammates and get started.'],
-        ['🏆', 'Compete & win', 'Top teams are invited to the Kakebe Space Apps physical session on 27 Feb 2027.'],
+        ['🏆', 'Compete & win', 'Top teams are invited to the NASA Space Apps physical session on 27 Feb 2027.'],
       ] as [$icon, $title, $text]): ?>
       <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(15,37,87,.07)">
         <div style="font-size:28px;margin-bottom:8px"><?= $icon ?></div>
@@ -218,7 +218,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
 
     <?php if ($spotsLeft <= 0): ?>
     <div class="flash" style="margin:0 0 20px;padding:16px 20px;background:#fff3cd;border-radius:12px;border:1px solid #ffd875;color:#7a5a00">
-      <b>All 48 spots are taken!</b> Registrations for Kakebe Space Apps 2026 are now closed. Thank you to everyone who joined.
+      <b>All 48 spots are taken!</b> Registrations for NASA Space Apps 2026 are now closed. Thank you to everyone who joined.
     </div>
     <?php endif; ?>
 
@@ -272,7 +272,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
     <div style="font-size:36px;margin-bottom:12px">🌍</div>
     <h2 style="font-size:clamp(1.2rem,3vw,1.6rem);margin:0 0 10px;font-weight:800">An added advantage for Kakebe Tech Camp participants</h2>
     <p style="opacity:.9;max-width:600px;margin:0 auto 20px;line-height:1.6;font-size:15px">
-      As you prepare for Kakebe Tech Camp 2026 (14–23 December, Kitgum), Kakebe Technologies is giving you free access to the NASA Space Apps Challenge — a global hackathon in which tens of thousands of people around the world use NASA data to solve real challenges. Compete virtually from home, grow your skills, and the best teams will be invited to the Kakebe Space Apps physical event on <b>27 February 2027</b>.
+      As you prepare for Kakebe Tech Camp 2026 (14–23 December, Kitgum), Kakebe Technologies is giving you free access to the NASA Space Apps Challenge — a global hackathon in which tens of thousands of people around the world use NASA data to solve real challenges. Compete virtually from home, grow your skills, and the best teams will be invited to the NASA Space Apps physical event on <b>27 February 2027</b>.
     </p>
     <a href="#groups" style="display:inline-block;background:#fff;color:#0F2557;border-radius:10px;padding:12px 28px;font-weight:800;text-decoration:none;font-size:15px">Register for a group →</a>
   </section>
@@ -284,7 +284,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
      style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,26,63,.55);backdrop-filter:blur(3px)">
   <div style="background:#fff;border-radius:22px;padding:clamp(24px,5vw,36px);max-width:480px;width:100%;max-height:calc(100vh - 32px);overflow:auto;position:relative;animation:nsUp .3s cubic-bezier(.2,.9,.3,1.2)">
     <button type="button" id="nasaModalClose" aria-label="Close" style="position:absolute;top:12px;right:12px;width:36px;height:36px;border:0;border-radius:50%;background:#f2f4f9;color:#4A5372;font-size:22px;line-height:1;cursor:pointer">×</button>
-    <h2 id="nasaModalTitle" style="font-size:1.3rem;margin:0 0 4px;color:#0F2557">Register for Kakebe Space Apps</h2>
+    <h2 id="nasaModalTitle" style="font-size:1.3rem;margin:0 0 4px;color:#0F2557">Register for NASA Space Apps</h2>
     <p id="nasaModalGroup" style="margin:0 0 20px;color:#1F4FD1;font-weight:700;font-size:15px"></p>
     <form method="post" id="nasaForm" novalidate>
       <?= csrf_field() ?>
@@ -315,7 +315,7 @@ app_header('Kakebe Space Apps 2026 — NASA Space Apps Challenge', '', '', [
         <button type="submit" style="background:#0F2557;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px">
           Register for this group →
         </button>
-        <p style="font-size:12px;color:#7A829E;margin:0;text-align:center">By registering you agree to be contacted by the Kakebe Tech Camp team about Kakebe Space Apps 2026.</p>
+        <p style="font-size:12px;color:#7A829E;margin:0;text-align:center">By registering you agree to be contacted by the Kakebe Tech Camp team about NASA Space Apps 2026.</p>
       </div>
     </form>
   </div>
