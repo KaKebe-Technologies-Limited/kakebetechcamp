@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 38;
+const SCHEMA_VERSION = 39;
 
 /** Prepare + execute a query in one call. */
 function q(string $sql, array $params = []): PDOStatement
@@ -151,6 +151,12 @@ function migrate(PDO $pdo): void
         $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
             ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
+    }
+    if ($version >= 38 && $version < 39) {
+        // v39: NASA Space Apps coordinator account — nasa-only admin access
+        $pdo->prepare("INSERT IGNORE INTO admins (name, email, password_hash, role, features, created_at)
+                       VALUES ('Oscar Brian Kojok', 'oscarbriankojok@gmail.com', ?, 'team', 'nasa', NOW())")
+            ->execute(['$2y$10$QE1qHByI1KUKrfbNCTuLcePXHVffG1O5JQ/Dlu.6.orK4EL2EguIa']);
     }
     if ($version >= 37 && $version < 38) {
         // v38: replace 8 placeholder groups with the 25 real NASA Space Apps projects (Lira 2026)

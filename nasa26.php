@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['done'])) {
 
         // Check if the total cap is reached
         if (!$errors && $spotsLeft <= 0) {
-            $errors['form'] = 'All 48 spots have been taken. Thank you for your interest in NASA Space Apps!';
+            $errors['form'] = 'All spots have been taken. Thank you for your interest in NASA Space Apps!';
         }
 
         // Duplicate email
@@ -84,9 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['done'])) {
             q('INSERT INTO nasa_registrations (reference, full_name, email, phone, group_id, ip, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
               [$ref, $full_name, $email, $phone, $group_id, client_ip(), now()]);
 
-            // Confirmation email to the participant
+            // Confirmation email to the participant (CC the Space Apps coordinator)
             [$subj, $html] = tpl_nasa_registered(['reference' => $ref, 'full_name' => $full_name, 'email' => $email, 'group_name' => $group['name']], $waUrl);
-            send_mail($email, $subj, $html);
+            send_mail($email, $subj, $html, null, $ignored, [], ['oscarbriankojok@gmail.com']);
 
             // Notify the team
             notify_team('nasa_registration', "New NASA Space Apps registration: $full_name ($ref) — {$group['name']}",
