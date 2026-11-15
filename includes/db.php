@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 39;
+const SCHEMA_VERSION = 40;
 
 /** Prepare + execute a query in one call. */
 function q(string $sql, array $params = []): PDOStatement
@@ -151,6 +151,11 @@ function migrate(PDO $pdo): void
         $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
             ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
+    }
+    if ($version >= 39 && $version < 40) {
+        // v40: reset Oscar's password hash in case v39 hash didn't verify on live
+        $pdo->prepare("UPDATE admins SET password_hash = ? WHERE email = 'oscarbriankojok@gmail.com'")
+            ->execute(['$2y$10$zY0QKbhTXKwAHl699KUHK.0h9OcwNQ3S.pZPZ5M3gYaeYJN3R/DTO']);
     }
     if ($version >= 38 && $version < 39) {
         // v39: NASA Space Apps coordinator account — nasa-only admin access
