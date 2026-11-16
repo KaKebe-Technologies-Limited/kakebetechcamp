@@ -73,6 +73,46 @@ if (date('Y-m-d') <= '2026-10-25' && db()->exec("INSERT IGNORE INTO settings (sk
     ]);
 }
 
+// One-off (16 Nov 2026): Session 5 invitation — "Beyond the Classroom: Tech, Confidence & Leadership" — to all registered
+// participants and volunteer trainers (tonight, 8:00–9:30 PM EAT on Google Meet).
+if (date('Y-m-d') <= '2026-11-17' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_session5', '1')") === 1) {
+    mk_sync_website_people();
+    db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_from_name', 'Kakebe Technologies')");
+    $meet5    = 'https://meet.google.com/xsk-swoi-nvfso';
+    $flyer5   = base_url('assets/img/email/session5-flyer.webp');
+    $strip    = base_url('assets/img/email/partners-strip.png');
+    $body5 = '<img src="' . $flyer5 . '" alt="Kakebe Tech Camp · Session 5 — Beyond the Classroom: Tech, Confidence &amp; Leadership · Mon 16 Nov, 8:00–9:30 PM">'
+        . '<p>Dear {first_name},</p>'
+        . '<p>Tonight we bring you <strong>Session 5</strong> of the <strong>MentorMe360 Online Mentorship Programme</strong> — and this one is special.</p>'
+        . '<h2>Beyond the Classroom: Tech, Confidence &amp; Leadership</h2>'
+        . '<ul>'
+        . '<li>📅 <strong>Date:</strong> Monday 16th November 2026 — <em>tonight</em></li>'
+        . '<li>⏰ <strong>Time:</strong> 8:00 – 9:30 PM (EAT / Nairobi time)</li>'
+        . '<li>💻 <strong>Platform:</strong> Google Meet — <a href="' . $meet5 . '">meet.google.com/xsk-swoi-nvfso</a></li>'
+        . '</ul>'
+        . '<h3>Tonight\'s guests</h3>'
+        . '<ul>'
+        . '<li>🎙️ <strong>Shillah Ainembabazi</strong> — President, Uganda National Students Association (UNSA)</li>'
+        . '<li>🎙️ <strong>Migel Brian Odong</strong> — President, Acholi Students Union</li>'
+        . '<li>🎤 <strong>Session Host:</strong> Lokii Willy Sam</li>'
+        . '</ul>'
+        . '<p>We will talk about how <strong>technology, confidence and leadership</strong> go together — and what it means to lead your generation beyond the classroom.</p>'
+        . '<p>The session runs <strong>tonight from 8:00 to 9:30 PM</strong>. Attendance is taken live, so please join on time.</p>'
+        . '<h3>With the support of</h3>'
+        . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation">'
+        . '<p>See you tonight,<br><strong>Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>'
+        . '<p><em>Be informed. Get inspired. Be part of the movement!</em></p>';
+    $everyone = mk_list_id('Website · Everyone registered');
+    $vols5    = mk_list_id('Website · Volunteer trainers');
+    $lists5   = implode(',', [$everyone, $vols5]);
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Session 5 — Beyond the Classroom (tonight, Mon 16 Nov)',
+        '{first_name}, join Session 5 tonight — Beyond the Classroom | 8–9:30 PM',
+        'Guests: Shillah Ainembabazi (UNSA) & Migel Brian Odong (Acholi Students Union) · Google Meet',
+        mk_clean_body($body5), 'Join Session 5 on Google Meet', $meet5, $everyone, $lists5, $admin['id'], now(), now(),
+    ]);
+}
+
 // One-off (23 Oct – 10 Nov 2026): camp fee reminder (full package UGX 140,000, or 50% to start) to Tech Camp participants
 // who have not paid anything yet. Each person gets their own payment links and 10 days from the day their email is sent.
 // Yesterday's version of the draft is replaced if nobody has edited or sent it.
