@@ -112,6 +112,7 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
       </p>
     </div>
     <div class="sl-prog-actions">
+      <a href="pick.php" class="btn btn-navy btn-sm"><i class="fa-solid fa-check-to-slot"></i> Pick volunteers</a>
       <a href="volunteers.php?ai=picks" class="btn btn-light btn-sm"><i class="fa-solid fa-list"></i> Table view</a>
       <a href="volunteers.php?export=1&amp;ai=picks" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
       <a href="volunteers.php?export=xlsx&amp;ai=picks" class="btn btn-light btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>

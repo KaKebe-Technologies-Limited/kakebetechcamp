@@ -582,7 +582,8 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
       <p class="js-done-shortfall small" style="color:#b45309;display:none"><i class="fa-solid fa-triangle-exclamation"></i> Fewer than 30 eligible applicants were found — the shortlist has fewer than 30. Review flagged applicants for eligibility.</p>
       <div class="ai-modal-actions">
         <button type="button" class="btn btn-light js-ai-modal-cancel">Close</button>
-        <a class="btn btn-navy" href="shortlist.php"><i class="fa-solid fa-list-check"></i> View Top 30 Shortlist</a>
+        <a class="btn btn-navy" href="pick.php"><i class="fa-solid fa-check-to-slot"></i> Pick volunteers</a>
+        <a class="btn btn-light" href="shortlist.php"><i class="fa-solid fa-list-check"></i> View shortlist</a>
         <a class="btn btn-light btn-sm" href="volunteers.php?export=xlsx&ai=picks"><i class="fa-solid fa-file-excel"></i> Export Shortlist</a>
       </div>
     </div>
