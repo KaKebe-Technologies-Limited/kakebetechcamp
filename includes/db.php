@@ -153,7 +153,26 @@ function migrate(PDO $pdo): void
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
     }
     if ($version >= 42 && $version < 43) {
-        // v43: assessment run history, run status tracking, shortfall detection
+        // v43: assessment run history, run status tracking, shortfall detection.
+        // Also ensures v42 objects exist — the live server may have jumped past v42 without running it.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS vol_ai_runs (
+            id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            started_at   DATETIME NOT NULL,
+            completed_at DATETIME NULL,
+            total        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            scored       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            failed       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            shortlisted  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            run_notes    VARCHAR(500) NULL,
+            admin_id     SMALLINT UNSIGNED NULL,
+            created_at   DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        if (!column_exists($pdo, 'volunteers', 'ai_recommendation')) {
+            $pdo->exec("ALTER TABLE volunteers
+                ADD COLUMN ai_recommendation VARCHAR(50) NULL AFTER ai_error,
+                ADD COLUMN ai_breakdown TEXT NULL AFTER ai_recommendation,
+                ADD COLUMN ai_eligibility TEXT NULL AFTER ai_breakdown");
+        }
         $pdo->exec("CREATE TABLE IF NOT EXISTS vol_score_history (
             id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             volunteer_id     INT UNSIGNED NOT NULL,
