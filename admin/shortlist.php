@@ -62,6 +62,24 @@ $tot = q("SELECT
 $fieldRows = q("SELECT ai_field lbl, COUNT(*) c, SUM(status = 'accepted') acc, SUM(status = 'declined') `dec`
                 FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY ai_field ORDER BY c DESC")->fetchAll();
 
+// Score distribution buckets for top 30
+$distBuckets = ['90–100' => 0, '80–89' => 0, '70–79' => 0, '60–69' => 0, 'Below 60' => 0];
+foreach (q('SELECT ai_score FROM volunteers WHERE ai_rank IS NOT NULL')->fetchAll() as $r) {
+    $s = (int) $r['ai_score'];
+    if ($s >= 90)      $distBuckets['90–100']++;
+    elseif ($s >= 80)  $distBuckets['80–89']++;
+    elseif ($s >= 70)  $distBuckets['70–79']++;
+    elseif ($s >= 60)  $distBuckets['60–69']++;
+    else               $distBuckets['Below 60']++;
+}
+
+// Shortfall from latest completed run
+$latestShortfall = null;
+try {
+    $lr = q("SELECT shortfall FROM vol_ai_runs WHERE run_status = 'completed' ORDER BY id DESC LIMIT 1")->fetch();
+    if ($lr && $lr['shortfall'] > 0) $latestShortfall = (int) $lr['shortfall'];
+} catch (\Throwable $e) {}
+
 $reviewed    = (int) $tot['accepted'] + (int) $tot['declined'];
 $reviewedPct = (int) $tot['total'] ? round($reviewed / (int) $tot['total'] * 100) : 0;
 $bmap        = ['new' => 'st-booked', 'shortlisted' => 'st-pending', 'accepted' => 'st-confirmed', 'declined' => 'st-cancelled'];
@@ -95,7 +113,8 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
     </div>
     <div class="sl-prog-actions">
       <a href="volunteers.php?ai=picks" class="btn btn-light btn-sm"><i class="fa-solid fa-list"></i> Table view</a>
-      <a href="volunteers.php?export=1&amp;ai=picks" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> Export</a>
+      <a href="volunteers.php?export=1&amp;ai=picks" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
+      <a href="volunteers.php?export=xlsx&amp;ai=picks" class="btn btn-light btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
     </div>
   </div>
   <div class="bar sl-bar">
@@ -110,6 +129,18 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
         <?php if ((int) $fr['acc']): ?><span class="sl-tick"><?= (int) $fr['acc'] ?> ✓</span><?php endif; ?>
         <?php if ((int) ($fr['dec'] ?? 0)): ?><span class="sl-cross"><?= (int) $fr['dec'] ?> ✗</span><?php endif; ?>
       </span>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <?php if ($latestShortfall): ?>
+  <div class="sl-shortfall"><i class="fa-solid fa-triangle-exclamation"></i> <b>Shortfall notice:</b> Only <?= (int) $tot['total'] ?> eligible applicant<?= (int) $tot['total'] === 1 ? '' : 's' ?> found &mdash; <?= $latestShortfall ?> short of the target 30. Review <a href="volunteers.php?ai=unmet">applicants who may not meet requirements</a>.</div>
+  <?php endif; ?>
+  <!-- Score distribution -->
+  <?php if (array_sum($distBuckets)): ?>
+  <div class="sl-dist small">
+    <span class="muted">Score distribution:</span>
+    <?php foreach ($distBuckets as $label => $count): if (!$count) continue; ?>
+      <span class="tag sl-dist-<?= strtolower(str_replace(['–','–',' '], ['-','-','-'], $label)) ?>"><?= e($label) ?> <b><?= $count ?></b></span>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
@@ -145,6 +176,7 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
 
   <?php foreach ($rows as $v):
     $n          = vol_ai_notes($v);
+    $bd         = vol_ai_breakdown($v);
     $band       = vol_ai_band((int) $v['ai_score']);
     $isAccepted = $v['status'] === 'accepted';
     $isDeclined = $v['status'] === 'declined';
@@ -202,6 +234,21 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
         <p class="ai-flags"><?php foreach ($n['flags'] as $fl): ?><span class="tag"><i class="fa-solid fa-flag"></i> <?= e($fl) ?></span><?php endforeach; ?></p>
       <?php endif; ?>
 
+      <?php if ($bd): ?>
+      <details class="sl-breakdown">
+        <summary class="small muted" style="cursor:pointer;user-select:none">Scoring breakdown</summary>
+        <div class="ai-breakdown" style="margin-top:8px">
+          <?php foreach (VOL_AI_CRITERIA as $key => $info):
+            $cs = (int) ($bd[$key] ?? 0); $pct = $info['max'] > 0 ? round($cs / $info['max'] * 100) : 0; ?>
+          <div class="ai-crit">
+            <div class="ai-crit-label"><span><?= e($info['label']) ?></span><span class="ai-crit-score"><?= $cs ?> / <?= $info['max'] ?></span></div>
+            <div class="ai-crit-bar"><i style="width:<?= $pct ?>%"></i></div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+      </details>
+      <?php endif; ?>
+
       <!-- Quick details row -->
       <div class="sl-meta small">
         <?php foreach (array_filter(explode(',', (string) $v['fields'])) as $t): ?><span class="tag"><?= e($t) ?></span><?php endforeach; ?>
@@ -253,13 +300,25 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
 .sl-progress{margin-bottom:0}
 .sl-prog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .sl-prog-sub{margin-top:4px;color:var(--text-muted)}
-.sl-prog-actions{display:flex;gap:8px;flex-shrink:0}
+.sl-prog-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap}
 .green-text{color:#1a6b35}
 .red-text{color:#c4121e}
 .sl-bar{margin:12px 0 8px;height:10px}
 .sl-fields{margin-top:4px;flex-wrap:wrap;gap:6px}
 .sl-tick{background:#d4f5df;color:#1a6b35;border-radius:999px;padding:1px 5px;font-weight:700}
 .sl-cross{background:#ffe4e4;color:#c4121e;border-radius:999px;padding:1px 5px;font-weight:700}
+.sl-shortfall{margin-top:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;color:#92400e;font-size:14px}
+.sl-dist{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* Breakdown inside shortlist cards */
+.sl-breakdown{margin-top:8px}
+.sl-breakdown summary{font-size:12px;color:var(--text-muted,#4A5372);list-style:none}
+.sl-breakdown summary::-webkit-details-marker{display:none}
+.ai-breakdown{margin-top:8px}
+.ai-crit{margin-bottom:7px}
+.ai-crit-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+.ai-crit-score{font-weight:700;color:var(--navy,#0F2557)}
+.ai-crit-bar{height:6px;background:#e1e4ed;border-radius:999px;overflow:hidden}
+.ai-crit-bar i{display:block;height:100%;background:var(--navy,#0F2557);border-radius:999px}
 .sl-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;margin-bottom:0}
 /* Cards */
 .sl-cards{display:flex;flex-direction:column;gap:14px;margin-top:14px}

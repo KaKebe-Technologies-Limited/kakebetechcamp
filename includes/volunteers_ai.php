@@ -378,7 +378,17 @@ function vol_ai_rec_badge(string $rec): string
 function vol_ai_pick(int $size, int $perField): array
 {
     // Left out: declined, may not meet the requirements, and anyone the team set back to New by hand (ai_pick 2)
-    $rows = db()->query("SELECT id, ai_field FROM volunteers WHERE ai_scored_at IS NOT NULL AND ai_meets = 1 AND status <> 'declined' AND NOT (ai_pick = 2 AND status = 'new') ORDER BY ai_score DESC, id ASC")->fetchAll();
+    // Tiebreaking: sum of the four key criteria (technical + relevant + training + practical) so tied total scores
+    // are resolved by substantive merit rather than application order.
+    $rows = db()->query("SELECT id, ai_field,
+        COALESCE(JSON_EXTRACT(ai_breakdown,'$.technical_expertise'),0) +
+        COALESCE(JSON_EXTRACT(ai_breakdown,'$.relevant_experience'),0) +
+        COALESCE(JSON_EXTRACT(ai_breakdown,'$.training_experience'),0) +
+        COALESCE(JSON_EXTRACT(ai_breakdown,'$.practical_projects'),0) AS tiebreak
+        FROM volunteers
+        WHERE ai_scored_at IS NOT NULL AND ai_meets = 1 AND status <> 'declined'
+        AND NOT (ai_pick = 2 AND status = 'new')
+        ORDER BY ai_score DESC, tiebreak DESC, id ASC")->fetchAll();
     $quota = [];
     foreach (array_keys(volunteer_fields()) as $field) {
         $n = 0;
@@ -416,7 +426,7 @@ function vol_ai_pick(int $size, int $perField): array
  * Earlier AI picks that dropped out of the list go back to "New". Anyone whose status the team has set by hand
  * (ai_pick = 2) is never changed, nor are Accepted and Not selected applicants. Returns [picked, newly shortlisted, back to new].
  */
-function vol_ai_shortlist(int $size, int $perField): array
+function vol_ai_shortlist(int $size, int $perField, int $runId = 0): array
 {
     $ids = vol_ai_pick($size, $perField);
     $pdo = db();
@@ -431,5 +441,19 @@ function vol_ai_shortlist(int $size, int $perField): array
         $short->execute([now(), $id]);
         $newly += $short->rowCount();
     }
-    return [count($ids), $newly, (int) $back];
+
+    // Save a history snapshot so each run's shortlist composition is recorded
+    if ($ids && $runId) {
+        $hist = $pdo->prepare("INSERT IGNORE INTO vol_score_history
+            (volunteer_id, run_id, ai_score, ai_rank, ai_recommendation, was_shortlisted, scored_at)
+            SELECT id, ?, ai_score, ai_rank, ai_recommendation, (ai_rank IS NOT NULL), ai_scored_at
+            FROM volunteers WHERE ai_scored_at IS NOT NULL");
+        $hist->execute([$runId]);
+    }
+
+    // Shortfall: how many positions went unfilled because fewer than $size eligible candidates exist
+    $eligible = (int) $pdo->query("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NOT NULL AND ai_meets = 1 AND status <> 'declined'")->fetchColumn();
+    $shortfall = $eligible < $size ? max(0, $size - $eligible) : 0;
+
+    return [count($ids), $newly, (int) $back, $shortfall];
 }

@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 42;
+const SCHEMA_VERSION = 43;
 
 /** Prepare + execute a query in one call. */
 function q(string $sql, array $params = []): PDOStatement
@@ -151,6 +151,27 @@ function migrate(PDO $pdo): void
         $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
             ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
+    }
+    if ($version >= 42 && $version < 43) {
+        // v43: assessment run history, run status tracking, shortfall detection
+        $pdo->exec("CREATE TABLE IF NOT EXISTS vol_score_history (
+            id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            volunteer_id     INT UNSIGNED NOT NULL,
+            run_id           INT UNSIGNED NULL,
+            ai_score         TINYINT UNSIGNED NOT NULL,
+            ai_rank          SMALLINT UNSIGNED NULL,
+            ai_recommendation VARCHAR(50) NULL,
+            was_shortlisted  TINYINT(1) NOT NULL DEFAULT 0,
+            scored_at        DATETIME NOT NULL,
+            INDEX idx_vol (volunteer_id),
+            INDEX idx_run (run_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        if (!column_exists($pdo, 'vol_ai_runs', 'run_status')) {
+            $pdo->exec("ALTER TABLE vol_ai_runs ADD COLUMN run_status VARCHAR(20) NOT NULL DEFAULT 'completed' AFTER run_notes");
+        }
+        if (!column_exists($pdo, 'vol_ai_runs', 'shortfall')) {
+            $pdo->exec("ALTER TABLE vol_ai_runs ADD COLUMN shortfall SMALLINT UNSIGNED NULL AFTER shortlisted");
+        }
     }
     if ($version >= 41 && $version < 42) {
         // v42: AI assessment breakdown by criterion, recommendation label, eligibility detail, and assessment run log

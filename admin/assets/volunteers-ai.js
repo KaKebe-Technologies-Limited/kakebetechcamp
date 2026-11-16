@@ -88,18 +88,38 @@
   const startBtn = modal.querySelector('.js-ai-modal-start');
   if (!startBtn) return;
 
-  startBtn.addEventListener('click', async () => {
-    startBtn.disabled = true;
-    const rescore = card.querySelector('.js-ai-rescore-all')?.checked;
-    let startData;
-    try { startData = await post({ action: 'ai_run_start', rescore: rescore ? '1' : '' }); }
-    catch (_) { alert('Could not start — check your connection and try again.'); startBtn.disabled = false; return; }
-    if (!startData.ok) { alert(startData.error || 'Could not start.'); startBtn.disabled = false; return; }
+  // Resume button: re-enters the progress pane for an interrupted run
+  const resumeBanner = card.querySelector('.ai-resume-banner');
+  if (resumeBanner) {
+    const resumeBtn = resumeBanner.querySelector('.js-ai-resume');
+    const dismissBtn = resumeBanner.querySelector('.js-ai-dismiss-run');
+    const resumeRunId = parseInt(resumeBanner.dataset.runId || '0', 10);
+    const resumeTotal = parseInt(resumeBanner.dataset.total || '0', 10);
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', async () => {
+        resumeBanner.style.opacity = '0.5';
+        await post({ action: 'ai_dismiss_run', run_id: String(resumeRunId) }).catch(() => {});
+        resumeBanner.remove();
+      });
+    }
+    if (resumeBtn && resumeRunId) {
+      resumeBtn.addEventListener('click', async () => {
+        resumeBtn.disabled = true;
+        let resumeData;
+        try { resumeData = await post({ action: 'ai_run_resume', run_id: String(resumeRunId) }); }
+        catch (_) { alert('Could not resume — check your connection.'); resumeBtn.disabled = false; return; }
+        if (!resumeData.ok) { alert(resumeData.error || 'Could not resume.'); resumeBtn.disabled = false; return; }
+        startBtn.disabled = false;
+        await runScoring(resumeData, startBtn);
+      });
+    }
+  }
 
+  async function runScoring(startData, btn) {
     const ids     = startData.ids;
     const runId   = startData.run_id || 0;
     const total   = startData.total || ids.length;
-    if (!ids.length) { alert('All applications have already been scored. Check "Score everyone again" to rescore.'); startBtn.disabled = false; return; }
+    if (!ids.length) { alert('All applications have already been scored. Check "Score everyone again" to rescore.'); if (btn) btn.disabled = false; return; }
 
     show(progressPane);
     const setT  = (s, v) => { const el = $(s); if (el) el.textContent = v; };
@@ -156,10 +176,24 @@
     setT('.js-done-flagged',     finData.flagged ?? '—');
     setT('.js-done-failed',      failed || 0);
 
+    // Show shortfall warning if fewer than 30 eligible
+    const shortfallEl = document.querySelector('.js-done-shortfall');
+    if (shortfallEl && finData.shortfall > 0) { shortfallEl.style.display = ''; }
+
     show(donePane);
-    startBtn.disabled = false;
+    if (btn) btn.disabled = false;
     // Update the main KPIs on the page behind the modal
     const bar = document.querySelector('.js-ai-bar');
     if (bar) bar.style.width = (finData.all_scored && total ? Math.round(finData.all_scored / total * 100) : 0) + '%';
+  }
+
+  startBtn.addEventListener('click', async () => {
+    startBtn.disabled = true;
+    const rescore = card.querySelector('.js-ai-rescore-all')?.checked;
+    let startData;
+    try { startData = await post({ action: 'ai_run_start', rescore: rescore ? '1' : '' }); }
+    catch (_) { alert('Could not start — check your connection and try again.'); startBtn.disabled = false; return; }
+    if (!startData.ok) { alert(startData.error || 'Could not start.'); startBtn.disabled = false; return; }
+    await runScoring(startData, startBtn);
   });
 })();

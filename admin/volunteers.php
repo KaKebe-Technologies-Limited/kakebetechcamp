@@ -8,7 +8,7 @@ $statuses = volunteer_statuses();
 /** WHERE clause for the filters (status, field, search). */
 $filters = function (array $in) use ($fields, $statuses): array {
     $f = ['status' => (string) ($in['status'] ?? ''), 'field' => (string) ($in['field'] ?? ''), 'q' => trim((string) ($in['q'] ?? '')),
-        'ai' => in_array($in['ai'] ?? '', ['picks', 'unmet', 'nocv'], true) ? $in['ai'] : '', 'sort' => ($in['sort'] ?? '') === 'score' ? 'score' : ''];
+        'ai' => in_array($in['ai'] ?? '', ['picks', 'unmet', 'nocv', 'unscored', 'not_shortlisted', 'needs_review'], true) ? $in['ai'] : '', 'sort' => ($in['sort'] ?? '') === 'score' ? 'score' : ''];
     $where = [];
     $params = [];
     if (isset($statuses[$f['status']])) {
@@ -33,6 +33,12 @@ $filters = function (array $in) use ($fields, $statuses): array {
         $where[] = 'ai_scored_at IS NOT NULL AND ai_meets = 0';
     } elseif ($f['ai'] === 'nocv') {
         $where[] = "ai_scored_at IS NOT NULL AND ai_notes LIKE '%CV could not be read%'";
+    } elseif ($f['ai'] === 'unscored') {
+        $where[] = "ai_scored_at IS NULL AND status <> 'declined'";
+    } elseif ($f['ai'] === 'not_shortlisted') {
+        $where[] = 'ai_scored_at IS NOT NULL AND ai_rank IS NULL';
+    } elseif ($f['ai'] === 'needs_review') {
+        $where[] = "ai_scored_at IS NOT NULL AND (ai_meets = 0 OR ai_notes LIKE '%CV could not be read%' OR ai_notes LIKE '%Tried to instruct%' OR ai_notes LIKE '%CV does not match%')";
     }
     return [$where ? ' WHERE ' . implode(' AND ', $where) : '', $params, $f];
 };
@@ -61,13 +67,59 @@ if (($_GET['export'] ?? '') === '1') {
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");
     fputcsv($out, ['Application', 'Full name', 'Email', 'Phone', 'Gender', 'Age', 'Nationality', 'Based in', 'Qualification', 'Course', 'Institution', 'Graduated', 'Fields', 'Experience', 'Current role', 'LinkedIn / portfolio', 'Availability', 'Recommended by', 'About', 'Status', 'Applied',
-        'AI score', 'AI shortlist rank', 'Best field (AI)', 'AI summary', 'AI strengths', 'AI concerns', 'AI flags']);
+        'AI score', 'AI shortlist rank', 'Best field (AI)', 'AI recommendation', 'AI summary', 'AI strengths', 'AI concerns', 'AI flags',
+        'Technical expertise', 'Relevant experience', 'Training experience', 'Projects & portfolio', 'Communication', 'Innovation', 'Programme relevance']);
     foreach (q("SELECT * FROM volunteers$where ORDER BY " . ($f['ai'] === 'picks' ? 'ai_rank' : 'id'), $params) as $v) {
         $n = vol_ai_notes($v);
+        $bd = vol_ai_breakdown($v);
         fputcsv($out, [$v['reference'], $v['full_name'], $v['email'], $v['phone'], $v['gender'], volunteer_age($v['dob']), $v['nationality'], $v['location'], $v['qualification'], $v['course'], $v['institution'], $v['grad_year'],
             str_replace(',', '; ', $v['fields']), $v['experience'], $v['job_role'], $v['portfolio_url'], volunteer_availability_options()[$v['availability']] ?? $v['availability'], $v['referred_by'], $v['bio'], $statuses[$v['status']] ?? $v['status'], $v['created_at'],
-            $v['ai_score'], $v['ai_rank'], $v['ai_field'], $v['ai_summary'], implode('; ', $n['strengths']), implode('; ', $n['concerns']), implode('; ', $n['flags'])]);
+            $v['ai_score'], $v['ai_rank'], $v['ai_field'], $v['ai_recommendation'], $v['ai_summary'], implode('; ', $n['strengths']), implode('; ', $n['concerns']), implode('; ', $n['flags']),
+            $bd['technical_expertise'] ?? '', $bd['relevant_experience'] ?? '', $bd['training_experience'] ?? '', $bd['practical_projects'] ?? '', $bd['communication'] ?? '', $bd['innovation'] ?? '', $bd['programme_relevance'] ?? '']);
     }
+    exit;
+}
+
+/* ---------- Excel export (shortlist or all, SpreadsheetML) ---------- */
+if (($_GET['export'] ?? '') === 'xlsx') {
+    [$where, $params, $f] = $filters($_GET);
+    $isShortlist = $f['ai'] === 'picks';
+    $title = $isShortlist ? 'AI Shortlist — Top 30' : 'Volunteer Trainer Applications';
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename="kakebe-volunteers-' . ($isShortlist ? 'shortlist-' : '') . date('Y-m-d') . '.xls"');
+    $rows2 = q("SELECT * FROM volunteers$where ORDER BY " . ($isShortlist ? 'ai_rank' : 'ai_score IS NULL, ai_score DESC, id'), $params)->fetchAll();
+    $e2 = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+    echo '<Worksheet ss:Name="' . $e2($title) . '"><Table>';
+    $headers = $isShortlist
+        ? ['Rank', 'Application', 'Full name', 'Email', 'Phone', 'Gender', 'Age', 'Based in', 'Qualification', 'Course', 'Institution', 'Fields', 'AI score', 'Recommendation', 'Best field', 'AI summary', 'Strengths', 'Concerns', 'Flags', 'Status',
+           'Technical', 'Experience', 'Training', 'Projects', 'Communication', 'Innovation', 'Relevance']
+        : ['Application', 'Full name', 'Email', 'Phone', 'Gender', 'Age', 'Nationality', 'Based in', 'Qualification', 'Course', 'Institution', 'Fields', 'Experience', 'Current role', 'Availability', 'Status', 'Applied',
+           'AI score', 'AI rank', 'Recommendation', 'Best field', 'AI summary', 'Strengths', 'Concerns', 'Flags',
+           'Technical', 'Experience', 'Training', 'Projects', 'Communication', 'Innovation', 'Relevance'];
+    echo '<Row>';
+    foreach ($headers as $h) {
+        echo '<Cell><Data ss:Type="String">' . $e2($h) . '</Data></Cell>';
+    }
+    echo '</Row>';
+    foreach ($rows2 as $v) {
+        $n = vol_ai_notes($v);
+        $bd = vol_ai_breakdown($v);
+        $cells = $isShortlist
+            ? [$v['ai_rank'], $v['reference'], $v['full_name'], $v['email'], $v['phone'], $v['gender'], volunteer_age($v['dob']), $v['location'], $v['qualification'], $v['course'], $v['institution'], str_replace(',', '; ', $v['fields']), $v['ai_score'], $v['ai_recommendation'], $v['ai_field'], $v['ai_summary'], implode('; ', $n['strengths']), implode('; ', $n['concerns']), implode('; ', $n['flags']), $statuses[$v['status']] ?? $v['status'],
+               $bd['technical_expertise'] ?? '', $bd['relevant_experience'] ?? '', $bd['training_experience'] ?? '', $bd['practical_projects'] ?? '', $bd['communication'] ?? '', $bd['innovation'] ?? '', $bd['programme_relevance'] ?? '']
+            : [$v['reference'], $v['full_name'], $v['email'], $v['phone'], $v['gender'], volunteer_age($v['dob']), $v['nationality'], $v['location'], $v['qualification'], $v['course'], $v['institution'], str_replace(',', '; ', $v['fields']), $v['experience'], $v['job_role'], volunteer_availability_options()[$v['availability']] ?? $v['availability'], $statuses[$v['status']] ?? $v['status'], $v['created_at'],
+               $v['ai_score'], $v['ai_rank'], $v['ai_recommendation'], $v['ai_field'], $v['ai_summary'], implode('; ', $n['strengths']), implode('; ', $n['concerns']), implode('; ', $n['flags']),
+               $bd['technical_expertise'] ?? '', $bd['relevant_experience'] ?? '', $bd['training_experience'] ?? '', $bd['practical_projects'] ?? '', $bd['communication'] ?? '', $bd['innovation'] ?? '', $bd['programme_relevance'] ?? ''];
+        echo '<Row>';
+        foreach ($cells as $c) {
+            $type = is_numeric($c) && $c !== '' ? 'Number' : 'String';
+            echo '<Cell><Data ss:Type="' . $type . '">' . $e2($c) . '</Data></Cell>';
+        }
+        echo '</Row>';
+    }
+    echo '</Table></Worksheet></Workbook>';
     exit;
 }
 
@@ -106,33 +158,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!vol_ai_ready()) {
             json_response(['ok' => false, 'error' => 'Add the Anthropic API key first.', 'fatal' => true]);
         }
+        // Mark any stale running run as stopped
+        q("UPDATE vol_ai_runs SET run_status = 'stopped', completed_at = ? WHERE run_status = 'running' AND completed_at IS NULL", [now()]);
         $rescore = !empty($_POST['rescore']);
         $ids = q("SELECT id FROM volunteers WHERE status <> 'declined'" . ($rescore ? '' : ' AND ai_scored_at IS NULL') . ' ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
         $total = (int) q("SELECT COUNT(*) FROM volunteers WHERE status <> 'declined'")->fetchColumn();
         $runId = null;
         try {
             $pdo = db();
-            $pdo->prepare("INSERT INTO vol_ai_runs (started_at, total, scored, failed, shortlisted, run_notes, admin_id, created_at) VALUES (?, ?, 0, 0, 0, ?, ?, ?)")
+            $pdo->prepare("INSERT INTO vol_ai_runs (started_at, total, scored, failed, shortlisted, run_notes, run_status, admin_id, created_at) VALUES (?, ?, 0, 0, 0, ?, 'running', ?, ?)")
                 ->execute([now(), $total, ($rescore ? 'Full rescore' : 'New applications only'), $admin['id'] ?? null, now()]);
             $runId = (int) $pdo->lastInsertId();
         } catch (\Throwable $e) {}
         json_response(['ok' => true, 'ids' => array_map('intval', $ids), 'run_id' => $runId, 'total' => $total]);
+    }
+    // Dismiss a stale running run (admin chose not to resume)
+    if ($action === 'ai_dismiss_run') {
+        $runId = (int) ($_POST['run_id'] ?? 0);
+        if ($runId) {
+            q("UPDATE vol_ai_runs SET run_status = 'stopped', completed_at = ? WHERE id = ? AND run_status = 'running'", [now(), $runId]);
+        }
+        json_response(['ok' => true]);
+    }
+    // Resume an interrupted run — returns remaining unscored IDs for the given run
+    if ($action === 'ai_run_resume') {
+        session_write_close();
+        if (!vol_ai_ready()) {
+            json_response(['ok' => false, 'error' => 'Add the Anthropic API key first.', 'fatal' => true]);
+        }
+        $runId = (int) ($_POST['run_id'] ?? 0);
+        $run = $runId ? q('SELECT * FROM vol_ai_runs WHERE id = ?', [$runId])->fetch() : null;
+        if (!$run) {
+            json_response(['ok' => false, 'error' => 'Run not found.']);
+        }
+        q("UPDATE vol_ai_runs SET run_status = 'running' WHERE id = ?", [$runId]);
+        $ids = q("SELECT id FROM volunteers WHERE status <> 'declined' AND ai_scored_at IS NULL ORDER BY id")->fetchAll(PDO::FETCH_COLUMN);
+        $total = (int) q("SELECT COUNT(*) FROM volunteers WHERE status <> 'declined'")->fetchColumn();
+        json_response(['ok' => true, 'ids' => array_map('intval', $ids), 'run_id' => $runId, 'total' => $total, 'resumed' => true]);
     }
     // Finish a run: shortlist top 30 and record results
     if ($action === 'ai_run_finish') {
         session_write_close();
         $size = 30;
         $runId = (int) ($_POST['run_id'] ?? 0);
-        [$picked, $newly, $dropped] = vol_ai_shortlist($size, 0);
+        [$picked, $newly, $dropped, $shortfall] = vol_ai_shortlist($size, 0, $runId);
         $scored = (int) ($_POST['scored'] ?? 0);
         $failed = (int) ($_POST['failed'] ?? 0);
         if ($runId) {
-            q('UPDATE vol_ai_runs SET completed_at = ?, scored = ?, failed = ?, shortlisted = ? WHERE id = ?',
-              [now(), $scored, $failed, $picked, $runId]);
+            q("UPDATE vol_ai_runs SET completed_at = ?, scored = ?, failed = ?, shortlisted = ?, shortfall = ?, run_status = 'completed' WHERE id = ?",
+              [now(), $scored, $failed, $picked, $shortfall ?: null, $runId]);
         }
         $allScored = (int) q("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NOT NULL")->fetchColumn();
         $allFlagged = (int) q("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NOT NULL AND (ai_meets = 0 OR ai_notes LIKE '%CV could not be read%')")->fetchColumn();
-        json_response(['ok' => true, 'shortlisted' => $picked, 'newly' => $newly, 'all_scored' => $allScored, 'flagged' => $allFlagged]);
+        json_response(['ok' => true, 'shortlisted' => $picked, 'newly' => $newly, 'all_scored' => $allScored, 'flagged' => $allFlagged, 'shortfall' => $shortfall]);
     }
     if ($action === 'ai_score') {
         session_write_close();   // the Claude call can take a minute; don't hold the session (and the admin's other pages) meanwhile
@@ -150,8 +228,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $per = max(0, min(20, (int) ($_POST['per_field'] ?? 3)));
         setting_set('vol_ai_size', (string) $size);
         setting_set('vol_ai_per_field', (string) $per);
-        [$picked, $newly, $dropped] = vol_ai_shortlist($size, $per);
-        flash($picked ? "The AI shortlist has $picked applicants" . ($newly ? " ($newly moved to Shortlisted)" : '') . ($dropped ? ", $dropped earlier pick" . ($dropped === 1 ? '' : 's') . ' moved back to New' : '') . '. Review them below — no emails were sent.' : 'No scored applications to shortlist yet — score them with AI first.', $picked ? 'success' : 'error');
+        [$picked, $newly, $dropped, $shortfall] = vol_ai_shortlist($size, $per);
+        $msg = $picked ? "The AI shortlist has $picked applicants" . ($newly ? " ($newly moved to Shortlisted)" : '') . ($dropped ? ", $dropped earlier pick" . ($dropped === 1 ? '' : 's') . ' moved back to New' : '') . '. Review them below — no emails were sent.' : 'No scored applications to shortlist yet — score them with AI first.';
+        if ($shortfall > 0) {
+            $msg .= " Note: only $picked eligible applicant" . ($picked === 1 ? '' : 's') . " found — $shortfall short of the target $size. Please review flagged applicants.";
+        }
+        flash($msg, $picked ? 'success' : 'error');
         redirect($picked ? 'volunteers.php?ai=picks' : 'volunteers.php#ai');
     }
     // Thank one applicant (the row / page button): emails them; the browser opens WhatsApp
@@ -227,6 +309,24 @@ $pickFields = q('SELECT ai_field label, COUNT(*) c FROM volunteers WHERE ai_rank
 $pickGender = q("SELECT COALESCE(NULLIF(gender, ''), 'Not given') g, COUNT(*) c FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY g ORDER BY c DESC")->fetchAll();
 $aiSize = (int) setting('vol_ai_size', '30') ?: 30;
 $aiPer = (int) setting('vol_ai_per_field', '3');
+// Detect an interrupted scoring run (started but never completed)
+$pendingRun = null;
+try {
+    $pendingRun = q("SELECT * FROM vol_ai_runs WHERE run_status = 'running' AND completed_at IS NULL ORDER BY id DESC LIMIT 1")->fetch() ?: null;
+} catch (\Throwable $e) {}
+$pendingUnscored = $pendingRun ? (int) q("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NULL AND status <> 'declined'")->fetchColumn() : 0;
+// Latest run shortfall
+$latestShortfall = null;
+try {
+    $lr = q("SELECT shortfall FROM vol_ai_runs WHERE run_status = 'completed' ORDER BY id DESC LIMIT 1")->fetch();
+    if ($lr && $lr['shortfall'] > 0) {
+        $latestShortfall = (int) $lr['shortfall'];
+    }
+} catch (\Throwable $e) {}
+// Count AI filter sub-groups for filter tabs
+$aiUnscored = (int) q("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NULL AND status <> 'declined'")->fetchColumn();
+$aiNotShortlisted = (int) q('SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NOT NULL AND ai_rank IS NULL')->fetchColumn();
+$aiNeedsReview = (int) q("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NOT NULL AND (ai_meets = 0 OR ai_notes LIKE '%CV could not be read%' OR ai_notes LIKE '%Tried to instruct%' OR ai_notes LIKE '%CV does not match%')")->fetchColumn();
 
 admin_header('Volunteer trainers', 'volunteers', 'People offering their expertise as trainers during Kakebe Tech Camp 2026');
 ?>
@@ -254,6 +354,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
     <div class="bar"><i class="js-ai-bar" style="width: <?= $aiPct ?>%"></i></div>
     <?php if ((int) $ai['unmet']): ?><small class="muted"><?= (int) $ai['unmet'] ?> scored applicant<?= (int) $ai['unmet'] === 1 ? '' : 's' ?> may not meet the requirements (age 22 – 40, at least a Diploma, a CV that is really theirs), so the AI shortlist leaves them out — <a href="volunteers.php?ai=unmet">check them</a>.</small><?php endif; ?>
     <?php if ((int) $ai['nocv']): ?><small class="muted"><?= (int) $ai['nocv'] ?> applicant<?= (int) $ai['nocv'] === 1 ? ' was' : 's were' ?> scored without reading the CV (old Word files or damaged PDFs) — <a href="volunteers.php?ai=nocv">review them yourself</a>.</small><?php endif; ?>
+    <?php if ($latestShortfall): ?><small class="muted" style="color:#b45309"><i class="fa-solid fa-triangle-exclamation"></i> Last shortlist: only <?= (int) $ai['picks'] ?> eligible applicant<?= (int) $ai['picks'] === 1 ? '' : 's' ?> found — <?= $latestShortfall ?> short of the target 30. Review the <a href="volunteers.php?ai=unmet">requirements-failed</a> applicants.</small><?php endif; ?>
   </div>
   <?php if (!$aiAdmin): ?>
     <p class="small muted">Only admins can run the AI review. Open an application to see its AI assessment.</p>
@@ -264,6 +365,14 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
     </form>
   <?php else: ?>
     <!-- One-click: score + shortlist top 30 in one go -->
+    <?php if ($pendingRun && $pendingUnscored > 0): ?>
+    <div class="ai-resume-banner" data-run-id="<?= (int) $pendingRun['id'] ?>" data-total="<?= (int) $pendingRun['total'] ?>">
+      <i class="fa-solid fa-circle-pause"></i>
+      <span>A previous scoring run was interrupted &mdash; <b><?= $pendingUnscored ?></b> application<?= $pendingUnscored === 1 ? '' : 's' ?> not yet scored.</span>
+      <button type="button" class="btn btn-navy btn-sm js-ai-resume"><i class="fa-solid fa-play"></i> Resume</button>
+      <button type="button" class="btn btn-light btn-sm js-ai-dismiss-run" data-run-id="<?= (int) $pendingRun['id'] ?>">Dismiss</button>
+    </div>
+    <?php endif; ?>
     <div class="ai-one-click">
       <button type="button" class="btn btn-navy js-ai-run-all"<?= (int) $ai['todo'] || (int) $ai['scored'] ? '' : ' disabled' ?>>
         <i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Scoring &amp; Generate Top 30
@@ -345,7 +454,16 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
   <?php foreach ($statuses as $k => $label): ?><a href="<?= e($url(['status' => $k, 'page' => null, 'ai' => null])) ?>" class="<?= $f['status'] === $k && $f['ai'] === '' ? 'active' : '' ?>"><?= e($label) ?> <em><?= number_format((int) ($counts[$k] ?? 0)) ?></em></a><?php endforeach; ?>
   <?php if ((int) $ai['picks']): ?>
     <a href="volunteers.php?ai=picks" class="<?= $f['ai'] === 'picks' ? 'active' : '' ?>"><i class="fa-solid fa-wand-magic-sparkles"></i> AI shortlist <em><?= (int) $ai['picks'] ?></em></a>
-    <a href="shortlist.php" class="<?= false ? 'active' : '' ?>" style="background:#0F2557;color:#fff;border-radius:8px;padding:6px 14px;font-weight:700"><i class="fa-solid fa-list-check"></i> Review shortlist →</a>
+    <a href="shortlist.php" style="background:#0F2557;color:#fff;border-radius:8px;padding:6px 14px;font-weight:700"><i class="fa-solid fa-list-check"></i> Review shortlist →</a>
+  <?php endif; ?>
+  <?php if ($aiUnscored && $aiAdmin): ?>
+    <a href="volunteers.php?ai=unscored" class="<?= $f['ai'] === 'unscored' ? 'active' : '' ?>"><i class="fa-solid fa-clock"></i> Not yet scored <em><?= $aiUnscored ?></em></a>
+  <?php endif; ?>
+  <?php if ($aiNotShortlisted): ?>
+    <a href="volunteers.php?ai=not_shortlisted&sort=score" class="<?= $f['ai'] === 'not_shortlisted' ? 'active' : '' ?>">Scored – not shortlisted <em><?= $aiNotShortlisted ?></em></a>
+  <?php endif; ?>
+  <?php if ($aiNeedsReview): ?>
+    <a href="volunteers.php?ai=needs_review" class="<?= $f['ai'] === 'needs_review' ? 'active' : '' ?>"><i class="fa-solid fa-flag"></i> Needs review <em><?= $aiNeedsReview ?></em></a>
   <?php endif; ?>
 </div>
 
@@ -371,7 +489,8 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
         <?php foreach ($statuses as $k => $label): ?><option value="<?= e($k) ?>">Mark as: <?= e($label) ?></option><?php endforeach; ?>
       </select>
       <button class="btn btn-primary btn-sm" type="submit" id="bulkApply" disabled>Apply</button>
-      <a href="<?= e($url(['export' => 1, 'page' => null])) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> Export</a>
+      <a href="<?= e($url(['export' => 1, 'page' => null])) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
+      <a href="<?= e($url(['export' => 'xlsx', 'page' => null])) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
     </div>
   </div>
   <?php if ($rows): ?>
@@ -460,9 +579,11 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
         <div class="ai-stat"><b class="js-done-flagged">—</b><small>Flagged</small></div>
         <div class="ai-stat"><b class="js-done-failed">—</b><small>Not Scored</small></div>
       </div>
+      <p class="js-done-shortfall small" style="color:#b45309;display:none"><i class="fa-solid fa-triangle-exclamation"></i> Fewer than 30 eligible applicants were found — the shortlist has fewer than 30. Review flagged applicants for eligibility.</p>
       <div class="ai-modal-actions">
         <button type="button" class="btn btn-light js-ai-modal-cancel">Close</button>
-        <a class="btn btn-navy js-done-link" href="shortlist.php"><i class="fa-solid fa-list-check"></i> View Top 30 Shortlist</a>
+        <a class="btn btn-navy" href="shortlist.php"><i class="fa-solid fa-list-check"></i> View Top 30 Shortlist</a>
+        <a class="btn btn-light btn-sm" href="volunteers.php?export=xlsx&ai=picks"><i class="fa-solid fa-file-excel"></i> Export Shortlist</a>
       </div>
     </div>
   </div>
@@ -479,12 +600,15 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
 .ai-modal-list{margin:0 0 20px;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px}
 .ai-modal-list li{display:flex;align-items:center;gap:8px}
 .ai-modal-list .fa-check{color:#1a6b35}
-.ai-modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.ai-modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .ai-run-stats{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap}
 .ai-stat{display:flex;flex-direction:column;align-items:center;min-width:60px;padding:8px 12px;background:#f4f5f9;border-radius:10px}
 .ai-stat b{font-size:22px;font-weight:800;color:#0F2557;line-height:1}
 .ai-stat small{font-size:11px;color:#6B7390;margin-top:2px}
 .ai-run-progress-wrap{display:flex;align-items:center;gap:10px}
 .ai-run-progress-wrap .bar{flex:1;height:10px}
+.ai-resume-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;margin:14px 0 10px;font-size:14px;color:#92400e}
+.ai-resume-banner i{color:#d97706;font-size:16px}
+.ai-resume-banner span{flex:1}
 </style>
 <?php admin_footer(['volunteers-ai.js']);
