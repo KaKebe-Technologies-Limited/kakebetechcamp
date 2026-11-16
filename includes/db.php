@@ -152,9 +152,10 @@ function migrate(PDO $pdo): void
             ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
     }
-    if ($version >= 42 && $version < 43) {
+    if ($version < 43) {
         // v43: assessment run history, run status tracking, shortfall detection.
-        // Also ensures v42 objects exist — the live server may have jumped past v42 without running it.
+        // Condition is $version < 43 (not >= 42) so this also runs when upgrading from v41 or below,
+        // since those skip the v42 block and land here needing the same tables and columns.
         $pdo->exec("CREATE TABLE IF NOT EXISTS vol_ai_runs (
             id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             started_at   DATETIME NOT NULL,
