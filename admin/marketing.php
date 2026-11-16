@@ -78,7 +78,7 @@ if (date('Y-m-d') <= '2026-10-25' && db()->exec("INSERT IGNORE INTO settings (sk
 if (date('Y-m-d') <= '2026-11-17' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_session5', '1')") === 1) {
     mk_sync_website_people();
     db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_from_name', 'Kakebe Technologies')");
-    $meet5    = 'https://meet.google.com/xsk-swoi-nvfso';
+    $meet5    = 'https://meet.google.com/xsk-swoi-nvf';
     $flyer5   = base_url('assets/img/email/session5-flyer.webp');
     $strip    = base_url('assets/img/email/partners-strip.png');
     $body5 = '<img src="' . $flyer5 . '" alt="Kakebe Tech Camp · Session 5 — Beyond the Classroom: Tech, Confidence &amp; Leadership · Mon 16 Nov, 8:00–9:30 PM">'
@@ -88,7 +88,7 @@ if (date('Y-m-d') <= '2026-11-17' && db()->exec("INSERT IGNORE INTO settings (sk
         . '<ul>'
         . '<li>📅 <strong>Date:</strong> Monday 16th November 2026 — <em>tonight</em></li>'
         . '<li>⏰ <strong>Time:</strong> 8:00 – 9:30 PM (EAT / Nairobi time)</li>'
-        . '<li>💻 <strong>Platform:</strong> Google Meet — <a href="' . $meet5 . '">meet.google.com/xsk-swoi-nvfso</a></li>'
+        . '<li>💻 <strong>Platform:</strong> Google Meet — <a href="' . $meet5 . '">meet.google.com/xsk-swoi-nvf</a></li>'
         . '</ul>'
         . '<h3>Tonight\'s guests</h3>'
         . '<ul>'
