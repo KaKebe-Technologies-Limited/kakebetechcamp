@@ -173,6 +173,7 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
     <div class="sl-card-body">
       <?php if ($v['ai_field']): ?>
         <p class="sl-ai-label small muted"><i class="fa-solid fa-wand-magic-sparkles"></i> Best training field: <b><?= e((string) $v['ai_field']) ?></b>
+        <?php if ($v['ai_recommendation'] ?? ''): ?> &nbsp;<span class="badge <?= vol_ai_rec_badge((string) $v['ai_recommendation']) ?>"><?= e((string) $v['ai_recommendation']) ?></span><?php endif; ?>
         <?php if (!$v['ai_meets']): ?> &nbsp;<span class="badge st-cancelled" title="May not meet the requirements (age, qualification or CV)">requirements?</span><?php endif; ?>
         </p>
       <?php endif; ?>

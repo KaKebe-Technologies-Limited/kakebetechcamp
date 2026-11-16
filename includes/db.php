@@ -5,7 +5,7 @@
  * for hosts where you prefer to import manually).
  */
 
-const SCHEMA_VERSION = 41;
+const SCHEMA_VERSION = 42;
 
 /** Prepare + execute a query in one call. */
 function q(string $sql, array $params = []): PDOStatement
@@ -151,6 +151,27 @@ function migrate(PDO $pdo): void
         $pdo->exec('ALTER TABLE fin_requisitions ADD COLUMN original_total INT UNSIGNED NULL AFTER balance_note, ADD COLUMN adjust_note VARCHAR(1000) NULL AFTER original_total,
             ADD COLUMN signed_at DATETIME NULL AFTER adjust_note, ADD COLUMN sig_requester VARCHAR(80) NULL AFTER signed_at, ADD COLUMN sig_approver VARCHAR(80) NULL AFTER sig_requester,
             ADD COLUMN sig_payer VARCHAR(80) NULL AFTER sig_approver, ADD COLUMN sig_verifier VARCHAR(80) NULL AFTER sig_payer');
+    }
+    if ($version >= 41 && $version < 42) {
+        // v42: AI assessment breakdown by criterion, recommendation label, eligibility detail, and assessment run log
+        if (!column_exists($pdo, 'volunteers', 'ai_recommendation')) {
+            $pdo->exec("ALTER TABLE volunteers
+                ADD COLUMN ai_recommendation VARCHAR(50) NULL AFTER ai_error,
+                ADD COLUMN ai_breakdown TEXT NULL AFTER ai_recommendation,
+                ADD COLUMN ai_eligibility TEXT NULL AFTER ai_breakdown");
+        }
+        $pdo->exec("CREATE TABLE IF NOT EXISTS vol_ai_runs (
+            id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            started_at   DATETIME NOT NULL,
+            completed_at DATETIME NULL,
+            total        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            scored       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            failed       SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            shortlisted  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            run_notes    VARCHAR(500) NULL,
+            admin_id     SMALLINT UNSIGNED NULL,
+            created_at   DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
     if ($version >= 40 && $version < 41) {
         // v41: fix typo in Oscar's email (oscarbriankojok → oscarbrianojok) and reset password

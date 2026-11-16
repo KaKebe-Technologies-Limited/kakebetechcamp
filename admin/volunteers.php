@@ -100,6 +100,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = q("SELECT id FROM volunteers WHERE status <> 'declined'" . (empty($_POST['rescore']) ? ' AND ai_scored_at IS NULL' : '') . ' ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
         json_response(['ok' => vol_ai_ready(), 'ids' => array_map('intval', $ids), 'error' => vol_ai_ready() ? null : 'Add the Anthropic API key first.']);
     }
+    // Start a "Run AI Scoring & Generate Top 30" run — creates the run record and returns the queue
+    if ($action === 'ai_run_start') {
+        session_write_close();
+        if (!vol_ai_ready()) {
+            json_response(['ok' => false, 'error' => 'Add the Anthropic API key first.', 'fatal' => true]);
+        }
+        $rescore = !empty($_POST['rescore']);
+        $ids = q("SELECT id FROM volunteers WHERE status <> 'declined'" . ($rescore ? '' : ' AND ai_scored_at IS NULL') . ' ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
+        $total = (int) q("SELECT COUNT(*) FROM volunteers WHERE status <> 'declined'")->fetchColumn();
+        $runId = null;
+        try {
+            $pdo = db();
+            $pdo->prepare("INSERT INTO vol_ai_runs (started_at, total, scored, failed, shortlisted, run_notes, admin_id, created_at) VALUES (?, ?, 0, 0, 0, ?, ?, ?)")
+                ->execute([now(), $total, ($rescore ? 'Full rescore' : 'New applications only'), $admin['id'] ?? null, now()]);
+            $runId = (int) $pdo->lastInsertId();
+        } catch (\Throwable $e) {}
+        json_response(['ok' => true, 'ids' => array_map('intval', $ids), 'run_id' => $runId, 'total' => $total]);
+    }
+    // Finish a run: shortlist top 30 and record results
+    if ($action === 'ai_run_finish') {
+        session_write_close();
+        $size = 30;
+        $runId = (int) ($_POST['run_id'] ?? 0);
+        [$picked, $newly, $dropped] = vol_ai_shortlist($size, 0);
+        $scored = (int) ($_POST['scored'] ?? 0);
+        $failed = (int) ($_POST['failed'] ?? 0);
+        if ($runId) {
+            q('UPDATE vol_ai_runs SET completed_at = ?, scored = ?, failed = ?, shortlisted = ? WHERE id = ?',
+              [now(), $scored, $failed, $picked, $runId]);
+        }
+        $allScored = (int) q("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NOT NULL")->fetchColumn();
+        $allFlagged = (int) q("SELECT COUNT(*) FROM volunteers WHERE ai_scored_at IS NOT NULL AND (ai_meets = 0 OR ai_notes LIKE '%CV could not be read%')")->fetchColumn();
+        json_response(['ok' => true, 'shortlisted' => $picked, 'newly' => $newly, 'all_scored' => $allScored, 'flagged' => $allFlagged]);
+    }
     if ($action === 'ai_score') {
         session_write_close();   // the Claude call can take a minute; don't hold the session (and the admin's other pages) meanwhile
         @set_time_limit(400);
@@ -229,12 +263,22 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
         <span class="ai-key-row"><input type="password" name="anthropic_api_key" autocomplete="off" placeholder="sk-ant-…" required><button class="btn btn-primary" type="submit"><i class="fa-solid fa-key"></i> Save key</button></span></label>
     </form>
   <?php else: ?>
-    <div class="ai-steps">
+    <!-- One-click: score + shortlist top 30 in one go -->
+    <div class="ai-one-click">
+      <button type="button" class="btn btn-navy js-ai-run-all"<?= (int) $ai['todo'] || (int) $ai['scored'] ? '' : ' disabled' ?>>
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Scoring &amp; Generate Top 30
+      </button>
+      <label class="check-inline small"><input type="checkbox" class="js-ai-rescore-all"> Score everyone again</label>
+    </div>
+    <p class="small muted" style="margin-top:6px;margin-bottom:16px">Scores all applications against seven criteria (100 pts), then shortlists the top 30. You review and make every final decision.</p>
+    <!-- Advanced: manual two-step -->
+    <details class="ai-steps-wrap"><summary class="small muted" style="cursor:pointer;user-select:none">Advanced — score &amp; shortlist separately</summary>
+    <div class="ai-steps" style="margin-top:12px">
       <div class="ai-step">
         <span>1</span>
         <div>
           <b>Score the applications</b>
-          <p class="small muted">Each application and CV is read by Claude Opus 5.5 (Anthropic) against the camp's needs: expertise in the field, experience teaching young people, fit with a residential camp in Kitgum, commitment and the quality of the application. About 3 at a time; you can stop and continue later.</p>
+          <p class="small muted">Each application and CV is assessed by Claude Opus 5.5 against seven criteria: technical expertise, experience, training ability, projects, communication, innovation and camp relevance. About 3 at a time; you can stop and continue later.</p>
           <div class="ai-run">
             <button type="button" class="btn btn-primary js-ai-run"<?= (int) $ai['todo'] || (int) $ai['scored'] ? '' : ' disabled' ?>><i class="fa-solid fa-wand-magic-sparkles"></i> <?= (int) $ai['todo'] ? 'Score ' . number_format((int) $ai['todo']) . ' application' . ((int) $ai['todo'] === 1 ? '' : 's') : 'All scored' ?></button>
             <button type="button" class="btn btn-light js-ai-stop" hidden><i class="fa-solid fa-stop"></i> Stop</button>
@@ -252,7 +296,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
             Shortlist the best <input type="number" name="size" value="<?= $aiSize ?>" min="1" max="300"> · at least <input type="number" name="per_field" value="<?= $aiPer ?>" min="0" max="20"> per training field
             <button class="btn btn-navy btn-sm" type="submit"<?= (int) $ai['scored'] ? '' : ' disabled' ?>><i class="fa-solid fa-list-check"></i> Shortlist</button>
           </form>
-          <p class="small muted">Applicants still "New" move to <b>Shortlisted</b>, ranked by score. Anyone whose status you set yourself is never changed. Run it again after more scoring to refresh the list — earlier AI picks that are no longer in the top move back to New. You make the final decisions.</p>
+          <p class="small muted">Applicants still "New" move to <b>Shortlisted</b>, ranked by score. Anyone whose status you set yourself is never changed. Run it again after more scoring to refresh the list. You make the final decisions.</p>
           <?php if ($pickFields): ?>
             <div class="ai-mix small"><span class="muted">Shortlist by field:</span> <?php foreach ($pickFields as $pf): ?><span class="tag"><?= e($pf['label']) ?> <b><?= (int) $pf['c'] ?></b></span><?php endforeach; ?></div>
             <div class="ai-mix small"><span class="muted">By gender:</span> <?php foreach ($pickGender as $pg): ?><span class="tag"><?= e($pg['g']) ?> <b><?= (int) $pg['c'] ?></b></span><?php endforeach; ?></div>
@@ -260,6 +304,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
         </div>
       </div>
     </div>
+    </details>
     <?php if (env('ANTHROPIC_API_KEY') !== ''): ?>
     <p class="ai-key-change small">The Anthropic API key comes from ANTHROPIC_API_KEY in the .env file — change or remove it there.</p>
     <?php else: ?>
@@ -372,4 +417,74 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
     <div class="empty-state"><i class="fa-solid fa-person-chalkboard"></i><p><?= $qs ? 'No volunteers match your filters.' : 'No volunteer applications yet. Share the /volunteers link to start receiving them.' ?></p></div>
   <?php endif; ?>
 </form>
+
+<!-- AI Scoring Confirmation Modal -->
+<div id="aiRunModal" class="ai-modal-wrap" hidden aria-modal="true" role="dialog">
+  <div class="ai-modal">
+    <div id="aiRunConfirm">
+      <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Scoring &amp; Generate Top 30</h3>
+      <p>This will read all submitted applications and CVs, score each applicant against seven criteria, and automatically shortlist the top 30 highest-scoring eligible candidates.</p>
+      <ul class="ai-modal-list">
+        <li><i class="fa-solid fa-check"></i> <b><?= number_format($all) ?> applications</b> will be assessed</li>
+        <li><i class="fa-solid fa-check"></i> Each application scored out of <b>100 points</b> across seven criteria</li>
+        <li><i class="fa-solid fa-check"></i> Top 30 eligible applicants automatically shortlisted</li>
+        <li><i class="fa-solid fa-check"></i> All applicants and assessment results retained</li>
+        <li><i class="fa-solid fa-info-circle muted"></i> Roughly $0.05–0.10 per application (Anthropic API)</li>
+      </ul>
+      <div class="ai-modal-actions">
+        <button type="button" class="btn btn-light js-ai-modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-navy js-ai-modal-start"><i class="fa-solid fa-play"></i> Start AI Assessment</button>
+      </div>
+    </div>
+    <div id="aiRunProgress" hidden>
+      <h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Assessment in Progress</h3>
+      <div class="ai-run-stats">
+        <div class="ai-stat"><b class="js-run-total"><?= number_format($all) ?></b><small>Total</small></div>
+        <div class="ai-stat"><b class="js-run-done">0</b><small>Processed</small></div>
+        <div class="ai-stat"><b class="js-run-ok">0</b><small>Scored</small></div>
+        <div class="ai-stat"><b class="js-run-fail">0</b><small>Needs Review</small></div>
+      </div>
+      <div class="ai-run-progress-wrap">
+        <div class="bar"><i class="js-run-bar" style="width:0%"></i></div>
+        <span class="small muted js-run-pct">0%</span>
+      </div>
+      <p class="small js-run-current" style="margin:8px 0 0;min-height:20px"></p>
+      <ul class="ai-log js-run-log" hidden style="max-height:120px;overflow-y:auto"></ul>
+      <div style="margin-top:12px"><button type="button" class="btn btn-light btn-sm js-run-stop"><i class="fa-solid fa-stop"></i> Stop</button></div>
+    </div>
+    <div id="aiRunDone" hidden>
+      <h3><i class="fa-solid fa-circle-check" style="color:#34c66b"></i> AI Assessment Completed</h3>
+      <div class="ai-run-stats">
+        <div class="ai-stat"><b class="js-done-scored">—</b><small>Assessed</small></div>
+        <div class="ai-stat"><b class="js-done-shortlisted">—</b><small>Top 30</small></div>
+        <div class="ai-stat"><b class="js-done-flagged">—</b><small>Flagged</small></div>
+        <div class="ai-stat"><b class="js-done-failed">—</b><small>Not Scored</small></div>
+      </div>
+      <div class="ai-modal-actions">
+        <button type="button" class="btn btn-light js-ai-modal-cancel">Close</button>
+        <a class="btn btn-navy js-done-link" href="shortlist.php"><i class="fa-solid fa-list-check"></i> View Top 30 Shortlist</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.ai-one-click{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px}
+.ai-one-click .btn{font-size:15px;padding:10px 22px}
+.ai-modal-wrap{position:fixed;inset:0;background:rgba(15,37,87,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.ai-modal-wrap[hidden]{display:none}
+.ai-modal{background:#fff;border-radius:16px;padding:28px 28px 24px;max-width:520px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.18)}
+.ai-modal h3{margin:0 0 12px;font-size:18px;color:#0F2557}
+.ai-modal p{margin:0 0 14px;color:#1B2340;line-height:1.6}
+.ai-modal-list{margin:0 0 20px;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.ai-modal-list li{display:flex;align-items:center;gap:8px}
+.ai-modal-list .fa-check{color:#1a6b35}
+.ai-modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.ai-run-stats{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.ai-stat{display:flex;flex-direction:column;align-items:center;min-width:60px;padding:8px 12px;background:#f4f5f9;border-radius:10px}
+.ai-stat b{font-size:22px;font-weight:800;color:#0F2557;line-height:1}
+.ai-stat small{font-size:11px;color:#6B7390;margin-top:2px}
+.ai-run-progress-wrap{display:flex;align-items:center;gap:10px}
+.ai-run-progress-wrap .bar{flex:1;height:10px}
+</style>
 <?php admin_footer(['volunteers-ai.js']);

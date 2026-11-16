@@ -64,7 +64,7 @@ admin_header($v['full_name'], 'volunteers', 'Volunteer trainer application ' . $
 
 <div class="grid-3-1">
   <div class="stack-cards">
-    <?php $n = vol_ai_notes($v); ?>
+    <?php $n = vol_ai_notes($v); $bd = vol_ai_breakdown($v); $elig = vol_ai_eligibility($v); ?>
     <section class="card ai-assess">
       <div class="card-head"><h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI assessment</h3>
         <?php if (can('users') && vol_ai_ready()): ?><form method="post" class="inline" data-confirm="Score this application with AI again?"><?= csrf_field() ?><input type="hidden" name="action" value="ai_rescore"><input type="hidden" name="id" value="<?= (int) $v['id'] ?>"><button class="btn btn-light btn-sm" type="submit"><i class="fa-solid fa-rotate"></i> <?= $v['ai_scored_at'] ? 'Score again' : 'Score now' ?></button></form><?php endif; ?>
@@ -73,11 +73,38 @@ admin_header($v['full_name'], 'volunteers', 'Volunteer trainer application ' . $
         <div class="ai-head">
           <span class="ai-score big ai-<?= vol_ai_band((int) $v['ai_score']) ?>"><?= (int) $v['ai_score'] ?><small>/100</small></span>
           <div>
+            <?php if ($v['ai_recommendation']): ?><span class="badge <?= vol_ai_rec_badge((string) $v['ai_recommendation']) ?>" style="margin-bottom:4px;display:inline-block"><?= e((string) $v['ai_recommendation']) ?></span><br><?php endif; ?>
             <b><?= e(['top' => 'Exceptional fit', 'strong' => 'Strong fit', 'possible' => 'Possible fit', 'weak' => 'Weak fit'][vol_ai_band((int) $v['ai_score'])]) ?></b> · best field: <b><?= e((string) $v['ai_field']) ?></b><?= $v['ai_rank'] ? ' · <span class="badge st-pending">#' . (int) $v['ai_rank'] . ' on the AI shortlist</span>' : '' ?>
             <?php if (!$v['ai_meets']): ?><span class="badge st-cancelled">may not meet the requirements</span><?php endif; ?>
             <p><?= e((string) $v['ai_summary']) ?></p>
           </div>
         </div>
+
+        <?php if ($bd): ?>
+        <div class="ai-breakdown">
+          <h4 class="sub-title">Scoring breakdown</h4>
+          <?php foreach (VOL_AI_CRITERIA as $key => $info):
+            $cs = (int) ($bd[$key] ?? 0); $pct = $info['max'] > 0 ? round($cs / $info['max'] * 100) : 0; ?>
+          <div class="ai-crit">
+            <div class="ai-crit-label"><span><?= e($info['label']) ?></span><span class="ai-crit-score"><?= $cs ?> / <?= $info['max'] ?></span></div>
+            <div class="ai-crit-bar"><i style="width:<?= $pct ?>%"></i></div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($elig): ?>
+        <div class="ai-elig">
+          <h4 class="sub-title">Eligibility checks</h4>
+          <div class="ai-elig-row">
+            <?php $checks = ['age_met' => 'Age 22–40', 'qualification_met' => 'Diploma or higher', 'cv_provided' => 'CV attached', 'sufficient_info' => 'Sufficient information']; ?>
+            <?php foreach ($checks as $key => $label): $met = (bool) ($elig[$key] ?? true); ?>
+            <span class="ai-elig-item <?= $met ? 'elig-ok' : 'elig-fail' ?>"><i class="fa-solid <?= $met ? 'fa-check' : 'fa-xmark' ?>"></i> <?= e($label) ?></span>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
         <div class="ai-points">
           <?php if ($n['strengths']): ?><div><h4><i class="fa-solid fa-circle-plus"></i> Strengths</h4><ul><?php foreach ($n['strengths'] as $s): ?><li><?= e($s) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
           <?php if ($n['concerns']): ?><div><h4><i class="fa-solid fa-circle-minus"></i> Concerns</h4><ul><?php foreach ($n['concerns'] as $s): ?><li><?= e($s) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
@@ -90,6 +117,20 @@ admin_header($v['full_name'], 'volunteers', 'Volunteer trainer application ' . $
         <p class="small muted">Not scored yet. Use <a href="volunteers.php#ai">AI shortlist</a> on the Volunteer trainers page.</p>
       <?php endif; ?>
     </section>
+
+<style>
+.ai-breakdown{margin:14px 0 10px}
+.ai-crit{margin-bottom:8px}
+.ai-crit-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+.ai-crit-score{font-weight:700;color:#0F2557}
+.ai-crit-bar{height:7px;background:#e1e4ed;border-radius:999px;overflow:hidden}
+.ai-crit-bar i{display:block;height:100%;background:var(--navy,#0F2557);border-radius:999px;transition:width .3s}
+.ai-elig{margin:10px 0}
+.ai-elig-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.ai-elig-item{display:flex;align-items:center;gap:5px;font-size:13px;padding:4px 10px;border-radius:999px;font-weight:600}
+.elig-ok{background:#d4f5df;color:#1a6b35}
+.elig-fail{background:#ffe4e4;color:#c4121e}
+</style>
     <section class="card">
       <div class="card-head"><h3><i class="fa-regular fa-user"></i> Personal details</h3></div>
       <dl class="details">
