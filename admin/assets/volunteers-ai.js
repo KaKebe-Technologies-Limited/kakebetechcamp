@@ -64,7 +64,7 @@
     });
   }
 
-  /* ---- One-click: Run AI Scoring & Generate Top 30 ---- */
+  /* ---- One-click: Run AI Scoring & Generate Top 15 ---- */
   const runAllBtn = card.querySelector('.js-ai-run-all');
   const modal     = document.getElementById('aiRunModal');
   if (!runAllBtn || !modal) return;
@@ -164,7 +164,7 @@
 
     await Promise.all([worker(), worker(), worker()]);
 
-    setT('.js-run-current', stopped ? 'Stopped early. Running shortlist on scored applications…' : 'All done. Generating Top 30 shortlist…');
+    setT('.js-run-current', stopped ? 'Stopped early. Running shortlist on scored applications…' : 'All done. Generating Top 15 shortlist…');
 
     // Auto-shortlist after scoring
     let finData;
@@ -176,7 +176,7 @@
     setT('.js-done-flagged',     finData.flagged ?? '—');
     setT('.js-done-failed',      failed || 0);
 
-    // Show shortfall warning if fewer than 30 eligible
+    // Show shortfall warning if fewer than 15 eligible
     const shortfallEl = document.querySelector('.js-done-shortfall');
     if (shortfallEl && finData.shortfall > 0) { shortfallEl.style.display = ''; }
 

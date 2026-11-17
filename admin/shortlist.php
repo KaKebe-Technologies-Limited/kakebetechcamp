@@ -62,7 +62,7 @@ $tot = q("SELECT
 $fieldRows = q("SELECT ai_field lbl, COUNT(*) c, SUM(status = 'accepted') acc, SUM(status = 'declined') `dec`
                 FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY ai_field ORDER BY c DESC")->fetchAll();
 
-// Score distribution buckets for top 30
+// Score distribution buckets for top 15
 $distBuckets = ['90–100' => 0, '80–89' => 0, '70–79' => 0, '60–69' => 0, 'Below 60' => 0];
 foreach (q('SELECT ai_score FROM volunteers WHERE ai_rank IS NOT NULL')->fetchAll() as $r) {
     $s = (int) $r['ai_score'];
@@ -134,7 +134,7 @@ admin_header('Shortlist review', 'volunteers', 'Review the AI-shortlisted applic
   </div>
   <?php endif; ?>
   <?php if ($latestShortfall): ?>
-  <div class="sl-shortfall"><i class="fa-solid fa-triangle-exclamation"></i> <b>Shortfall notice:</b> Only <?= (int) $tot['total'] ?> eligible applicant<?= (int) $tot['total'] === 1 ? '' : 's' ?> found &mdash; <?= $latestShortfall ?> short of the target 30. Review <a href="volunteers.php?ai=unmet">applicants who may not meet requirements</a>.</div>
+  <div class="sl-shortfall"><i class="fa-solid fa-triangle-exclamation"></i> <b>Shortfall notice:</b> Only <?= (int) $tot['total'] ?> eligible applicant<?= (int) $tot['total'] === 1 ? '' : 's' ?> found &mdash; <?= $latestShortfall ?> short of the target 15. Review <a href="volunteers.php?ai=unmet">applicants who may not meet requirements</a>.</div>
   <?php endif; ?>
   <!-- Score distribution -->
   <?php if (array_sum($distBuckets)): ?>

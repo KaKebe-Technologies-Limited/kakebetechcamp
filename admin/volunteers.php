@@ -84,7 +84,7 @@ if (($_GET['export'] ?? '') === '1') {
 if (($_GET['export'] ?? '') === 'xlsx') {
     [$where, $params, $f] = $filters($_GET);
     $isShortlist = $f['ai'] === 'picks';
-    $title = $isShortlist ? 'AI Shortlist — Top 30' : 'Volunteer Trainer Applications';
+    $title = $isShortlist ? 'AI Shortlist — Top 15' : 'Volunteer Trainer Applications';
     header('Content-Type: application/vnd.ms-excel; charset=utf-8');
     header('Content-Disposition: attachment; filename="kakebe-volunteers-' . ($isShortlist ? 'shortlist-' : '') . date('Y-m-d') . '.xls"');
     $rows2 = q("SELECT * FROM volunteers$where ORDER BY " . ($isShortlist ? 'ai_rank' : 'ai_score IS NULL, ai_score DESC, id'), $params)->fetchAll();
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = q("SELECT id FROM volunteers WHERE status <> 'declined'" . (empty($_POST['rescore']) ? ' AND ai_scored_at IS NULL' : '') . ' ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
         json_response(['ok' => vol_ai_ready(), 'ids' => array_map('intval', $ids), 'error' => vol_ai_ready() ? null : 'Add the Anthropic API key first.']);
     }
-    // Start a "Run AI Scoring & Generate Top 30" run — creates the run record and returns the queue
+    // Start a "Run AI Scoring & Generate Top 15" run — creates the run record and returns the queue
     if ($action === 'ai_run_start') {
         session_write_close();
         if (!vol_ai_ready()) {
@@ -196,10 +196,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $total = (int) q("SELECT COUNT(*) FROM volunteers WHERE status <> 'declined'")->fetchColumn();
         json_response(['ok' => true, 'ids' => array_map('intval', $ids), 'run_id' => $runId, 'total' => $total, 'resumed' => true]);
     }
-    // Finish a run: shortlist top 30 and record results
+    // Finish a run: shortlist top 15 and record results
     if ($action === 'ai_run_finish') {
         session_write_close();
-        $size = 30;
+        $size = 15;
         $runId = (int) ($_POST['run_id'] ?? 0);
         [$picked, $newly, $dropped, $shortfall] = vol_ai_shortlist($size, 0, $runId);
         $scored = (int) ($_POST['scored'] ?? 0);
@@ -307,7 +307,7 @@ $ai = q("SELECT SUM(ai_scored_at IS NOT NULL) scored, SUM(status <> 'declined' A
 $aiPct = $all ? (int) floor((int) $ai['scored'] / $all * 100) : 0;
 $pickFields = q('SELECT ai_field label, COUNT(*) c FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY ai_field ORDER BY c DESC')->fetchAll();
 $pickGender = q("SELECT COALESCE(NULLIF(gender, ''), 'Not given') g, COUNT(*) c FROM volunteers WHERE ai_rank IS NOT NULL GROUP BY g ORDER BY c DESC")->fetchAll();
-$aiSize = (int) setting('vol_ai_size', '30') ?: 30;
+$aiSize = (int) setting('vol_ai_size', '15') ?: 15;
 $aiPer = (int) setting('vol_ai_per_field', '3');
 // Detect an interrupted scoring run (started but never completed)
 $pendingRun = null;
@@ -354,7 +354,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
     <div class="bar"><i class="js-ai-bar" style="width: <?= $aiPct ?>%"></i></div>
     <?php if ((int) $ai['unmet']): ?><small class="muted"><?= (int) $ai['unmet'] ?> scored applicant<?= (int) $ai['unmet'] === 1 ? '' : 's' ?> may not meet the requirements (age 22 – 40, at least a Diploma, a CV that is really theirs), so the AI shortlist leaves them out — <a href="volunteers.php?ai=unmet">check them</a>.</small><?php endif; ?>
     <?php if ((int) $ai['nocv']): ?><small class="muted"><?= (int) $ai['nocv'] ?> applicant<?= (int) $ai['nocv'] === 1 ? ' was' : 's were' ?> scored without reading the CV (old Word files or damaged PDFs) — <a href="volunteers.php?ai=nocv">review them yourself</a>.</small><?php endif; ?>
-    <?php if ($latestShortfall): ?><small class="muted" style="color:#b45309"><i class="fa-solid fa-triangle-exclamation"></i> Last shortlist: only <?= (int) $ai['picks'] ?> eligible applicant<?= (int) $ai['picks'] === 1 ? '' : 's' ?> found — <?= $latestShortfall ?> short of the target 30. Review the <a href="volunteers.php?ai=unmet">requirements-failed</a> applicants.</small><?php endif; ?>
+    <?php if ($latestShortfall): ?><small class="muted" style="color:#b45309"><i class="fa-solid fa-triangle-exclamation"></i> Last shortlist: only <?= (int) $ai['picks'] ?> eligible applicant<?= (int) $ai['picks'] === 1 ? '' : 's' ?> found — <?= $latestShortfall ?> short of the target 15. Review the <a href="volunteers.php?ai=unmet">requirements-failed</a> applicants.</small><?php endif; ?>
   </div>
   <?php if (!$aiAdmin): ?>
     <p class="small muted">Only admins can run the AI review. Open an application to see its AI assessment.</p>
@@ -364,7 +364,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
         <span class="ai-key-row"><input type="password" name="anthropic_api_key" autocomplete="off" placeholder="sk-ant-…" required><button class="btn btn-primary" type="submit"><i class="fa-solid fa-key"></i> Save key</button></span></label>
     </form>
   <?php else: ?>
-    <!-- One-click: score + shortlist top 30 in one go -->
+    <!-- One-click: score + shortlist top 15 in one go -->
     <?php if ($pendingRun && $pendingUnscored > 0): ?>
     <div class="ai-resume-banner" data-run-id="<?= (int) $pendingRun['id'] ?>" data-total="<?= (int) $pendingRun['total'] ?>">
       <i class="fa-solid fa-circle-pause"></i>
@@ -375,11 +375,11 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
     <?php endif; ?>
     <div class="ai-one-click">
       <button type="button" class="btn btn-navy js-ai-run-all"<?= (int) $ai['todo'] || (int) $ai['scored'] ? '' : ' disabled' ?>>
-        <i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Scoring &amp; Generate Top 30
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Scoring &amp; Generate Top 15
       </button>
       <label class="check-inline small"><input type="checkbox" class="js-ai-rescore-all"> Score everyone again</label>
     </div>
-    <p class="small muted" style="margin-top:6px;margin-bottom:16px">Scores all applications against seven criteria (100 pts), then shortlists the top 30. You review and make every final decision.</p>
+    <p class="small muted" style="margin-top:6px;margin-bottom:16px">Scores all applications against seven criteria (100 pts), then shortlists the top 15. You review and make every final decision.</p>
     <!-- Advanced: manual two-step -->
     <details class="ai-steps-wrap"><summary class="small muted" style="cursor:pointer;user-select:none">Advanced — score &amp; shortlist separately</summary>
     <div class="ai-steps" style="margin-top:12px">
@@ -541,12 +541,12 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
 <div id="aiRunModal" class="ai-modal-wrap" hidden aria-modal="true" role="dialog">
   <div class="ai-modal">
     <div id="aiRunConfirm">
-      <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Scoring &amp; Generate Top 30</h3>
-      <p>This will read all submitted applications and CVs, score each applicant against seven criteria, and automatically shortlist the top 30 highest-scoring eligible candidates.</p>
+      <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Run AI Scoring &amp; Generate Top 15</h3>
+      <p>This will read all submitted applications and CVs, score each applicant against seven criteria, and automatically shortlist the top 15 highest-scoring eligible candidates.</p>
       <ul class="ai-modal-list">
         <li><i class="fa-solid fa-check"></i> <b><?= number_format($all) ?> applications</b> will be assessed</li>
         <li><i class="fa-solid fa-check"></i> Each application scored out of <b>100 points</b> across seven criteria</li>
-        <li><i class="fa-solid fa-check"></i> Top 30 eligible applicants automatically shortlisted</li>
+        <li><i class="fa-solid fa-check"></i> Top 15 eligible applicants automatically shortlisted</li>
         <li><i class="fa-solid fa-check"></i> All applicants and assessment results retained</li>
         <li><i class="fa-solid fa-info-circle muted"></i> Roughly $0.05–0.10 per application (Anthropic API)</li>
       </ul>
@@ -575,11 +575,11 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
       <h3><i class="fa-solid fa-circle-check" style="color:#34c66b"></i> AI Assessment Completed</h3>
       <div class="ai-run-stats">
         <div class="ai-stat"><b class="js-done-scored">—</b><small>Assessed</small></div>
-        <div class="ai-stat"><b class="js-done-shortlisted">—</b><small>Top 30</small></div>
+        <div class="ai-stat"><b class="js-done-shortlisted">—</b><small>Top 15</small></div>
         <div class="ai-stat"><b class="js-done-flagged">—</b><small>Flagged</small></div>
         <div class="ai-stat"><b class="js-done-failed">—</b><small>Not Scored</small></div>
       </div>
-      <p class="js-done-shortfall small" style="color:#b45309;display:none"><i class="fa-solid fa-triangle-exclamation"></i> Fewer than 30 eligible applicants were found — the shortlist has fewer than 30. Review flagged applicants for eligibility.</p>
+      <p class="js-done-shortfall small" style="color:#b45309;display:none"><i class="fa-solid fa-triangle-exclamation"></i> Fewer than 15 eligible applicants were found — the shortlist has fewer than 15. Review flagged applicants for eligibility.</p>
       <div class="ai-modal-actions">
         <button type="button" class="btn btn-light js-ai-modal-cancel">Close</button>
         <a class="btn btn-navy" href="pick.php"><i class="fa-solid fa-check-to-slot"></i> Pick volunteers</a>
