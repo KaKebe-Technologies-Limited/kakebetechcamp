@@ -123,6 +123,68 @@ if (($_GET['export'] ?? '') === 'xlsx') {
     exit;
 }
 
+/* ---------- ZIP export (data CSV + all CVs) ---------- */
+if (($_GET['export'] ?? '') === 'zip') {
+    [$where, $params, $f] = $filters($_GET);
+    $isShortlist = $f['ai'] === 'picks';
+    $rows3 = q("SELECT * FROM volunteers$where ORDER BY " . ($isShortlist ? 'ai_rank' : 'id'), $params)->fetchAll();
+
+    $tmp = tempnam(sys_get_temp_dir(), 'vol_zip_');
+    $zip = new ZipArchive();
+    if ($zip->open($tmp, ZipArchive::OVERWRITE) !== true) {
+        http_response_code(500);
+        exit('Could not create ZIP archive.');
+    }
+
+    // Build CSV in memory and add it
+    $buf = fopen('php://temp', 'r+');
+    fwrite($buf, "\xEF\xBB\xBF");
+    fputcsv($buf, ['Application', 'Full name', 'Email', 'Phone', 'Gender', 'Age', 'Nationality', 'Based in',
+        'Qualification', 'Course', 'Institution', 'Graduated', 'Fields', 'Experience', 'Current role',
+        'LinkedIn / portfolio', 'Availability', 'Recommended by', 'About', 'Status', 'Applied',
+        'AI score', 'AI shortlist rank', 'Best field (AI)', 'AI recommendation', 'AI summary',
+        'AI strengths', 'AI concerns', 'AI flags',
+        'Technical expertise', 'Relevant experience', 'Training experience',
+        'Projects & portfolio', 'Communication', 'Innovation', 'Programme relevance']);
+    foreach ($rows3 as $v) {
+        $n = vol_ai_notes($v);
+        $bd = vol_ai_breakdown($v);
+        fputcsv($buf, [
+            $v['reference'], $v['full_name'], $v['email'], $v['phone'], $v['gender'],
+            volunteer_age($v['dob']), $v['nationality'], $v['location'], $v['qualification'],
+            $v['course'], $v['institution'], $v['grad_year'],
+            str_replace(',', '; ', $v['fields']), $v['experience'], $v['job_role'],
+            $v['portfolio_url'], volunteer_availability_options()[$v['availability']] ?? $v['availability'],
+            $v['referred_by'], $v['bio'], $statuses[$v['status']] ?? $v['status'], $v['created_at'],
+            $v['ai_score'], $v['ai_rank'], $v['ai_field'], $v['ai_recommendation'], $v['ai_summary'],
+            implode('; ', $n['strengths']), implode('; ', $n['concerns']), implode('; ', $n['flags']),
+            $bd['technical_expertise'] ?? '', $bd['relevant_experience'] ?? '',
+            $bd['training_experience'] ?? '', $bd['practical_projects'] ?? '',
+            $bd['communication'] ?? '', $bd['innovation'] ?? '', $bd['programme_relevance'] ?? '',
+        ]);
+    }
+    rewind($buf);
+    $zip->addFromString('volunteers.csv', stream_get_contents($buf));
+    fclose($buf);
+
+    // Add each CV into CVs/
+    foreach ($rows3 as $v) {
+        $path = volunteer_cv_path($v);
+        if ($path) {
+            $zip->addFile($path, 'CVs/' . volunteer_cv_name($v));
+        }
+    }
+
+    $zip->close();
+    $label = $isShortlist ? 'shortlist' : 'all';
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="kakebe-volunteers-' . $label . '-' . date('Y-m-d') . '.zip"');
+    header('Content-Length: ' . filesize($tmp));
+    readfile($tmp);
+    unlink($tmp);
+    exit;
+}
+
 /* ---------- Bulk status / settings ---------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
@@ -491,6 +553,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
       <button class="btn btn-primary btn-sm" type="submit" id="bulkApply" disabled>Apply</button>
       <a href="<?= e($url(['export' => 1, 'page' => null])) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-csv"></i> CSV</a>
       <a href="<?= e($url(['export' => 'xlsx', 'page' => null])) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-excel"></i> Excel</a>
+      <a href="<?= e($url(['export' => 'zip', 'page' => null])) ?>" class="btn btn-light btn-sm"><i class="fa-solid fa-file-zipper"></i> ZIP (+ CVs)</a>
     </div>
   </div>
   <?php if ($rows): ?>
@@ -585,6 +648,7 @@ admin_header('Volunteer trainers', 'volunteers', 'People offering their expertis
         <a class="btn btn-navy" href="pick.php"><i class="fa-solid fa-check-to-slot"></i> Pick volunteers</a>
         <a class="btn btn-light" href="shortlist.php"><i class="fa-solid fa-list-check"></i> View shortlist</a>
         <a class="btn btn-light btn-sm" href="volunteers.php?export=xlsx&ai=picks"><i class="fa-solid fa-file-excel"></i> Export Shortlist</a>
+        <a class="btn btn-light btn-sm" href="volunteers.php?export=zip&ai=picks"><i class="fa-solid fa-file-zipper"></i> ZIP + CVs</a>
       </div>
     </div>
   </div>
