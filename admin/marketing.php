@@ -156,6 +156,136 @@ if (date('Y-m-d') <= '2026-11-10' && db()->exec("INSERT IGNORE INTO settings (sk
     }
 }
 
+// ── Draft 1 of 2 for volunteers (Nov 2026): regret notice — not selected, we value you, more in 4 days
+if (date('Y-m-d') <= '2026-12-05' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_vol_rejection_nov26', '1')") === 1) {
+    mk_sync_website_people();
+    $volList = mk_list_id('Website · Volunteer trainers');
+    $strip   = base_url('assets/img/email/partners-strip.png');
+    $body = '<p>Dear {first_name},</p>'
+        . '<p>On behalf of the entire Kakebe Tech Camp 2026 team, we want to begin by saying — <strong>thank you</strong>. Thank you for taking the time, the energy, and the courage to apply as a Volunteer Trainer for <strong>Kakebe Tech Camp 2026</strong>.</p>'
+        . '<p>We received an extraordinary number of applications this year, and reviewing every single one has been both inspiring and genuinely difficult. The talent, passion, and commitment we saw — including in your application — truly gave us hope for the future of Uganda\'s technology and innovation ecosystem.</p>'
+        . '<h2>An update on your application</h2>'
+        . '<p>After a thorough and careful review process, we regret to inform you that <strong>we are unable to offer you a place as a Volunteer Trainer for Kakebe Tech Camp 2026</strong> at this time.</p>'
+        . '<p>This was one of the hardest decisions our team has had to make, and we want you to know clearly: <strong>this outcome is in no way a reflection of your worth, your skills, or your potential</strong>. The number of exceptional applicants this year far exceeded the positions available, and many people who clearly deserved a place could not be accommodated — including you.</p>'
+        . '<h2>We see you. We value you.</h2>'
+        . '<p>Your interest in Kakebe, your willingness to serve, and your commitment to young people does not go unnoticed. We are determined to find meaningful ways to keep you connected to our mission — because talented, passionate individuals like you are exactly who this movement needs.</p>'
+        . '<blockquote><strong>What happens next:</strong> Within the next <strong>4 days</strong>, we will be reaching out with an exciting opportunity for you to still be a meaningful part of Kakebe Tech Camp 2026. Please watch your inbox — we look forward to sharing it with you.</blockquote>'
+        . '<p>Thank you again for your trust in us and for everything you bring. This is not goodbye — it is the beginning of something we hope to build together.</p>'
+        . '<h3>With the support of</h3>'
+        . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation and Oroma TV">'
+        . '<p>With warm regards,<br><strong>The Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>'
+        . '<p><em>Be informed. Get inspired. Be part of the movement!</em></p>';
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Volunteers — application update (not selected, Nov 2026)',
+        '{first_name}, an important update on your Kakebe Tech Camp 2026 volunteer application',
+        'We value your interest deeply — and we have something exciting to share with you in the next 4 days',
+        mk_clean_body($body), null, null, $volList, (string) $volList, $admin['id'], now(), now(),
+    ]);
+}
+
+// ── Draft 2 of 2 for volunteers (Nov 2026): attend the camp at a special rate of UGX 80,000 as participant + peer trainer
+if (date('Y-m-d') <= '2026-12-05' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_vol_attend_discount_nov26', '1')") === 1) {
+    mk_sync_website_people();
+    $volList = mk_list_id('Website · Volunteer trainers');
+    $strip   = base_url('assets/img/email/partners-strip.png');
+    $regUrl  = base_url('register');
+    $body = '<p>Dear {first_name},</p>'
+        . '<p>A few days ago, we shared an update on your Volunteer Trainer application for Kakebe Tech Camp 2026, and we promised to come back with something special. <strong>We are keeping that promise today.</strong></p>'
+        . '<h2>An exclusive invitation — just for you</h2>'
+        . '<p>We know how much you care about technology, education, and making a difference in the lives of young people. Your application showed that clearly. And while the volunteer trainer slots were limited, <strong>your Kakebe journey does not have to end here.</strong></p>'
+        . '<h2>Attend Kakebe Tech Camp 2026 at a special rate</h2>'
+        . '<p>As a sincere token of our appreciation for your time and your belief in what we are building, we are offering all our volunteer applicants the opportunity to <strong>attend the full Kakebe Tech Camp 2026 at an exclusive discounted rate of UGX 80,000</strong>.</p>'
+        . '<ul>'
+        . '<li>📅 <strong>Dates:</strong> 14th – 23rd December 2026 (10 days)</li>'
+        . '<li>📍 <strong>Venue:</strong> Kitgum, Northern Uganda</li>'
+        . '<li>💰 <strong>Your exclusive rate:</strong> UGX 80,000 (for volunteer applicants only)</li>'
+        . '<li>🏕️ <strong>Includes:</strong> full programme, accommodation, meals, all training sessions and activities</li>'
+        . '</ul>'
+        . '<h2>Your role at the camp — more than just a participant</h2>'
+        . '<p>Attending as a participant does not mean you sit on the sidelines. You will have the opportunity to <strong>serve as a Peer Trainer or Mentor</strong> during sessions in your area of expertise. Your knowledge and experience have real value — and the young innovators at the camp will benefit greatly from having someone like you in the room.</p>'
+        . '<p>This is a chance to <strong>learn, lead, connect, and leave a lasting legacy</strong> — all in one extraordinary week in Kitgum.</p>'
+        . '<blockquote>⚡ <strong>Important:</strong> This offer is <em>exclusively for our volunteer applicants</em> and places are strictly limited. We encourage you to register and secure your place as soon as possible.</blockquote>'
+        . '<p>We truly hope to see you in Kitgum this December. This is your moment to be part of something extraordinary.</p>'
+        . '<h3>With the support of</h3>'
+        . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation and Oroma TV">'
+        . '<p>Warm regards,<br><strong>The Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>'
+        . '<p><em>Be informed. Get inspired. Be part of the movement!</em></p>';
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Volunteers — attend the camp at UGX 80,000 (exclusive offer, Nov 2026)',
+        '{first_name}, you\'re still invited — attend Kakebe Tech Camp 2026 at a special rate',
+        'Exclusive rate: UGX 80,000 for the full 10-day camp · serve as peer trainer in your field of expertise',
+        mk_clean_body($body), 'Register at the discounted rate', $regUrl, $volList, (string) $volList, $admin['id'], now(), now(),
+    ]);
+}
+
+// ── Canva Africa partnership announcement (Nov 2026): $15,000 partnership, every participant gets Canva Pro
+if (date('Y-m-d') <= '2026-11-25' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_canva_partnership_nov26', '1')") === 1) {
+    mk_sync_website_people();
+    $everyone = mk_list_id('Website · Everyone registered');
+    $strip    = base_url('assets/img/email/partners-strip.png');
+    $body = '<p>Dear {first_name},</p>'
+        . '<p>We have some incredible news to share with you today — news that makes your decision to be part of <strong>Kakebe Tech Camp 2026</strong> even more valuable and exciting.</p>'
+        . '<h2>🎉 Kakebe Tech Camp partners with Canva Africa</h2>'
+        . '<p>We are absolutely thrilled to announce that <strong>Kakebe Technologies has entered into a landmark partnership with Canva Africa</strong>, valued at over <strong>USD 15,000</strong>. This partnership has been built specifically to empower every young innovator who attends Kakebe Tech Camp 2026 — and that includes you.</p>'
+        . '<h2>What this means for you</h2>'
+        . '<p>As part of this powerful partnership, <strong>every confirmed camp participant will receive a full Canva Pro account</strong> — giving you professional-grade access to one of the world\'s most widely used design and branding platforms.</p>'
+        . '<ul>'
+        . '<li>🎨 <strong>Canva Pro access</strong> — premium templates, brand kits, background remover, AI design tools and much more</li>'
+        . '<li>🖥️ <strong>Design, branding &amp; digital content creation</strong> — skills that every innovator, entrepreneur and leader needs today</li>'
+        . '<li>📜 <strong>Recognition</strong> from both Kakebe Technologies and Canva Africa</li>'
+        . '<li>🚀 <strong>A powerful head start</strong> in digital marketing, personal branding and content creation</li>'
+        . '</ul>'
+        . '<blockquote>⭐ <strong>Your place, your Canva Pro.</strong><br>This opportunity is <strong>exclusively for confirmed, attending camp participants</strong>. Your Canva Pro account will be set up ahead of the camp — but only for those who have confirmed their participation and are present at the camp in Kitgum.</blockquote>'
+        . '<p>We are building something extraordinary this December, and you are right at the heart of it. Stay tuned — more exciting announcements are coming your way very soon.</p>'
+        . '<h3>With the support of</h3>'
+        . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation and Oroma TV">'
+        . '<p>With excitement,<br><strong>The Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>'
+        . '<p><em>Be informed. Get inspired. Be part of the movement!</em></p>';
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Canva Africa partnership — $15,000 · every participant gets Canva Pro (Nov 2026)',
+        '🎉 {first_name}, big news — Kakebe Tech Camp partners with Canva Africa',
+        'USD 15,000 partnership · every confirmed participant gets a full Canva Pro account',
+        mk_clean_body($body), null, null, $everyone, (string) $everyone, $admin['id'], now(), now(),
+    ]);
+}
+
+// ── Canva commitment + payment nudge (Nov 2026): pay at least UGX 50,000 to confirm spot and get Canva Pro from 1 Dec
+if (date('Y-m-d') <= '2026-11-25' && db()->exec("INSERT IGNORE INTO settings (skey, svalue) VALUES ('mk_seed_canva_payment_nov26', '1')") === 1) {
+    mk_sync_website_people();
+    $unpaid = mk_list_id('Website · Tech Camp — not paid yet');
+    $strip  = base_url('assets/img/email/partners-strip.png');
+    $phone  = e((string) setting('contact_phone', '0779 712 990'));
+    $body = '<p>Dear {first_name},</p>'
+        . '<p>Earlier today, we shared exciting news about our new partnership with <strong>Canva Africa</strong> — and the <strong>Canva Pro account</strong> that every confirmed Kakebe Tech Camp 2026 participant will receive. If you missed it, check your inbox!</p>'
+        . '<p>Now, here is exactly what you need to do to <strong>claim yours</strong>.</p>'
+        . '<h2>Confirm your place. Unlock your Canva Pro.</h2>'
+        . '<p>To finalise our partnership with Canva Africa and officially submit your details for account activation, we need to confirm who is attending the camp. <strong>Canva Pro access starts on 1st December 2026</strong> — giving you a full two weeks of premium access <em>before</em> the camp even begins in Kitgum.</p>'
+        . '<p><strong>All you need to do is commit by paying a minimum of UGX 50,000 to confirm your place.</strong> You can clear the remaining balance of your camp fee at any point before the camp.</p>'
+        . '<h2>Here is what happens when you pay</h2>'
+        . '<ul>'
+        . '<li>✅ Your place at Kakebe Tech Camp 2026 is <strong>confirmed and secured</strong></li>'
+        . '<li>📧 Your email is <strong>submitted to Canva Africa</strong> for Canva Pro activation on <strong>1st December 2026</strong></li>'
+        . '<li>🎨 You get <strong>full Canva Pro access from 1st December</strong> — two weeks before the camp starts</li>'
+        . '<li>💰 Pay the remaining balance of your <strong>{amount_due}</strong> at any time before 14th December</li>'
+        . '<li>🏕️ Arrive in Kitgum with your Canva Pro already active and ready to use</li>'
+        . '</ul>'
+        . '<h2>Pay now with your personal link</h2>'
+        . '<p>Use the button below — your own secure payment page, no login needed. Pay with <strong>MTN or Airtel Mobile Money</strong>, or a <strong>Visa / Mastercard</strong>.</p>'
+        . '<p>{pay_buttons}</p>'
+        . '<blockquote>⚡ <strong>Act now.</strong> We will be submitting the final list to Canva Africa very soon. Only participants who have made a payment of at least UGX 50,000 will be included. Do not miss this opportunity.</blockquote>'
+        . '<p>If you have already made your payment — <strong>thank you!</strong> Your Canva Pro is on its way. If you have any questions or need help with payment, reply to this email or call / WhatsApp us on <strong>' . $phone . '</strong>.</p>'
+        . '<h3>With the support of</h3>'
+        . '<img src="' . $strip . '" alt="Kakebe Technologies, UNDP, European Union, United Nations, Spotlight Initiative, BetterLife International Organisation and Oroma TV">'
+        . '<p>Warm regards,<br><strong>The Kakebe Tech Camp 2026 Team</strong><br>Kakebe Technologies</p>'
+        . '<p><em>Be informed. Get inspired. Be part of the movement!</em></p>';
+    q('INSERT INTO mk_campaigns (name, subject, preheader, body, cta_label, cta_url, list_id, list_ids, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        'Canva Pro — pay UGX 50,000 to confirm your place and unlock access from 1 Dec (Nov 2026)',
+        '{first_name}, pay UGX 50,000 now to confirm your place and unlock Canva Pro from 1st December',
+        'Confirm your spot · get Canva Pro from 1 December · pay the balance before the camp',
+        mk_clean_body($body), 'Pay now and secure your place', null, $unpaid, (string) $unpaid, $admin['id'], now(), now(),
+    ]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $action = (string) ($_POST['action'] ?? '');
